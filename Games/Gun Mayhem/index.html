@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gun Mayhem (Flash via Ruffle)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        #container {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+
+    <!-- API + Ruffle (Flash emulator) -->
+    <script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+
+    <script>
+        window.RufflePlayer = window.RufflePlayer || {};
+    window.RufflePlayer.config = {
+      "autoplay": "off",
+      "polyfills": true,
+      "letterbox": "on",
+      "backgroundColor": null,
+      "scale": "showAll",
+      "allowFullscreen": true,
+      "forceScale": true,
+      "forceAlign": true,
+      "splashScreen": true,
+      "wmode": "Window",
+      "unmuteOverlay": "hidden",
+      "quality": "high"
+    };
+
+    window.addEventListener("load", () => {
+      const ruffle = window.RufflePlayer.newest();
+      const player = ruffle.createPlayer();
+      const container = document.getElementById("container");
+      container.appendChild(player);
+
+      // SWF file from original payload
+      player.load("https://cdn.jsdelivr.net/gh/UndercoverMoose/flashgames@6a11175e9c021f8359d626300aa73e16ef9c6ebd/games/gun-mayhem.swf");
+
+      player.style.width = "100%";
+      player.style.height = "100%";
+    });
+    </script>
+
+    <!-- Monetization / SDK options -->
+    <script type="text/javascript">
+        window.SDK_OPTIONS = {
+      gameId: "r2tzpy9cgrn2u4xgzc9z0zbtvxm16mby",
+      onEvent: function(a) {
+        switch (a.name) {
+          case "SDK_GAME_PAUSE":
+            break;
+          case "SDK_GAME_START":
+            break;
+          case "SDK_READY":
+            break;
+        }
+      }
+    };
+
+    // Inject gamemonetize SDK if not present
+
+    </script>
+
+    <!-- Show ad banner once on first click -->
+
+</body>
+
+</html>
