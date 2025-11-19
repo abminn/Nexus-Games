@@ -98,12 +98,14 @@
     <script id="unity-loader" src="js/UnityLoader.js"></script>
     <!--<script src="Build/UnityLoader.js"></script>-->
 <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>
-    <script>
+    <script type="module">
+const dataURL = await combineUnityData(["rc.data.unityweb.part1", "rc.data.unityweb.part2"])
+
       var gameConfig = {
 "companyName": "JustPlay.LOL",
 "productName": "1v1.LOL",
 "productVersion": "3.800",
-"dataUrl": combineUnityData(["rc.data.unityweb.part1", "rc.data.unityweb.part2"]),
+"dataUrl": dataURL,
 "wasmCodeUrl": "rc.wasm.code.unityweb",
 "wasmFrameworkUrl": "rc.wasm.framework.unityweb",
 "graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
@@ -164,6 +166,25 @@
       }
 
       window.addEventListener("resize", injectAdByWindowSize);
+
+      function injectAdByWindowSize() {
+        // Inject small ad if screen is small, or large ad if screen is large
+        if (window.innerHeight < 900) {
+          if (document.getElementById("adRectangleBottom") == null) {
+            var el = document.getElementsByClassName("ad-rectangle-bottom")[0];
+            el.id = "adRectangleBottom";
+            cpmstarAPI({ kind: "go", module: "POOL 83025", config: { conditions: { target: { el: el, kind: "replace" } } } });
+          }
+        } else {
+          if (document.getElementById("adLeaderboardBottom") == null) {
+            var el = document.getElementsByClassName("ad-leaderboard-bottom")[0];
+            el.id = "adLeaderboardBottom";
+            cpmstarAPI({ kind: "go", module: "POOL 85420", config: { conditions: { target: { el: el, kind: "replace" } } } });
+          }
+        }
+      }
+
+      injectAdByWindowSize();
 
       var refreshNextTime = true;
 
@@ -287,5 +308,4 @@
     </script>
 </body>
 </html>
-
 
