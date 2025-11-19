@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en-us">
 <head>
@@ -101,16 +102,54 @@
 	<script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>  
     <script id="unity-loader" src="js/UnityLoader.js"></script>
     <!--<script src="Build/UnityLoader.js"></script>-->
-<script src="files.js"></script>
     <script>
+      async function fetchWithProgress(url) {
+            const response = await fetch(url);
+            const reader = response.body.getReader();
+            let chunks = [];
+            let received = 0;
+            while (true) {
+                const {
+                    done,
+                    value
+                } = await reader.read();
+                if (done) break;
+                received += value.length;
+                chunks.push(value);
+            }
+            let fullBuffer = new Uint8Array(received);
+            let offset = 0;
+            for (let chunk of chunks) {
+                fullBuffer.set(chunk, offset);
+                offset += chunk.length;
+            }
+            return fullBuffer.buffer;
+        }
+        async function mergeFiles(fileParts) {
+            const buffers = await Promise.all(fileParts.map(part => fetchWithProgress(part)));
+            const mergedBlob = new Blob(buffers);
+            return URL.createObjectURL(mergedBlob);
+        }
+
+        function getParts(file, start, end) {
+            let parts = [];
+            for (let i = start; i <= end; i++) {
+                parts.push(file + ".part" + i);
+            }
+            return parts;
+        }
+      
 (async () => {
-     const dataURL = await mergeParts(["rc.data.unityweb.part1", "rc.data.unityweb.part2"]);
-console.log(dataURL);
+ const dataUrl = await Promise.all([
+   mergeFiles(getParts("rc.data.unityweb", 1, 2)),
+  ]);   
+  
+  
   var gameConfig = {
 "companyName": "JustPlay.LOL",
 "productName": "1v1.LOL",
 "productVersion": "3.800",
-"dataUrl": dataURL,
+"dataUrl": dataUrl + "#rc.data.unityweb",
 "wasmCodeUrl": "rc.wasm.code.unityweb",
 "wasmFrameworkUrl": "rc.wasm.framework.unityweb",
 "graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
