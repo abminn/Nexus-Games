@@ -10,7 +10,6 @@ async function fetchWithProgress(url) {
                 } = await reader.read();
                 if (done) break;
                 received += value.length;
-                loadedBytes += value.length;
                 chunks.push(value);
             }
             let fullBuffer = new Uint8Array(received);
