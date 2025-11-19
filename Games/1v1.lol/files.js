@@ -1,35 +1,39 @@
-async function fetchWithProgress(url) {
-            const response = await fetch(url);
-            const reader = response.body.getReader();
-            let chunks = [];
-            let received = 0;
-            while (true) {
-                const {
-                    done,
-                    value
-                } = await reader.read();
-                if (done) break;
-                received += value.length;
-                chunks.push(value);
-            }
-            let fullBuffer = new Uint8Array(received);
-            let offset = 0;
-            for (let chunk of chunks) {
-                fullBuffer.set(chunk, offset);
-                offset += chunk.length;
-            }
-            return fullBuffer.buffer;
-        }
-  
-async function combineUnityData(parts) {
-    const buffers = await Promise.all(parts.map(part => fetchWithProgress(part)));
-    const mergedBlob = new Blob(buffers, { type: "application/octet-stream" });
+async function fetchBinary(url) {
+    const res = await fetch(url);
+    const reader = res.body.getReader();
+    const chunks = [];
+    let total = 0;
 
-    let url = URL.createObjectURL(mergedBlob);
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-    // JSBin and similar environments insert hidden linebreaks
-    url = url.replace(/\r?\n|\r/g, "").trim();
+        chunks.push(value);
+        total += value.byteLength;
+    }
 
-    // UnityLoader requires a "fake extension"
-    return url + "#rc.data.unityweb";
+    // combine chunks
+    const output = new Uint8Array(total);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+        output.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+
+    return output;
+}
+
+async function mergeParts(parts) {
+    const buffers = await Promise.all(parts.map(fetchBinary));
+    const totalSize = buffers.reduce((a, b) => a + b.byteLength, 0);
+    const output = new Uint8Array(totalSize);
+
+    let offset = 0;
+    for (const buf of buffers) {
+        output.set(buf, offset);
+        offset += buf.byteLength;
+    }
+
+    return URL.createObjectURL(new Blob([output.buffer]))
 }
