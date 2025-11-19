@@ -1,9 +1,391 @@
-<html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ignis - Unblocked Games</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0px;
+      background: linear-gradient(90deg, #0a063d, #2e0404);
+      font-family: "Rajdhani", sans-serif;
+      font-weight: 550;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    /* Main Container */
+    #main-container {
+      padding: 40px;
+      text-align: center;
+      animation: fadeIn 0.8s ease;
+    }
+
+    h1 {
+      font-family: "Orbitron", sans-serif;
+      font-size: 60px;
+      margin-bottom: 20px;
+      background: linear-gradient(90deg, #ff003c, #0066ff);
+      -webkit-background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 rgb(255,0,150, 0.3)
+    }
+
+    /* Search Bar */
+    #search {
+      width: 60%;
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-size: 18px;
+      border: 2px solid #223;
+      background: #0f0f18;
+      color: white;
+      outline: none;
+      transition: 0.2s;
+      box-shadow: 0 0 10px #0066ff;
+      border-color: #0066ff;
+    }
+    #search:hover {
+      border-color: #ff003c;
+      box-shadow: 0 0 10px #ff003c;
+    }
+    #search:focus {
+      border-color: #d622c1;
+      box-shadow: 0 0 10px #d622c1;
+    }
+
+    /* Game Grid */
+    #game-grid {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 30px;
+      padding: 20px;
+    }
+
+    .game-card {
+      background: #15151f;
+      border-radius: 20px;
+      border: 2px solid;
+      padding: 15px;
+      cursor: pointer;
+      opacity: 1;
+      animation: popIn 0.5s;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+      transform-origin: center;
+      box-shadow: 0 0 15px #0066ff;
+      border-color: #0066ff;
+    }
+
+    .game-card:hover {
+      transform: scale(1.03);
+      border-color: #ff003c;
+      box-shadow: 0 0 15px #ff003c;
+    }
+
+    .game-card:active {
+      transform: scale(0.95);
+      border-color: #d62285;
+      box-shadow: 0 0 15px #d62285;
+    }
+
+    .game-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .game-title {
+      margin-top: 10px;
+      font-size: 20px;
+    }
+
+    /* Animations */
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="main-container">
+    <h1>IGNIS</h1>
+    <input type="text" id="search" placeholder="Search games..." />
+
+    <div id="game-grid">
+    </div>
+  </div>
   
-  <body>
-    <script type="module">
-      const _0x30a4=['hIn0WRWe','oWBdK8oNW7D7WRRcUeeGWRy','W4flW693','WQVdPsO2ouyH','W6VcLgiJWOK','aCoNdhq','W4T9W7r4EW','WP/dVNHnWQi','cSkui8o+jG','WRFcJLVcQsu','W5SBkmk2','o8o1W4mMW5hdNZDTaSkyfCkH','n8oXWOpdH8ou','WP/dVNrM','pG3dRSkDqW','c1L2','W4BdNadcNuG','ACkTWPLGWOS','lvxdLey','sgXAnmk9BCkozhtcV2ddSG','eer6WPK','aeXHWPy','DCoBm8k5DgWnW7ZdNKb+','WO8VjSoyB8oVWPO9WPFdH8kMEW','pSoXW4iGW5ddNHP5emkCj8kR','W6NcR8k9W64b','ySkBngtcPq','W6tcPWy9WPa','y8k7W4JcMSkC','rCo1imkNea','cmkoo8kmW7C','n8klW47cSmkEE8kE','W4TRW47dN8k8','WOBcGgBdMG7dR0xdJK4fcCke','WRZcSZ05W5S','W7FdVrFdGxxdPSk4WPpcTmksWOvm','W4tcLCk5W6KC','oW3cMLL5','prdcHKv/','qSkCW7xcLSkP','rmkuEmoC','b1L6WOuf','puNdMvBdHW','rCkhFSosiq','WQVdOcyHg2CY','WPn9DmkapW','zCkoW4JdJmkH','C1VcU8ohfG','pMSZWQ/dIW','WONdUevD','nqNdQmkFqxegBHJdM8kpfa','B8kNW5tcKmkC','W6xdQrzpW7W','WOKSjCoCyG','yKlcSmoybW','mJFdR8oiWRC','W4JcVWayWPe','mSkqgJJdGG','tmkqySoAjW','ox3cOmk9WOHBWP8','idLAWPuy','W5BdIGBdUmoQ','WR8uAr7dVG','cuvLnZ4','kmkWWPjNWPe','uSkDW6lcSmk+','W5irW4VdJSkm','WQJcQLBcKsW','W5hdOSotWQK','pCk1imkoW4e','bvldMGG','W43cSeu','W7ldPbzEW6m','W7pdJdu','x0FcUmkVWOG','CSkjaHL8','bftdKaK','cmoukehdSG','eJyLzmok','WPHBlmo8W5y','WPSXdSk5WOq','pCkOeSkzW5y','iSonr0WZo8k1fSkFkCkvfW','B8kUW5tcNmkD','WQFdMmoA','W6ZcIKP2W78','WQvYlSolW7y','FCorw1u','lKZdIGZdIW','W7j8W7PFta','F8k/zJ3cRq','n8k6EWxcK1dcIW','c8kMuhpdJq','WQG0m8kIWRy','g24DWRZdMW','lrOPA8o+','gmogpSkkaa','WQZdSK9WWOK','FSo7pmkr','dLxdKW','iSomquaWomkxcmk7oCk9iG','kSklomoCbq','WP90rwRdTG','fmo/hvRdGG','vmk+W43cVmkB','wgxcQCozha','awzBeW0','W7JcGCkpW6qfu8oOWQrbyZW','W5NcNtK','W5xdQWq1gW','Emo4W43cM2e','mZhdR8oF','pJ1v','W7xcNCkMW7uG','W6LJn2pcIa','AmorW5ZdUtu','W6/dHCk7W4Cd','W5pdGYpcHum','WRxdS0eCWRS','WPZdGf1vWR0','WPJcV01qWQi','W7BdPCk3W4a2','W5RcSsvHW5a','kmkUoCkCW6u','dLxdKGm'];const _0x11f39f=_0x4198;(function(_0x17ceb3,_0xde1a75){const _0x1a6872=_0x4198;while(!![]){try{const _0x4f2ad7=-parseInt(_0x1a6872(0x11f,'^pUg'))+-parseInt(_0x1a6872(0x14b,'S@g0'))+-parseInt(_0x1a6872(0x126,'Q$w$'))*-parseInt(_0x1a6872(0x164,'LGXd'))+-parseInt(_0x1a6872(0x143,'T%lW'))*parseInt(_0x1a6872(0x116,'$dem'))+parseInt(_0x1a6872(0x15b,'1dU$'))+parseInt(_0x1a6872(0x14e,'e1]2'))+parseInt(_0x1a6872(0xf6,'&C(J'))*parseInt(_0x1a6872(0x150,'T%lW'));if(_0x4f2ad7===_0xde1a75)break;else _0x17ceb3['push'](_0x17ceb3['shift']());}catch(_0x16cd94){_0x17ceb3['push'](_0x17ceb3['shift']());}}}(_0x30a4,0x1f70b));import{initializeApp}from'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';import{getFirestore,doc,setDoc,getDoc}from'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';const firebaseConfig={'apiKey':_0x11f39f(0x156,'M#YC')+_0x11f39f(0x115,'$dem')+'IoVFK'+_0x11f39f(0x166,')4Sq')+_0x11f39f(0x12f,'pdVb')+'i1G0L'+'ZFrc8'+_0x11f39f(0x142,'LFH5'),'authDomain':_0x11f39f(0x120,'te%i')+_0x11f39f(0x165,'Pm(U')+_0x11f39f(0x133,'qqiI')+'ebase'+_0x11f39f(0x113,'8!KP')+'om','projectId':_0x11f39f(0x10e,')4Sq')+'-game'+'s','storageBucket':_0x11f39f(0x118,'#PQE')+_0x11f39f(0xf4,'Kg(c')+_0x11f39f(0x158,'txls')+'ebase'+'stora'+'ge.ap'+'p','messagingSenderId':'88097'+_0x11f39f(0xf0,'Pm(U')+'92','appId':_0x11f39f(0x12d,'b)!t')+_0x11f39f(0x146,'gyG@')+_0x11f39f(0x144,')4Sq')+_0x11f39f(0x12e,'HY#x')+'b0a44'+_0x11f39f(0x152,'$dem')+'fa99e'+_0x11f39f(0x131,'xujQ')+'1','measurementId':_0x11f39f(0x121,'b)!t')+_0x11f39f(0x11b,'Vzzm')+'L0'},app=initializeApp(firebaseConfig),db=getFirestore(app);async function getCode(){const _0x7f6e0e=_0x11f39f,_0x3db220={'qyeOz':function(_0x258eab,_0x396781){return _0x258eab!==_0x396781;},'WwYxL':_0x7f6e0e(0x123,')4Sq'),'nWonS':'error'+'s','OwlSi':function(_0x54278d,_0x2075d6){return _0x54278d!==_0x2075d6;},'XVLXw':_0x7f6e0e(0x15a,'uqV#'),'mRPTJ':_0x7f6e0e(0xf9,'b)!t'),'cNXxo':function(_0x35d130,_0x500489){return _0x35d130!==_0x500489;},'epdzM':_0x7f6e0e(0x140,'te%i'),'WAizA':_0x7f6e0e(0x141,'1dU$'),'hiNdE':function(_0x2b22dd,_0x41ab4f){return _0x2b22dd(_0x41ab4f);},'bLFgr':function(_0x1f2fcb,_0x1d5fed){return _0x1f2fcb+_0x1d5fed;},'IFQCR':_0x7f6e0e(0x151,'*BWF')+_0x7f6e0e(0x117,'lb]O')+_0x7f6e0e(0xfe,'1dU$')+_0x7f6e0e(0x112,'^pUg'),'JIiKN':_0x7f6e0e(0x13c,'yKvD')+_0x7f6e0e(0xfa,'@M82')+_0x7f6e0e(0x161,'U3If')+_0x7f6e0e(0xfb,'T%lW')+_0x7f6e0e(0x110,'^K4p')+'is\x22)('+'\x20)','ptSqD':function(_0x44c932){return _0x44c932();},'LqFGY':_0x7f6e0e(0x10f,'Q$w$'),'fPJVF':'warn','gLsXg':_0x7f6e0e(0x137,'toMw'),'OIVQp':_0x7f6e0e(0x163,'Vzzm'),'rDGiQ':_0x7f6e0e(0x16c,'xujQ')+_0x7f6e0e(0x14c,'U3If'),'lDeYG':_0x7f6e0e(0x167,'gyG@'),'lIjOO':_0x7f6e0e(0x100,'M#YC'),'rkhnE':function(_0x4b7f8a,_0x3da494){return _0x4b7f8a<_0x3da494;},'WEBkq':function(_0x591c7f,_0x2cb73e,_0x1df4a1){return _0x591c7f(_0x2cb73e,_0x1df4a1);},'GcdIY':function(_0x27f815){return _0x27f815();},'ZbSrA':function(_0x48a4f9,_0x3e66c2,_0x204ea1,_0x2f9d19){return _0x48a4f9(_0x3e66c2,_0x204ea1,_0x2f9d19);},'TTXEP':_0x7f6e0e(0x107,'toMw'),'aixqA':function(_0x106eb1,_0x37e6ff){return _0x106eb1===_0x37e6ff;},'DUOcG':_0x7f6e0e(0x114,'k)0$'),'wQvlm':'Read\x20'+_0x7f6e0e(0x15e,'cX(]')+':'},_0x4b1bab=function(){const _0x3eea29=_0x7f6e0e,_0x191998={'aswsw':function(_0x356050,_0x2da12f){const _0xe630a8=_0x4198;return _0x3db220[_0xe630a8(0x122,'lb]O')](_0x356050,_0x2da12f);},'jTcxB':_0x3db220[_0x3eea29(0x105,'&C(J')]};let _0x3ce7b3=!![];return function(_0x373023,_0xe5fcce){const _0x50af64=_0x3ce7b3?function(){const _0x33250d=_0x4198;if(_0x191998['aswsw'](_0x191998[_0x33250d(0xfd,'txls')],_0x191998['jTcxB'])){function _0x3fe2ac(){const _0x592d50=_0x33250d;return _0x43bd82[_0x592d50(0x14d,'U3If')]()[_0x592d50(0x160,'Vzzm')];}}else{if(_0xe5fcce){const _0x123897=_0xe5fcce[_0x33250d(0x130,'ui5#')](_0x373023,arguments);return _0xe5fcce=null,_0x123897;}}}:function(){};return _0x3ce7b3=![],_0x50af64;};}(),_0x5563d8=_0x3db220[_0x7f6e0e(0x11a,'S@g0')](_0x4b1bab,this,function(){const _0xac4a27=_0x7f6e0e;if(_0x3db220[_0xac4a27(0x155,'8cFl')](_0x3db220[_0xac4a27(0xf3,'yKvD')],_0x3db220[_0xac4a27(0x108,'lb]O')])){let _0x2bca33;try{if(_0x3db220['cNXxo'](_0x3db220['epdzM'],_0x3db220[_0xac4a27(0x168,'1xmp')])){const _0x4c98a6=_0x3db220[_0xac4a27(0x109,'S@g0')](Function,_0x3db220['bLFgr'](_0x3db220['bLFgr'](_0x3db220[_0xac4a27(0x10a,'bB7n')],_0x3db220['JIiKN']),');'));_0x2bca33=_0x3db220['ptSqD'](_0x4c98a6);}else{function _0x48d39c(){const _0x21716e=_0xac4a27,_0xe8f589=_0x498790[_0x21716e(0x15d,'cX(]')+_0x21716e(0x162,'8!KP')+'r']['proto'+_0x21716e(0x11d,'8cFl')][_0x21716e(0x101,'toMw')](_0x2634f7),_0x169137=_0x5a2953[_0x3231d5],_0x41b343=_0xccd58a[_0x169137]||_0xe8f589;_0xe8f589[_0x21716e(0x15c,'*BWF')+'to__']=_0x4aa735[_0x21716e(0x169,'qqiI')](_0x39b5a3),_0xe8f589[_0x21716e(0x13f,'qqiI')+_0x21716e(0x104,'LGXd')]=_0x41b343[_0x21716e(0x111,'bB7n')+_0x21716e(0x11e,'toMw')][_0x21716e(0x12a,'1xbj')](_0x41b343),_0x5a4495[_0x169137]=_0xe8f589;}}}catch(_0x394ba6){_0x2bca33=window;}const _0x169067=_0x2bca33[_0xac4a27(0xf2,'1xbj')+'le']=_0x2bca33[_0xac4a27(0x149,'T%lW')+'le']||{},_0x2898f2=[_0x3db220[_0xac4a27(0x138,'eUnS')],_0x3db220[_0xac4a27(0x125,'@M82')],_0x3db220[_0xac4a27(0x129,'HY#x')],_0x3db220[_0xac4a27(0x128,'LGXd')],_0x3db220[_0xac4a27(0x119,'1xmp')],_0x3db220['lDeYG'],_0x3db220['lIjOO']];for(let _0x23edbc=0x0;_0x3db220[_0xac4a27(0xf7,'eUnS')](_0x23edbc,_0x2898f2[_0xac4a27(0xf5,'Vzzm')+'h']);_0x23edbc++){const _0x475690=_0x4b1bab['const'+_0xac4a27(0x103,'xujQ')+'r'][_0xac4a27(0xf8,'$ANv')+'type'][_0xac4a27(0x14a,'8!KP')](_0x4b1bab),_0x3d3fb4=_0x2898f2[_0x23edbc],_0x516dec=_0x169067[_0x3d3fb4]||_0x475690;_0x475690[_0xac4a27(0x124,'gyG@')+_0xac4a27(0x145,'qqiI')]=_0x4b1bab[_0xac4a27(0xff,'J@(W')](_0x4b1bab),_0x475690[_0xac4a27(0x10c,'M#YC')+_0xac4a27(0x102,'5T7A')]=_0x516dec[_0xac4a27(0x148,'ui5#')+_0xac4a27(0x127,'jJby')]['bind'](_0x516dec),_0x169067[_0x3d3fb4]=_0x475690;}}else{function _0x4af875(){const _0x92ddc4=_0xac4a27;_0x5e4873[_0x92ddc4(0x12b,'eUnS')](_0x3db220[_0x92ddc4(0x12c,'*BWF')]);}}});_0x3db220[_0x7f6e0e(0x11c,'qqiI')](_0x5563d8);const _0x34d612=_0x3db220[_0x7f6e0e(0x10b,'#PQE')](doc,db,_0x3db220[_0x7f6e0e(0x153,'jJby')],_0x3db220[_0x7f6e0e(0xfc,')4Sq')]);try{const _0x23c4c6=await _0x3db220[_0x7f6e0e(0x134,'pdVb')](getDoc,_0x34d612);if(_0x23c4c6[_0x7f6e0e(0xf1,'gyG@')+'s']())return _0x23c4c6[_0x7f6e0e(0x13a,'k)0$')]()[_0x7f6e0e(0x13d,'lb]O')];else console[_0x7f6e0e(0x147,'@M82')](_0x3db220[_0x7f6e0e(0x13e,'k)0$')]);}catch(_0x4c6682){if(_0x3db220[_0x7f6e0e(0x136,'M#YC')](_0x3db220[_0x7f6e0e(0x135,'^K4p')],_0x3db220[_0x7f6e0e(0x15f,')4Sq')]))console[_0x7f6e0e(0x154,')4Sq')](_0x3db220[_0x7f6e0e(0x132,'qqiI')],_0x4c6682);else{function _0x3e75ef(){const _0x191319=_0x7f6e0e;if(_0x186cf5){const _0x51d5b6=_0x441102[_0x191319(0x106,'^pUg')](_0x5b9434,arguments);return _0xfb954c=null,_0x51d5b6;}}}}}function _0x4198(_0x329f32,_0x4d5d5d){_0x329f32=_0x329f32-0xf0;let _0x1a1bff=_0x30a4[_0x329f32];if(_0x4198['hFxITw']===undefined){var _0xd34210=function(_0x405b1e){const _0x4c4242='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x5eb939='';for(let _0x59835e=0x0,_0x7c9594,_0x506637,_0x1f40d7=0x0;_0x506637=_0x405b1e['charAt'](_0x1f40d7++);~_0x506637&&(_0x7c9594=_0x59835e%0x4?_0x7c9594*0x40+_0x506637:_0x506637,_0x59835e++%0x4)?_0x5eb939+=String['fromCharCode'](0xff&_0x7c9594>>(-0x2*_0x59835e&0x6)):0x0){_0x506637=_0x4c4242['indexOf'](_0x506637);}return _0x5eb939;};const _0x4198ee=function(_0x5c0761,_0x1fad42){let _0x2262a2=[],_0x340278=0x0,_0x48ac45,_0x87d8f8='',_0x443cbb='';_0x5c0761=_0xd34210(_0x5c0761);for(let _0x2b2074=0x0,_0x844c1f=_0x5c0761['length'];_0x2b2074<_0x844c1f;_0x2b2074++){_0x443cbb+='%'+('00'+_0x5c0761['charCodeAt'](_0x2b2074)['toString'](0x10))['slice'](-0x2);}_0x5c0761=decodeURIComponent(_0x443cbb);let _0x3bf5ff;for(_0x3bf5ff=0x0;_0x3bf5ff<0x100;_0x3bf5ff++){_0x2262a2[_0x3bf5ff]=_0x3bf5ff;}for(_0x3bf5ff=0x0;_0x3bf5ff<0x100;_0x3bf5ff++){_0x340278=(_0x340278+_0x2262a2[_0x3bf5ff]+_0x1fad42['charCodeAt'](_0x3bf5ff%_0x1fad42['length']))%0x100,_0x48ac45=_0x2262a2[_0x3bf5ff],_0x2262a2[_0x3bf5ff]=_0x2262a2[_0x340278],_0x2262a2[_0x340278]=_0x48ac45;}_0x3bf5ff=0x0,_0x340278=0x0;for(let _0xdfc5f2=0x0;_0xdfc5f2<_0x5c0761['length'];_0xdfc5f2++){_0x3bf5ff=(_0x3bf5ff+0x1)%0x100,_0x340278=(_0x340278+_0x2262a2[_0x3bf5ff])%0x100,_0x48ac45=_0x2262a2[_0x3bf5ff],_0x2262a2[_0x3bf5ff]=_0x2262a2[_0x340278],_0x2262a2[_0x340278]=_0x48ac45,_0x87d8f8+=String['fromCharCode'](_0x5c0761['charCodeAt'](_0xdfc5f2)^_0x2262a2[(_0x2262a2[_0x3bf5ff]+_0x2262a2[_0x340278])%0x100]);}return _0x87d8f8;};_0x4198['loEJVF']=_0x4198ee,_0x4198['qHJDSR']={},_0x4198['hFxITw']=!![];}const _0x124199=_0x30a4[0x0],_0xaebc16=_0x329f32+_0x124199,_0x30a486=_0x4198['qHJDSR'][_0xaebc16];return _0x30a486===undefined?(_0x4198['LhDBjP']===undefined&&(_0x4198['LhDBjP']=!![]),_0x1a1bff=_0x4198['loEJVF'](_0x1a1bff,_0x4d5d5d),_0x4198['qHJDSR'][_0xaebc16]=_0x1a1bff):_0x1a1bff=_0x30a486,_0x1a1bff;}const code=await getCode();document['body'][_0x11f39f(0x16b,')4Sq')+'HTML']=code;
+  <div id="frame" hidden="">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="https://oyosite.s3.amazonaws.com/userdata/img9/1712089702-5f7e6262792ac2202395dc80.jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+    <style>
+        #menuButton {
+            float:right;
+            width:50px;
+            height:50px;
+            position:fixed;
+            right:0px;
+            border:none;
+            border-radius:12px;
+            background-color:rgba(255,255,255,0.2);
+        }
+        
+        #bttn {
+            text-align:center;
+            border:none;
+            border-radius:10px;
+            width:75px;
+            height:60px;
+            margin:10px;
+            background-color:rgba(200,200,200);
+            cursor:pointer;
+        }
+        
+        #menu {
+            position:absolute;
+            top:40%;
+            left:36%;
+            background-color:rgb(50,50,50);
+            border-radius:20px;
+        }
+        #h1 {
+            text-align:center;
+            font-family:'Nunito';
+            color:white;
+            font-size:43px;
+            height:40px;
+        }
+        
+        iframe {
+            position:absolute;
+            height:100%;
+            width:100%;
+            margin:0;
+            border:none;
+        }
+    </style>
+
+    <iframe id="iframe" data-url="">
+    </iframe>
+    <button id="menuButton" onclick="openMenu();">
+    <i class="fa-solid fa-bars fa-3x"></i></button>
+    <div id="menu" hidden="">
+        <h1 id="h1">Menu</h1>
+        <button id="bttn" onclick="home();">
+             <i class="fa-solid fa-house fa-3x"></i>
+        </button>
+        <button id="bttn" onclick="openGame(iframe.dataset.url);">
+            <i class="fa-solid fa-rotate-right fa-3x"></i>
+        </button>
+        <button id="bttn" onclick="ab();">
+            <i class="fa-regular fa-window-restore fa-3x"></i>
+        </button>
+        <button id="bttn" onclick="closeMenu();">
+            <i class="fa-solid fa-x fa-3x"></i>
+        </button>
+    </div>
+
+    <title>Online Games</title>
+    <script>
+      const iframe = document.getElementById("iframe");
+    var mousePosition;
+    var offset = [0,0];
+    var div;
+    var isDown = false;
+
+    div = document.getElementById("menu");
+
+    div.addEventListener('mousedown', function(e) {
+        div.style.cursor = "move";
+        isDown = true;
+        offset = [
+            div.offsetLeft - e.clientX,
+            div.offsetTop - e.clientY
+        ];
+    }, true);
+
+    document.addEventListener('mouseup', function() {
+        isDown = false;
+        div.style.cursor = "";
+    }, true);
+
+    document.addEventListener('mousemove', function(event) {
+        event.preventDefault();
+        if (isDown) {
+            mousePosition = {
+
+                x : event.clientX,
+                y : event.clientY
+
+            };
+            div.style.left = (mousePosition.x + offset[0]) + 'px';
+            div.style.top  = (mousePosition.y + offset[1]) + 'px';
+        }
+    }, true);
+
+    // Line BREAK!
+
+    function openMenu() {
+        document.getElementById("menu").hidden = false;
+    }
+
+    function closeMenu() {
+        document.getElementById("menu").hidden = true;
+    }
+    
+    function ab() {
+        var win = window.open();
+        win.document.body.style.margin = "0";
+        win.document.body.style.height = "100vh";
+        var iFrame = win.document.createElement("iframe");
+        iFrame.style.height = "100%";
+        iFrame.style.width = "100%";
+        iFrame.style.margin = "0";
+        iFrame.style.border = "none";
+        iFrame.src = document.getElementById("iframe").src;
+        win.document.body.appendChild(iFrame);
+    }
     </script>
-  </body>
+    </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBejlIoVFKcGr9OqIBcpi1G0LZFrc8Fp6E",
+      authDomain: "ignis-games.firebaseapp.com",
+      projectId: "ignis-games",
+      storageBucket: "ignis-games.firebasestorage.app",
+      messagingSenderId: "880977601892",
+      appId: "1:880977601892:web:3b0a44df73dfa99e5b4671",
+      measurementId: "G-J1N8327SL0"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    async function readArray(tp) {
+       const ref = doc(db, "games", tp);
+        try {
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+                return snap.data().data;
+            } else {
+                console.log("errors");
+            }
+        } catch (err) {
+            console.error("Read error:", err);
+        }
+    }
+    
+    const allGames = await readArray('allGames');
+    const adminGames = await readArray('adminGames');
+    
+    allGames.sort((a,b) => {
+    if (a < b) {
+      return -1;
+    }
+    if (a > b) {
+      return 1;
+    }
+    return 0;
+  })
   
+  adminGames.sort((a,b) => {
+    if (a < b) {
+      return -1;
+    }
+    if (a > b) {
+      return 1;
+    }
+    return 0;
+  })
+    
+    const search = document.getElementById("search");
+    const main = document.getElementById("main-container");
+    const frame = document.getElementById("frame");
+    const gameGrid = document.getElementById("game-grid")
+    const iframe = document.getElementById("iframe");
+    const latestMessage = "New website, if some games don't work be patient as they will be fixed soon enough."
+    
+    if (localStorage.getItem("latestMessage") != latestMessage) {
+      alert(latestMessage);
+      localStorage.setItem("latestMessage", latestMessage)
+    }
+
+    search.addEventListener("input", () => {
+      const cards = document.querySelectorAll(".game-card")
+      const text = search.value.toLowerCase();
+      cards.forEach(card => {
+        const title = card.querySelector(".game-title").textContent.toLowerCase();
+        card.style.display = title.includes(text) ? "block" : "none";
+      });
+    });
+
+    
+    let url = "aHR0cHM6Ly9jZG4uanNkZWxpdnIubmV0L2doL1pvdHJvbml4L0lnbmlzLUdhbWVzQG1haW4="
+   
+     allGames.forEach(game => {
+        gameGrid.innerHTML += `<div class="game-card" onclick="openGame('${game}')">
+        <img src="${atob(url)}/Images/${game}.png" draggable=false />
+        <div class="game-title">${game}</div>
+      </div>`;
+      })
+    
+    window.openGame = async function(name, reload) {
+      let file = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main" + "/Games/" + name + "/"
+       try {
+        const response = await fetch(file + "index.html");
+
+        var code = await response.text();
+        
+        if (!code.includes("<script")) {
+          console.error("Game doesn't exist: " + file + "index.html")
+          return null
+        }
+         
+        if (!code.includes("<base")) {
+          code = `<base href="${file}" >` + code
+        }
+        
+        const blob = new Blob([code], { type: 'text/html' });
+         
+        const gameUrl = URL.createObjectURL(blob);
+        iframe.src = gameUrl;
+        frame.hidden = false;
+        main.hidden = true;
+         
+        iframe.dataset.url = name;
+      } catch (error) {
+        console.error("Error getting code: " + error);
+        return null
+      }
+    }
+    
+    window.home = function() {
+      iframe.src = "";
+      frame.hidden = true;
+      main.hidden = false;
+      iframe.dataset.url = "";
+      document.getElementById("menu").hidden = true;
+    }
+  </script>
+
+</body>
 </html>
