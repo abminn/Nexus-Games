@@ -85,7 +85,11 @@
   </head>
 
   <body>
-    <!-- <div id="interAdsContainer" style="display: none;"></div> -->
+    <div id="interAdsContainer" style="display: none;">
+<div class="ad-rectangle-bottom"></div>
+<div class="ad-leaderboard-bottom"></div>
+<div id="adRectangleUpper"></div>
+</div>
     <div id="gameContainer"></div>
     <div id="loader">
       <img class="logo" src="logo.png">
@@ -100,7 +104,7 @@
 <script src="files.js"></script>
     <script>
 (async () => {
-     const dataURL = await combineUnityData(["rc.data.unityweb.part1", "rc.data.unityweb.part2"]);
+     const dataURL = await mergeParts(["rc.data.unityweb.part1", "rc.data.unityweb.part2"]);
 console.log(dataURL);
   var gameConfig = {
 "companyName": "JustPlay.LOL",
