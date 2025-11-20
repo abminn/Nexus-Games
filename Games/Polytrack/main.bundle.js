@@ -4,6 +4,7 @@ fetch("https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Polytrack/simulatio
   .then(code => {
     const blob = new Blob([code], { type: "application/javascript" });
     const worker = new Worker(URL.createObjectURL(blob));
+return worker;
   });
 }
 
