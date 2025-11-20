@@ -38,7 +38,6 @@ const allGames = [
   "Minecraft Tuff 1.12.2",
   "1v1.lol",
   "Fall.io",
-  "S­mashy Road",
   "Minecraft Parkour",
   "Bloons Tower Defense",
   "Roblox Rob The Bank",
