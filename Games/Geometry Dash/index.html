@@ -171,24 +171,7 @@
         <script src="UnityLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>
         <script>
-var gameConfig = {
-"companyName": "DefaultCompany",
-"productName": "GeometryDashLife",
-"productVersion": "0.1",
-"dataUrl": combineUnityData(["GeometryDashLite.data.unityweb.part1", "GeometryDashLite.data.unityweb.part2"]),
-"wasmCodeUrl": "GeometryDashLite.wasm.code.unityweb",
-"wasmFrameworkUrl": "GeometryDashLite.wasm.framework.unityweb",
-"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
-"webglContextAttributes": {"preserveDrawingBuffer": false},
-"splashScreenStyle": "Dark",
-"backgroundColor": "#231F20",
-"cacheControl": {"default": "must-revalidate"},
-"developmentBuild": false,
-"multithreading": false,
-"unityVersion": "2019.4.24f1",
-}
-
-            var gameInstance = UnityLoader.instantiate("gameContainer", gameConfig, {
+            var gameInstance = UnityLoader.instantiate("gameContainer", "https://ignistesting.mos.us-south-1.sufybkt.com/Geometry%20Dash/GeometryDashLite.json", {
                 onProgress: UnityProgress
             });
 
@@ -231,5 +214,6 @@ var gameConfig = {
         </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"8d75a752cf7dc32c","version":"2024.10.3","r":1,"token":"41cce99157244ec6bb4e579f9f38cadc","serverTiming":{"name":{"cfExtPri":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}}}' crossorigin="anonymous"></script>
 </body>
+
 
 </html>
