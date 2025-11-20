@@ -240,25 +240,7 @@
        document.getElementById("gameContainer").style.height=height + "px";
 	   
     }
-	
-var gameConfig = {
-"companyName": "FreezeNova",
-"productName": "Masked Special Forces",
-"productVersion": "0.3",
-"dataUrl": combineUnityData(["Build/game.data.unityweb.part1","Build/game.data.unityweb.part2","Build/game.data.unityweb.part3","Build/game.data.unityweb.part4"]),
-"wasmCodeUrl": "Build/game.wasm.code.unityweb",
-"wasmFrameworkUrl": "Build/game.wasm.framework.unityweb",
-"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
-"webglContextAttributes": {"preserveDrawingBuffer": false},
-"splashScreenStyle": "Dark",
-"backgroundColor": "#231F20",
-"cacheControl": {"default": "must-revalidate"},
-"developmentBuild": false,
-"multithreading": false,
-"unityVersion": "2019.4.36f1"
-}
-
-	var gameInstance = UnityLoader.instantiate("gameContainer", gameConfig, {onProgress: UnityProgress});
+	var gameInstance = UnityLoader.instantiate("gameContainer", "https://ignistesting.mos.us-south-1.sufybkt.com/Masked%20Special%20Forces/Build/game.json", {onProgress: UnityProgress});
 	
 	</script>
 
@@ -268,4 +250,5 @@ var gameConfig = {
       <div id="gameContainer" style="width: auto; height: auto"></div>
     </div>
   </body>
+
 </html>
