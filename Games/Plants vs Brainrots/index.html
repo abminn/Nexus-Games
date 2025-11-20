@@ -43,21 +43,12 @@
 <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>
 <script>
         const hideFullScreenButton = "";
-        const buildUrl = "Build";
+        const buildUrl = "https://ignistesting.mos.us-south-1.sufybkt.com/Plants%20vs%20Brainrots/Build";
         const loaderUrl = buildUrl + "/YandexWeb.loader.js";
-const dataParts = [
-    buildUrl + "/YandexWeb.data.br.part1",
-    buildUrl + "/YandexWeb.data.br.part2",
-];
-const wasmParts = [
-    buildUrl + "/YandexWeb.wasm.br.part1",
-    buildUrl + "/YandexWeb.wasm.br.part2",
-    buildUrl + "/YandexWeb.wasm.br.part3",
-];
         const config = {
-            dataUrl: combineUnityData(dataParts),
+            dataUrl: buildUrl + "/YandexWeb.data.br",
             frameworkUrl: buildUrl + "/YandexWeb.framework.js.br",
-            codeUrl: combineUnityData(wasmParts),
+            codeUrl: buildUrl + "/YandexWeb.wasm.br",
         streamingAssetsUrl: "StreamingAssets",
             companyName: "Fluffy",
             productName: "Plants vs Brain Zombies",
@@ -818,3 +809,4 @@ function OpenAuthDialog() {
     </script>
 </body>
 </html>
+
