@@ -87,6 +87,7 @@ const allGames = [
   "Smashy Road",
   "Basketball Stars",
   "Cookie Clicker",
+  "Duck Life 4",
 ];
 
 adminGames = [
