@@ -2,7 +2,6 @@
 <html lang="en-us">
 
 <head>
-    <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/">
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | ULTRAKILL</title>
@@ -29,7 +28,15 @@
 <body style="text-align: center; padding: 0; border: 0; margin: 0;">
     <div id='loading-text' style="color: black; font-family: cursive; font-size: 48px; text-align: center; margin-top: 20px;">LOADING...</div>
     <canvas id="unity-canvas" tabindex="-1" hidden></canvas>
-    <script src="Build/ultrakill.loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"></script>
+    <script>
+changeUnityLoader("https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/Build/ultrakill.loader.js")
+  .then(newUrl => {
+    let scr = document.createElement("script");
+    scr.src = newUrl;
+    document.body.appendChild(scr);
+  });
+</script>
     <script>
         var canvas = document.querySelector("#unity-canvas");
         if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
@@ -81,15 +88,15 @@
             return parts;
         }
         Promise.all([
-            mergeFiles(getParts("Build/ultrakill.data.unityweb", 1, 4)),
-            mergeFiles(getParts("Build/ultrakill.wasm.unityweb", 1, 2))
+            mergeFiles(getParts("https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/Build/ultrakill.data.unityweb", 1, 4)),
+            mergeFiles(getParts("https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/Build/ultrakill.wasm.unityweb", 1, 2))
         ]).then(([dataUrl, wasmurl]) => {
             document.querySelector("#unity-canvas").hidden = false;
             createUnityInstance(document.querySelector("#unity-canvas"), {
                 dataUrl: dataUrl,
-                frameworkUrl: "Build/ultrakill.framework.js.unityweb",
+                frameworkUrl: "https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/Build/ultrakill.framework.js.unityweb",
                 codeUrl: wasmurl,
-                streamingAssetsUrl: "StreamingAssets",
+                streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/StreamingAssets",
                 companyName: "Hakita and Cake Logic",
                 productName: "ULTRAKILL",
                 productVersion: "1.4",
@@ -101,5 +108,6 @@
         });
     </script>
 </body>
+
 
 </html>
