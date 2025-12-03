@@ -89,6 +89,7 @@ const allGames = [
   "Cookie Clicker",
   "Duck Life 4",
   "Station Saturn",
+  "Game Requests",
 ];
 
 adminGames = [
