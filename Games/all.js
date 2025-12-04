@@ -93,5 +93,6 @@ const allGames = [
 ];
 
 adminGames = [
-
+  "Add Message",
+  "Push Games",
 ];
