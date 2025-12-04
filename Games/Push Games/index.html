@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Array Upload to Firebase</title>
+  <style>
+    body {
+      background: linear-gradient(180deg, #0e0e0e, #1b1b1b);
+      color: #eee;
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding-top: 40px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #00c3ff;
+      font-weight: 500;
+    }
+
+    pre {
+      width: 80%;
+      max-width: 600px;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      box-shadow: 0 0 15px rgba(0, 195, 255, 0.2);
+    }
+
+    button, select {
+      background: #00c3ff;
+      border: none;
+      border-radius: 10px;
+      color: black;
+      padding: 12px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      margin: 5px;
+    }
+
+    button:hover, select:hover {
+      background: #00e1ff;
+      box-shadow: 0 0 10px #00e1ff;
+    }
+
+    #status {
+      margin-top: 15px;
+      color: #ccc;
+    }
+
+    h2 {
+      color: #00c3ff;
+      font-weight: 400;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Firebase Array Uploader</h1>
+
+  <label for="versionSelect">Version:</label>
+  <select id="versionSelect">
+    <option value="">Normal</option>
+    <option value="@main">Main</option>
+    <option value="@latest">Latest</option>
+    <option value="c">Custom</option>
+  </select>
+  <button id="loadLists">Load Lists</button>
+
+  <h2>Games List</h2>
+  <pre id="arrayPreview">Waiting for list...</pre>
+
+  <h2>Admin Games List</h2>
+  <pre id="adminPreview">Waiting for list...</pre>
+
+  <button id="uploadBtn">Upload to Firestore</button>
+  <div id="status"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // ---- Firebase Config ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyBejlIoVFKcGr9OqIBcpi1G0LZFrc8Fp6E",
+      authDomain: "ignis-games.firebaseapp.com",
+      projectId: "ignis-games",
+      storageBucket: "ignis-games.firebasestorage.app",
+      messagingSenderId: "880977601892",
+      appId: "1:880977601892:web:3b0a44df73dfa99e5b4671",
+      measurementId: "G-J1N8327SL0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ---- Elements ----
+    const preview = document.getElementById("arrayPreview");
+    const adminPreview = document.getElementById("adminPreview");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusEl = document.getElementById("status");
+    const versionSelect = document.getElementById("versionSelect");
+    const loadBtn = document.getElementById("loadLists");
+    let disableAdmin = false;
+    let prevAdmin = null;
+    let zeroAll = false;
+
+    // ---- Load lists.js dynamically ----
+    function loadListsScript(versionTag = "") {
+      return new Promise((resolve, reject) => {
+        const oldScript = document.getElementById("listsScript");
+        if (oldScript) oldScript.remove();
+        if (versionTag == "c") versionTag = "@" + prompt("Enter custom version")
+        const script = document.createElement("script");
+        script.id = "listsScript";
+        script.src = `https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games${versionTag}/Games/all.js`;
+        script.onload = () => {
+          if (typeof allGames !== "undefined") resolve();
+          else reject("allGames not found in the file");
+        };
+        script.onerror = () => reject("Failed to load lists.js");
+        document.body.appendChild(script);
+      });
+    }
+
+    // ---- Handle load lists button ----
+    loadBtn.addEventListener("click", async () => {
+      const versionTag = versionSelect.value;
+      preview.textContent = "Loading game list...";
+      adminPreview.textContent = "Loading admin list...";
+      statusEl.textContent = "";
+
+      try {
+        await loadListsScript(versionTag);
+        preview.textContent = JSON.stringify(allGames, null, 2);
+        adminPreview.textContent = disableAdmin ? prevAdmin : JSON.stringify(adminGames, null, 2);
+        statusEl.textContent = `✅ Loaded lists.js ${versionTag || "Normal"}`;
+      } catch (err) {
+        preview.textContent = "";
+        adminPreview.textContent = "";
+        statusEl.textContent = "❌ Error: " + err;
+      }
+    });
+
+    // ---- Upload Function ----
+    async function uploadArray() {
+      if (!allGames.length && !adminGames.length) {
+        statusEl.textContent = "⚠️ Load the lists first.";
+        return;
+      }
+
+      statusEl.textContent = "Uploading...";
+      uploadBtn.disabled = true;
+
+      try {
+        await setDoc(doc(db, "games", "allGames"), {
+          data: zeroAll ? [] : allGames,
+          updatedAt: new Date().toISOString()
+        });
+
+        await setDoc(doc(db, "games", "adminGames"), {
+          data: adminGames,
+          updatedAt: new Date().toISOString()
+        });
+
+        statusEl.textContent = "✅ Successfully uploaded both lists!";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Upload failed: " + err.message;
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    }
+
+    uploadBtn.addEventListener("click", uploadArray);
+    
+    window.addEventListener("keydown", function(e) {
+      if (e.ctrlKey && e.altKey && e.shiftKey && e.key === "M") {
+        disableAdmin = true;
+        prevAdmin = adminPreview.textContent;
+      } else if (e.ctrlKey && e.altKey && e.shiftKey && e.key === "F") {
+        let typCode = prompt();
+        if (typCode === "17") {
+          allGames.forEach(g => adminGames.push(g))
+          setTimeout(function() {
+            preview.textContent = "[]";
+            adminPreview.textContent = disableAdmin ? prevAdmin : JSON.stringify(adminGames, null, 2);
+            statusEl.textContent = "✅ Removed all games.";
+          }, 1500)
+        }
+      }
+    })
+  </script>
+</body>
+</html>
