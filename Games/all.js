@@ -91,6 +91,7 @@ const allGames = [
   "Station Saturn",
   "Game Requests",
   "Solar Smash",
+  "Chatting",
 ];
 
 adminGames = [
