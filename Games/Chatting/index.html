@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Futuristic Chat</title>
+
+	<!-- Google font -->
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+	<style>
+		:root {
+			--bg: #041019;
+			--panel: #06262b;
+			--accent: #00f0c6;
+			--accent-2: #00c9a6;
+			--muted: #7fb4ac;
+			--glass: rgba(255, 255, 255, 0.03);
+			--glass-2: rgba(255, 255, 255, 0.02);
+		}
+
+		* {
+			box-sizing: border-box;
+			font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+		}
+
+		html,
+		body {
+			height: 100%;
+			margin: 0;
+			background: linear-gradient(180deg, #001217 0%, #022028 60%);
+			color: #d9fff3;
+		}
+
+		.app {
+			display: grid;
+			grid-template-columns: 320px 1fr;
+			grid-template-rows: 64px 1fr;
+			gap: 18px;
+			height: 100vh;
+			padding: 18px;
+		}
+
+		header {
+			grid-column: 1/-1;
+			height: 64px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 18px;
+			background: linear-gradient(90deg, rgba(0, 255, 198, 0.03), rgba(0, 201, 166, 0.02));
+			border-radius: 12px;
+			border: 1px solid rgba(0, 255, 198, 0.06);
+			box-shadow: 0 8px 40px rgba(0, 201, 166, 0.03);
+		}
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 12px
+		}
+
+		.logo {
+			width: 40px;
+			height: 40px;
+			border-radius: 10px;
+			background: linear-gradient(135deg, var(--accent), var(--accent-2));
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 700;
+			color: #00201a;
+			box-shadow: 0 6px 20px rgba(0, 201, 166, 0.12), inset 0 -6px 18px rgba(255, 255, 255, 0.06);
+		}
+
+		header h1 {
+			font-size: 16px;
+			margin: 0
+		}
+
+		header .controls {
+			display: flex;
+			align-items: center;
+			gap: 12px
+		}
+
+		.icon-btn {
+			width: 40px;
+			height: 40px;
+			border-radius: 10px;
+			background: var(--panel);
+			display: grid;
+			place-items: center;
+			cursor: pointer;
+			border: 1px solid rgba(255, 255, 255, 0.03);
+		}
+
+		/* Left column */
+		.sidebar {
+			grid-row: 2/3;
+			background: linear-gradient(180deg, var(--glass), var(--glass-2));
+			border-radius: 12px;
+			padding: 16px;
+			border: 1px solid rgba(0, 255, 198, 0.04);
+			box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+
+		.my-info {
+			display: flex;
+			gap: 12px;
+			align-items: center;
+		}
+
+		.avatar {
+			width: 56px;
+			height: 56px;
+			border-radius: 10px;
+			background: linear-gradient(135deg, var(--accent), #9fffe8);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #00201a;
+			font-weight: 700;
+			font-size: 18px;
+		}
+
+		.id-box {
+			font-size: 13px;
+		}
+
+		.id-code {
+			font-family: monospace;
+			color: var(--accent-2);
+			background: rgba(0, 255, 198, 0.03);
+			padding: 6px;
+			border-radius: 6px;
+			display: inline-block;
+			margin-top: 6px;
+		}
+
+		.friends {
+			flex: 1;
+			overflow: auto;
+			padding-right: 6px;
+		}
+
+		.friend {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 8px;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: background .12s;
+			border: 1px solid rgba(255, 255, 255, 0.02);
+			margin-bottom: 8px;
+		}
+
+    .groups {
+	flex: 1;
+	overflow: auto;
+	padding-right: 6px;
+	}
+
+		.friend:hover {
+			background: rgba(0, 201, 166, 0.03)
+		}
+
+		.friend .mini {
+			width: 36px;
+			height: 36px;
+			border-radius: 8px;
+			background: linear-gradient(135deg, var(--accent), var(--accent-2));
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #00201a;
+			font-weight: 600
+		}
+
+		.add-friend {
+			display: flex;
+			gap: 8px;
+			margin-top: 8px
+		}
+
+		input,
+		button,
+		textarea,
+		select {
+			font-family: inherit
+		}
+
+		.text-input {
+			flex: 1;
+			padding: 8px;
+			border-radius: 8px;
+			border: 1px solid rgba(255, 255, 255, 0.03);
+			background: transparent;
+			color: var(--muted)
+		}
+
+		.btn {
+			padding: 8px 12px;
+			border-radius: 8px;
+			border: 1px solid rgba(0, 255, 198, 0.08);
+			background: linear-gradient(90deg, var(--accent), var(--accent-2));
+			color: #00201a;
+			font-weight: 600;
+			cursor: pointer
+		}
+
+		.btn.ghost {
+			background: transparent;
+			color: var(--accent);
+			border: 1px dashed rgba(0, 255, 198, 0.06)
+		}
+
+		/* Main chat area */
+		.main {
+			grid-column: 2/3;
+			grid-row: 2/3;
+			background: linear-gradient(180deg, rgba(0, 255, 198, 0.02), rgba(0, 201, 166, 0.01));
+			border-radius: 12px;
+			padding: 10px;
+			border: 1px solid rgba(0, 255, 198, 0.03);
+			display: flex;
+			flex-direction: column;
+			height: calc(100vh - 140px)
+		}
+
+		.chat-header {
+			padding: 10px;
+			border-bottom: 1px solid rgba(0, 255, 198, 0.03);
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+      
+		.messages {
+			flex: 1;
+			overflow: auto;
+			padding: 18px;
+			display: flex;
+			flex-direction: column;
+			gap: 12px
+		}
+
+		.msg-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%; /* keeps messages from stretching too far */
+  margin-bottom: 8px;
+}
+
+.msg-wrapper.me {
+  align-self: flex-end; /* your messages on left */
+}
+
+.msg-wrapper.them {
+  align-self: flex-start;   /* other messages on right */
+}
+
+.msg {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d9fff3;
+}
+
+      .msg.me {
+        background: rgba(0, 255, 198, 0.12);
+      }
+
+		.chat-input {
+			display: flex;
+			gap: 8px;
+			padding: 12px;
+			border-top: 1px solid rgba(0, 255, 198, 0.02)
+		}
+
+		.small {
+			font-size: 12px;
+			color: var(--muted)
+		}
+
+		/* modal */
+		.modal-backdrop {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.6);
+			display: grid;
+			place-items: center;
+		}
+
+		.modal {
+			width: 420px;
+			background: #041b1a;
+			border-radius: 10px;
+			padding: 16px;
+			border: 1px solid rgba(0, 255, 198, 0.04)
+		}
+
+		.flex-col {
+			display: flex;
+			flex-direction: column;
+			gap: 8px
+		}
+
+		/* responsive */
+		@media (max-width:880px) {
+			.app {
+				grid-template-columns: 1fr;
+				grid-template-rows: 64px 1fr auto
+			}
+
+			.sidebar {
+				grid-row: 3/4;
+				order: 3
+			}
+
+			.main {
+				grid-column: 1/2;
+				grid-row: 2/3;
+				height: calc(100vh - 200px)
+			}
+		}
+
+	@keyframes popInFromBottom {
+	0% { transform: translateY(20px) scale(0.9); opacity: 0; }
+	100% { transform: translateY(0) scale(1); opacity: 1; }
+	}
+	
+	.msg.new {
+	animation: popInFromBottom 0.3s ease;
+	}
+	
+	.msg-sender {
+	font-size: 11px;
+	color: var(--accent-2);
+	margin-bottom: 2px;
+	font-weight: 600;
+	}
+	</style>
+</head>
+
+<body>
+
+	<div class="app">
+		<header>
+			<div class="brand">
+				<div class="logo">C</div>
+				<div>
+					<h1>Chatting</h1>
+					<div class="small">Real-time DMs & group chats</div>
+				</div>
+			</div>
+
+			<div class="controls">
+				<div class="small" id="currentStatus">Not connected</div>
+				<div class="icon-btn" id="newGroupBtn" title="Create group">+</div>
+			</div>
+		</header>
+
+		<aside class="sidebar">
+			<div id="meArea" class="my-info">
+				<!-- populated by JS -->
+				<div class="avatar" id="meAvatar">?</div>
+				<div class="id-box">
+					<div id="meName">Guest</div>
+					<div class="id-code" id="meId">------</div>
+				</div>
+			</div>
+	<button id="toggleListBtn" class="btn ghost" style="width:100%;margin-bottom:6px">
+	  Show Groups
+	</button>
+			<div class="friends small" id="friendsSection">
+				<div style="font-weight:600;margin-bottom:8px">Friends</div>
+				<div id="friendsList">
+					<!-- friend entries -->
+				</div>
+			</div>
+
+	<div class="groups small" id="groupsSection" style="display:none;">
+	<div style="font-weight:600;margin-bottom:8px">Groups</div>
+	<div id="groupList">
+		<!-- group entries -->
+	</div>
+	</div>
+
+			<div class="add-friend">
+				<input id="addFriendInput" class="text-input" placeholder="Enter friend ID" />
+				<button id="addFriendBtn" class="btn">Add</button>
+			</div>
+			<div style="font-size:12px;color:var(--muted);margin-top:8px">Tip: click friend to open DM. Create groups
+				using the + icon.</div>
+		</aside>
+
+		<main class="main">
+			<div class="chat-header" id="chatHeader">
+				<div style="display:flex;align-items:center;gap:12px">
+					<div class="mini" id="chatAvatar"
+						style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#00201a;font-weight:700">
+						—</div>
+					<div>
+						<div id="chatTitle" style="font-weight:700">Select a friend or group</div>
+						<div class="small" id="chatSubtitle">Your chats appear here</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="messages" id="messages">
+				<div class="small" style="opacity:.6">No conversation selected.</div>
+			</div>
+
+			<div class="chat-input" id="chatComposer" style="display:none">
+				<input id="msgInput" class="text-input" placeholder="Type a message..." />
+				<button id="sendBtn" class="btn">Send</button>
+			</div>
+		</main>
+	</div>
+
+	<!-- Modal container -->
+	<div id="modalRoot"></div>
+
+	<!-- Firebase (compat) -->
+	<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+	<script>
+		/*
+  IMPORTANT: Replace firebaseConfig with your project's configuration.
+  You can get it from Firebase console -> Project settings -> SDK snippet.
+*/
+const firebaseConfig = {
+  apiKey: "AIzaSyBejlIoVFKcGr9OqIBcpi1G0LZFrc8Fp6E",
+  authDomain: "ignis-games.firebaseapp.com",
+  projectId: "ignis-games",
+  storageBucket: "ignis-games.firebasestorage.app",
+  messagingSenderId: "880977601892",
+  appId: "1:880977601892:web:a9d806e45d5b18685b4671",
+  measurementId: "G-3B5Y0DHHMT"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ---------- Utilities ---------- */
+function uid6Unique() {
+  // generate 6-char alphanumeric string with no repeated characters
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let out = "";
+  const used = new Set();
+  while (out.length < 6) {
+    const c = chars[Math.floor(Math.random()*chars.length)];
+    if (!used.has(c)) {
+      used.add(c);
+      out += c;
+    }
+  }
+  return out;
+}
+
+async function uniqueIdNoCollision() {
+  // Regenerate if collision with existing user.id
+  for (let attempt=0; attempt<12; attempt++){
+    const id = uid6Unique();
+    const q = await db.collection('users').where('id','==',id).limit(1).get();
+    if (q.empty) return id;
+  }
+  // fallback - if collision improbable but happens, append timestamp
+  return uid6Unique() + Date.now().toString().slice(-3);
+}
+
+/* ---------- Local app state ---------- */
+let me = null; // { docId, name, id, friends: [], groups: [] }
+let currentChannel = null; // { type: 'dm'|'group', id: channelId, title, members }
+let unsubscribeMessages = null;
+let unsubFriends = null;
+
+/* ---------- UI helpers ---------- */
+const meNameEl = document.getElementById('meName');
+const meIdEl = document.getElementById('meId');
+const meAvatarEl = document.getElementById('meAvatar');
+const friendsListEl = document.getElementById('friendsList');
+const groupsListEl = document.getElementById("groupList")
+const currentStatusEl = document.getElementById('currentStatus');
+const messagesEl = document.getElementById('messages');
+const chatHeaderTitle = document.getElementById('chatTitle');
+const chatSubtitle = document.getElementById('chatSubtitle');
+const chatAvatar = document.getElementById('chatAvatar');
+const chatComposer = document.getElementById('chatComposer');
+const msgInput = document.getElementById('msgInput');
+
+function setStatus(s){ currentStatusEl.textContent = s; }
+
+/* ---------- On load: prompt for name if needed ---------- */
+async function promptForName() {
+  let stored = localStorage.getItem('fc_user_docid');
+  if (stored) {
+    // try to load
+    try {
+      const doc = await db.collection('users').doc(stored).get();
+      if (doc.exists) {
+        me = { docId: doc.id, ...doc.data() };
+        return;
+      }
+    } catch(e) { console.warn(e); }
+    localStorage.removeItem('fc_user_docid');
+    subscribeToMe();
+  }
+  function subscribeToMe() {
+  if (!me || !me.docId) return;
+
+  return db.collection("users")
+    .doc(me.docId)
+    .onSnapshot(doc => {
+      if (!doc.exists) return;
+
+      const data = doc.data();
+      const changed = JSON.stringify(data.friends) !== JSON.stringify(me.friends);
+
+      me = { docId: me.docId, ...data };
+
+      if (changed) {renderGroupsList(); renderFriendsList();}
+      renderMe();
+    });
+}
+
+  // ask for a name (simple prompt UI)
+  const name = await askNameModal();
+  if (!name) {
+    alert('Name required to continue.');
+    return promptForName();
+  }
+  setStatus('Creating account...');
+  const id = await uniqueIdNoCollision();
+  const avatarSeed = (name.split(' ').map(s=>s[0]||'').join('').slice(0,2) || name.slice(0,2)).toUpperCase();
+
+  const userDoc = {
+    name: name,
+    id: id,
+    avatarSeed,
+    friends: [], // array of friend user ids
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  const docRef = await db.collection('users').add(userDoc);
+  me = { docId: docRef.id, ...userDoc };
+  localStorage.setItem('fc_user_docid', docRef.id);
+  setStatus('Connected');
+}
+
+/* ---------- Simple modal to ask name ---------- */
+function askNameModal(){
+  return new Promise(resolve=>{
+    const root = document.getElementById('modalRoot');
+    root.innerHTML = `
+      <div class="modal-backdrop" id="nameModal">
+        <div class="modal">
+          <div style="font-weight:700;font-size:16px">Welcome — enter your display name</div>
+          <div class="flex-col" style="margin-top:8px">
+            <input id="modalNameInput" class="text-input" placeholder="Your name" />
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button id="modalCancel" class="btn ghost">Cancel</button>
+              <button id="modalOk" class="btn">Confirm</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    const inpt = document.getElementById('modalNameInput');
+    inpt.focus();
+    document.getElementById('modalOk').onclick = ()=>{ const v=inpt.value.trim(); root.innerHTML=''; resolve(v); };
+    document.getElementById('modalCancel').onclick = ()=>{ root.innerHTML=''; resolve(null); };
+    // handle Enter
+    inpt.addEventListener('keydown', (e)=>{ if (e.key==='Enter') document.getElementById('modalOk').click(); });
+  });
+}
+
+const friendsSection = document.getElementById("friendsSection");
+const groupsSection = document.getElementById("groupsSection");
+const toggleListBtn = document.getElementById("toggleListBtn");
+
+let showingFriends = true;
+
+toggleListBtn.addEventListener("click", () => {
+showingFriends = !showingFriends;
+
+if (showingFriends) {
+friendsSection.style.display = "block";
+groupsSection.style.display = "none";
+toggleListBtn.textContent = "Show Groups";
+} else {
+friendsSection.style.display = "none";
+groupsSection.style.display = "block";
+toggleListBtn.textContent = "Show Friends";
+}
+});
+
+/* ---------- Render me + friends ---------- */
+function renderMe() {
+  if (!me) return;
+  meNameEl.textContent = me.name;
+  meIdEl.textContent = me.id;
+  meAvatarEl.textContent = (me.avatarSeed || me.name.slice(0,2)).toUpperCase();
+}
+
+function renderFriendsList() {
+  friendsListEl.innerHTML = '';
+  if (!me) return;
+  if (!me.friends || me.friends.length===0) {
+    friendsListEl.innerHTML = '<div class="small" style="opacity:.6">You have no friends yet.</div>';
+    return;
+  }
+  // load each friend doc to display name
+  me.friends.forEach(async (fid)=>{
+    try {
+      const q = await db.collection('users').where('id','==',fid).limit(1).get();
+      if (!q.empty) {
+        const doc = q.docs[0];
+        const d = doc.data();
+        const el = document.createElement('div');
+        el.className = 'friend';
+        el.innerHTML = `
+          <div class="mini">${(d.avatarSeed||d.name.slice(0,2)).toUpperCase()}</div>
+          <div style="flex:1">
+            <div style="font-weight:600">${d.name}</div>
+            <div class="small" style="color:var(--muted)">${d.id}</div>
+          </div>`;
+        el.onclick = ()=>openDMWith(d);
+        friendsListEl.appendChild(el);
+      } else {
+        // friend id not found - show as removed
+        const el = document.createElement('div');
+        el.className = 'friend';
+        el.innerHTML = `<div class="mini">?</div><div style="flex:1"><div style="font-weight:600">Unknown</div><div class="small" style="color:var(--muted)">${fid}</div></div>`;
+        friendsListEl.appendChild(el);
+      }
+    } catch(e){
+      console.error('Error loading friends', e);
+    }
+  });
+}
+
+function renderGroupsList() {
+groupsListEl.innerHTML = '';
+if (!me || !me.groups || me.groups.length === 0) {
+groupsListEl.innerHTML = '<div class="small" style="opacity:.6">You have no groups yet.</div>';
+return;
+}
+
+me.groups.forEach(async (groupId) => {
+try {
+const q = await db.collection('groups').where('id','==',groupId).limit(1).get();
+if (!q.empty) {
+const groupDoc = q.docs[0].data();
+const el = document.createElement('div');
+el.className = 'friend'; // reuse same styles for simplicity
+el.innerHTML = `
+<div class="mini">${(groupDoc.name||'??').slice(0,2).toUpperCase()}</div>
+<div style="flex:1">
+	<div style="font-weight:600">${groupDoc.name}</div>
+	<div class="small" style="color:var(--muted)">${groupDoc.id}</div>
+</div>
+`;
+el.onclick = () => {
+currentChannel = { type:'group', id:'group_' + groupDoc.id, title: groupDoc.name, members: groupDoc.members };
+showChatHeader(currentChannel);
+subscribeToMessages(currentChannel.id);
+};
+groupsListEl.appendChild(el);
+} else {
+const el = document.createElement('div');
+el.className = 'friend';
+el.innerHTML = `
+<div class="mini">?</div>
+<div style="flex:1">
+	<div style="font-weight:600">Unknown Group</div>
+	<div class="small" style="color:var(--muted)">${groupId}</div>
+</div>
+`;
+groupsListEl.appendChild(el);
+}
+} catch(e){
+console.error('Error loading group', e);
+}
+});
+}
+/* ---------- Friend request modal ---------- */
+function showFriendRequestModal(request) {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <div class="modal">
+        <div style="font-weight:700;font-size:16px">${request.fromName} sent you a friend request</div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button id="declineBtn" class="btn ghost">Decline</button>
+          <button id="acceptBtn" class="btn">Accept</button>
+        </div>
+      </div>
+    </div>`;
+  
+  document.getElementById('acceptBtn').onclick = async () => {
+    await acceptFriendRequest(request);
+    root.innerHTML = '';
+  };
+  
+  document.getElementById('declineBtn').onclick = async () => {
+    await declineFriendRequest(request);
+    root.innerHTML = '';
+  };
+}
+
+/* ---------- Accept / decline ---------- */
+async function acceptFriendRequest(request) {
+  // add each other to friends
+  await db.collection('users').doc(me.docId).update({
+    friends: firebase.firestore.FieldValue.arrayUnion(request.fromId),
+    friendRequests: firebase.firestore.FieldValue.arrayRemove(request)
+  });
+
+  // also add you to their friends
+  const q = await db.collection('users').where('id','==',request.fromId).limit(1).get();
+  if (!q.empty) {
+    const docId = q.docs[0].id;
+    await db.collection('users').doc(docId)
+      .update({ friends: firebase.firestore.FieldValue.arrayUnion(me.id) });
+  }
+
+  // update local
+  me.friends.push(request.fromId);
+  notifications.friends = Math.max(0, notifications.friends-1);
+  updateFriendBadge();
+  updateToggleBadge();
+  renderFriendsList();
+}
+
+async function declineFriendRequest(request) {
+  await db.collection('users').doc(me.docId)
+    .update({ friendRequests: firebase.firestore.FieldValue.arrayRemove(request) });
+  
+  notifications.friends = Math.max(0, notifications.friends-1);
+  updateFriendBadge();
+  updateToggleBadge();
+}
+
+/* ---------- Listen for friend requests ---------- */
+function listenFriendRequests() {
+  if (!me || !me.docId) return;
+
+  // ensure me.friendRequests exists
+  if (!me.friendRequests) me.friendRequests = [];
+
+  let firstSnapshot = true; // ignore existing requests
+  db.collection('users').doc(me.docId).onSnapshot(doc => {
+    const data = doc.data();
+    const newRequests = data.friendRequests || [];
+
+    if (!firstSnapshot) {
+      // show only newly added requests
+      const added = newRequests.filter(r => 
+        !me.friendRequests.some(prev => prev.fromId === r.fromId && prev.ts === r.ts)
+      );
+      added.forEach(r => showFriendRequestModal(r));
+      notifications.friends = newRequests.length;
+      updateFriendBadge();
+      updateToggleBadge();
+    }
+
+    me.friendRequests = newRequests;
+    firstSnapshot = false;
+  });
+}
+
+
+/* ---------- Update add friend button to send request ---------- */
+document.getElementById('addFriendBtn').addEventListener('click', async ()=>{
+  const raw = document.getElementById('addFriendInput').value.trim();
+  if (!raw) return alert('Enter a friend id');
+  if (!me) return alert('Not ready yet.');
+  if (raw === me.id) return alert('Cannot add yourself.');
+  setStatus('Sending friend request...');
+  try {
+    const q = await db.collection('users').where('id','==',raw).limit(1).get();
+    if (q.empty) return alert('No user with that id found.');
+    const targetDoc = q.docs[0];
+    const targetData = targetDoc.data();
+    
+    // Push friend request to target user
+    const request = { fromId: me.id, fromName: me.name, ts: firebase.firestore.FieldValue.serverTimestamp() };
+    await db.collection('users').doc(targetDoc.id)
+      .update({ friendRequests: firebase.firestore.FieldValue.arrayUnion(request) });
+    
+    setStatus('Connected');
+    alert('Friend request sent!');
+    document.getElementById('addFriendInput').value = '';
+  } catch(e){ console.error(e); setStatus('Connected'); alert('Error sending friend request.'); }
+});
+
+/* ---------- Init notifications ---------- */
+(async function initNotifications(){
+  if (me && me.docId) listenFriendRequests();
+})();
+/* ---------- Open DM ---------- */
+function dmChannelId(a,b){
+  // deterministic for two-user DM
+  return 'dm_' + [a,b].sort().join('_');
+}
+async function openDMWith(userDoc) {
+  // userDoc is an object with id,name,avatarSeed (not full doc necessarily)
+  currentChannel = { type:'dm', id: dmChannelId(me.id, userDoc.id), title: userDoc.name, members:[me.id, userDoc.id] };
+  showChatHeader(currentChannel);
+  subscribeToMessages(currentChannel.id);
+}
+
+/* ---------- Show chat header ---------- */
+function showChatHeader(chan){
+  chatHeaderTitle.textContent = chan.title || 'Chat';
+  chatSubtitle.textContent = (chan.type === 'group') ? 'Group chat' : 'Direct message';
+  chatAvatar.textContent = (chan.title||'').slice(0,2).toUpperCase();
+  chatComposer.style.display = 'flex';
+}
+
+/* ---------- Subscribe to messages for a channel ---------- */
+function subscribeToMessages(channelId) {
+if (unsubscribeMessages) unsubscribeMessages();
+messagesEl.innerHTML = '<div class="small">Loading messages...</div>';
+
+unsubscribeMessages = db.collection('messages')
+.where('channelId','==',channelId)
+.orderBy('ts','asc')
+.onSnapshot(snapshot=>{
+messagesEl.innerHTML = '';
+
+snapshot.docs.forEach(doc => {
+  const d = doc.data();
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-wrapper ' + (d.senderId === me.id ? 'me' : 'them');
+
+  // sender name
+  const senderNameEl = document.createElement('div');
+  senderNameEl.className = 'msg-sender';
+  senderNameEl.textContent = d.senderId === me.id ? 'You' : d.senderName || d.senderId;
+
+  // message bubble
+  const msgEl = document.createElement('div');
+  msgEl.className = 'msg new' + (d.senderId === me.id ? ' me' : '');
+  msgEl.innerHTML = `<div style="font-size:13px">${escapeHtml(d.text)}</div>
+  <div class="small" style="opacity:.6;margin-top:6px">
+    ${new Date(d.ts?.toMillis ? d.ts.toMillis() : (d.ts || Date.now()))
+      .toLocaleString([], { year:'numeric', month:'2-digit', day:'2-digit', hour:'numeric', minute:'2-digit' })}
+  </div>`;
+
+  wrapper.appendChild(senderNameEl);
+  wrapper.appendChild(msgEl);
+  messagesEl.appendChild(wrapper);
+});
+
+
+// scroll to bottom smoothly
+messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+}, err=>{
+console.error('msg snapshot err', err);
+});
+}
+
+/* ---------- Send message ---------- */
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+msgInput.addEventListener('keydown', (e)=>{ if (e.key==='Enter') sendMessage(); });
+
+async function sendMessage(){
+  const text = msgInput.value.trim();
+  if (!text || !currentChannel) return;
+  const payload = {
+    channelId: currentChannel.id,
+    senderId: me.id,
+    senderName: me.name,
+    text: text,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    await db.collection('messages').add(payload);
+    msgInput.value = '';
+  } catch(e){
+    console.error('send error', e);
+    alert('Failed to send message.');
+  }
+}
+
+/* ---------- Group creation modal + logic ---------- */
+
+function genGroupId() {
+// generate 6-char alphanumeric string with no repeats
+const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+let id = "";
+const used = new Set();
+while(id.length < 6){ const c=chars[Math.floor(Math.random()*chars.length)]; if (!used.has(c)){ used.add(c); id +=c; } }
+	return id; } document.getElementById('newGroupBtn').addEventListener('click', async ()=>{
+
+	if (!me) return alert('Not ready yet.');
+	const friends = me.friends || [];
+	if (friends.length === 0) return alert('Add some friends first.');
+
+	const root = document.getElementById('modalRoot');
+
+	// fetch friend details
+	const friendDocs = await Promise.all(friends.map(async fid=>{
+	const q = await db.collection('users').where('id','==',fid).limit(1).get();
+	return q.empty ? { id: fid, name: 'Unknown', avatarSeed:'?' } : q.docs[0].data();
+	}));
+
+	root.innerHTML = `<div class="modal-backdrop" id="groupModal">
+		<div class="modal">
+			<div style="font-weight:700">Create group chat</div>
+			<div class="flex-col" style="margin-top:8px">
+				<input id="groupName" class="text-input" placeholder="Group name" />
+				<div
+					style="max-height:200px;overflow:auto;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent">
+					${friendDocs.map((f,i)=>`
+					<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <input type="checkbox" data-id="${f.id}" ${i===0?'checked':''}/> 
+                <div style="font-weight:600">${escapeHtml(f.name)}</div> 
+                <div class="small" style="color:var(--muted);margin-left:6px">${escapeHtml(f.id)}</div>
+              </label>`).join('')}
+				</div>
+				<div style="display:flex;gap:8px;justify-content:flex-end">
+					<button id="groupCancel" class="btn ghost">Cancel</button>
+					<button id="groupCreate" class="btn">Create</button>
+				</div>
+			</div>
+		</div>
+	</div>`;
+
+	document.getElementById('groupCancel').onclick = ()=>{ root.innerHTML=''; };
+
+	document.getElementById('groupCreate').onclick = async ()=>{
+
+	const name = document.getElementById('groupName').value.trim() || 'New Group';
+	const checked = Array.from(root.querySelectorAll('input[type=checkbox]:checked')).map(el=>el.dataset.id);
+
+	if (checked.length === 0) return alert('Pick at least one friend.');
+
+	const members = Array.from(new Set([me.id, ...checked]));
+	const groupId = genGroupId();
+
+	try {
+	// create group doc
+	await db.collection('groups').doc(groupId).set({
+	id: groupId,
+	name,
+	members,
+	createdAt: firebase.firestore.FieldValue.serverTimestamp()
+	});
+
+	// add group id to all members
+	for (const uid of members) {
+	const userRef = db.collection('users').doc(me.docId);
+	const userSnap = await db.collection('users').where('id','==',uid).limit(1).get();
+	if (!userSnap.empty) {
+	await db.collection('users').doc(userSnap.docs[0].id)
+	.update({ groups: firebase.firestore.FieldValue.arrayUnion(groupId) });
+	}
+	}
+
+	// create first system message
+	const channelId = 'group_' + groupId;
+	await db.collection('messages').add({
+	channelId,
+	senderId: 'system',
+	text: `${me.name} created this group.`,
+	ts: firebase.firestore.FieldValue.serverTimestamp()
+	});
+
+	root.innerHTML = '';
+
+	// open the group chat
+	currentChannel = { type:'group', id: channelId, title: name, members };
+	showChatHeader(currentChannel);
+	subscribeToMessages(currentChannel.id);
+
+	} catch(e){
+	console.error(e);
+	alert('Failed to create group.');
+	}
+	};
+
+	});
+
+/* ---------- When page starts ---------- */
+(async function init(){
+  setStatus('Connecting...');
+  try {
+    await promptForName();
+    if (!me) throw new Error('No user');
+    setStatus('Connected');
+    // setup a listener on my user doc to react to friend list changes
+    unsubFriends = db.collection('users').doc(me.docId).onSnapshot(doc=>{
+      me = { docId: doc.id, ...doc.data() };
+      renderMe();
+      renderFriendsList();
+      renderGroupsList();
+    }, err=>{
+      console.error('user snapshot err', err);
+    });
+  } catch(e){
+    console.error(e);
+    setStatus('Error');
+    alert('Initialization failed. Check console for details and ensure firebaseConfig is set.');
+  }
+})();
+
+/* ---------- helper escape for text display ---------- */
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+}
+
+/* ---------- Utility: open DM from top-level (used by other features) ---------- */
+async function openDMByFriendId(friendId) {
+  // find friend doc
+  const q = await db.collection('users').where('id','==',friendId).limit(1).get();
+  if (q.empty) return alert('No user found with that id.');
+  const d = q.docs[0].data();
+  openDMWith(d);
+}
+
+/* ---------- Make sure clicking a friend that is not in friend list works if created externally ---------- */
+window.openDMByFriendId = openDMByFriendId;
+
+	</script>
+</body>
+
+</html>
