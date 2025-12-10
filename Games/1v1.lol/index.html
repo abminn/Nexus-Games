@@ -26,7 +26,17 @@
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script type="text/javascript" src="js/ima3.js"></script>
-
+	<script>
+		window.fileMergerConfig = {
+        files: [
+          { name: 'rc.data.unityweb', parts: 2 },
+          { name: 'rc.wasm.code.unityweb', parts: 1 },
+          { name: 'rc.wasm.framework.unityweb', parts: 1 },
+        ],
+        basePath: '',
+        debug: true
+      };
+	</script>
     <!-- ZONETAG - PLACE INTO HEAD SECTION OR RUN CODE AT STARTUP -->
     <script>
       (function (zonefile) {
@@ -101,6 +111,7 @@
     </div>
 	<script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>  
     <script id="unity-loader" src="js/UnityLoader.js"></script>
+	  <script src="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/merge.js"></script>
     <!--<script src="Build/UnityLoader.js"></script>-->
     <script>
 (async () => { 
@@ -109,7 +120,7 @@ console.log(gameConfig);
       var hostname = window.location.hostname;
       if (hostname.indexOf("dev1v1") >= 0 || hostname.indexOf("dev.1v1") >= 0 || hostname.indexOf("test1v1") >= 0 || hostname.indexOf("test.1v1") >= 0) {
       }
-      var gameInstance = UnityLoader.instantiate("gameContainer", "https://ignistesting.mos.us-south-1.sufybkt.com/1v1.lol/WebGL.json", { onProgress: UnityProgress });
+      var gameInstance = UnityLoader.instantiate("gameContainer", "WebGL.json", { onProgress: UnityProgress });
       //var gameInstance = UnityLoader.instantiate("gameContainer", "Build/WebGL.json", {onProgress: UnityProgress});
 
       window.unityInstance = gameInstance;
@@ -298,5 +309,6 @@ console.log(gameConfig);
     </script>
 </body>
 </html>
+
 
 
