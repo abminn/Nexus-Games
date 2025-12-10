@@ -83,7 +83,7 @@ const allGames = [
   "Minecraft 1.20.1",
   "Undertale Yellow",
   "99 Nights in the Forest",
-  "Rocket League",
+  "Rocket Soccer Derby",
   "Smashy Road",
   "Basketball Stars",
   "Cookie Clicker",
@@ -92,6 +92,7 @@ const allGames = [
   "Game Requests",
   "Solar Smash",
   "Chatting",
+  "Rocket Goal",
 ];
 
 adminGames = [
