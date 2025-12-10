@@ -118,7 +118,7 @@ var buildUrl = "Build";
 const dataUrl = await combineUnityData(["5034fe447c5b905562e369326f099252.data.unityweb.part1.bin", "5034fe447c5b905562e369326f099252.data.unityweb.part2.bin"]);
 const codeUrl = await combineUnityData(["6d13479135e53fe1f57174e5424b1422.wasm.unityweb.part1.bin", "6d13479135e53fe1f57174e5424b1422.wasm.unityweb.part2.bin"]);
 
-      var loaderUrl = changeUnityLoader(buildUrl + "/b23dd96997961653e2825455633aac82.loader.js");
+      var loaderUrl = await changeUnityLoader(buildUrl + "/b23dd96997961653e2825455633aac82.loader.js");
       var config = {
         dataUrl: dataUrl,
         frameworkUrl: buildUrl + "/429b62c35d638d9c85f8109b66284ad3.framework.js.unityweb",
@@ -200,6 +200,7 @@ const codeUrl = await combineUnityData(["6d13479135e53fe1f57174e5424b1422.wasm.u
     </script>
   </body>
 </html>
+
 
 
 
