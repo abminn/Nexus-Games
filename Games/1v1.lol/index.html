@@ -26,17 +26,6 @@
     <link rel="stylesheet" href="css/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script type="text/javascript" src="js/ima3.js"></script>
-	<script>
-		window.fileMergerConfig = {
-        files: [
-          { name: 'rc.data.unityweb', parts: 2 },
-          { name: 'rc.wasm.code.unityweb', parts: 1 },
-          { name: 'rc.wasm.framework.unityweb', parts: 1 },
-        ],
-        basePath: '',
-        debug: true
-      };
-	</script>
     <!-- ZONETAG - PLACE INTO HEAD SECTION OR RUN CODE AT STARTUP -->
     <script>
       (function (zonefile) {
@@ -109,9 +98,9 @@
         <div class="full"></div>
       </div>
     </div>
-	<script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>  
+	<script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>  
     <script id="unity-loader" src="js/UnityLoader.js"></script>
-	  <script src="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/merge.js"></script>
     <!--<script src="Build/UnityLoader.js"></script>-->
     <script>
 (async () => { 
@@ -119,7 +108,30 @@
       var hostname = window.location.hostname;
       if (hostname.indexOf("dev1v1") >= 0 || hostname.indexOf("dev.1v1") >= 0 || hostname.indexOf("test1v1") >= 0 || hostname.indexOf("test.1v1") >= 0) {
       }
-      var gameInstance = UnityLoader.instantiate("gameContainer", "WebGL.json", { onProgress: UnityProgress });
+
+      let jsonUrl = null;
+      const dataUrl = await combineUnityData(["rc.data.unityweb.part1.bin", "rc.data.unityweb.part2.bin"])
+      let jsonText = `{
+"companyName": "JustPlay.LOL",
+"productName": "1v1.LOL",
+"productVersion": "3.800",
+"dataUrl": "${dataUrl}",
+"wasmCodeUrl": "rc.wasm.code.unityweb",
+"wasmFrameworkUrl": "rc.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"splashScreenStyle": "Dark",
+"backgroundColor": "#000000",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.24f1"
+}`
+
+let blob = new Blob([jsonText], {type: "application/json"});
+jsonUrl = URL.createObjectURL(blob);
+
+      var gameInstance = UnityLoader.instantiate("gameContainer", jsonUrl, { onProgress: UnityProgress });
       //var gameInstance = UnityLoader.instantiate("gameContainer", "Build/WebGL.json", {onProgress: UnityProgress});
 
       window.unityInstance = gameInstance;
