@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en-us">
+
 <head>
-    <meta charset="utf-8">
-    <title>1v1.LOL</title>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MENBM6GSNY"></script><script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-MENBM6GSNY")</script>
-    <script type="text/javascript" async="" src="js/372_49986_1v1.js"></script>
+	<meta charset="utf-8">
+	<title>1v1.LOL</title>
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-MENBM6GSNY"></script>
+	<script>
+		function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-MENBM6GSNY")
+	</script>
+	<script type="text/javascript" async="" src="js/372_49986_1v1.js"></script>
 	<script src="js/jquery.min.js"></script>
-    <script src="js/IronSourceRV.js"></script>
-    <script src="js/mobileRedirect.js"></script>
-    <script src="js/fullscreen.js"></script>
-    <script>
-      var gameLoaded = false;
+	<script src="js/IronSourceRV.js"></script>
+	<script src="js/mobileRedirect.js"></script>
+	<script src="js/fullscreen.js"></script>
+	<script>
+		var gameLoaded = false;
       window.addEventListener("beforeunload", function (e) {
         if (adsVisible || !gameLoaded || !lockedOccured) return null;
         var confirmationMessage = "Are you sure you want to leave? ";
@@ -20,13 +24,13 @@
       window.alert = function (e) {
         console.log(e);
       };
-    </script>
-    <link rel="stylesheet" href="css/style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <script type="text/javascript" src="js/ima3.js"></script>
-    <!-- ZONETAG - PLACE INTO HEAD SECTION OR RUN CODE AT STARTUP -->
-    <script>
-      (function (zonefile) {
+	</script>
+	<link rel="stylesheet" href="css/style.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<script type="text/javascript" src="js/ima3.js"></script>
+	<!-- ZONETAG - PLACE INTO HEAD SECTION OR RUN CODE AT STARTUP -->
+	<script>
+		(function (zonefile) {
         var y = window.location.href
           .split("#")[0]
           .split("")
@@ -77,38 +81,37 @@
             });
           },
         });
-    </script>
-    <!-- MIDROLL/INTERSTITIAL VIDEO API -->
-    <script src="js/cpmstar.js"></script>
-  </head>
+	</script>
+	<!-- MIDROLL/INTERSTITIAL VIDEO API -->
+	<script src="js/cpmstar.js"></script>
+</head>
 
-  <body>
-    <div id="interAdsContainer" style="display: none;">
-<div class="ad-rectangle-bottom"></div>
-<div class="ad-leaderboard-bottom"></div>
-<div id="adRectangleUpper"></div>
-</div>
-    <div id="gameContainer"></div>
-    <div id="loader">
-      <img class="logo" src="logo.png">
-      <div class="spinner"></div>
-      <div class="progress">
-        <div class="full"></div>
-      </div>
-    </div>
+<body>
+	<div id="interAdsContainer" style="display: none;">
+		<div class="ad-rectangle-bottom"></div>
+		<div class="ad-leaderboard-bottom"></div>
+		<div id="adRectangleUpper"></div>
+	</div>
+	<div id="gameContainer"></div>
+	<div id="loader">
+		<img class="logo" src="logo.png">
+		<div class="spinner"></div>
+		<div class="progress">
+			<div class="full"></div>
+		</div>
+	</div>
 	<script src="https://cdn.jsdelivr.net/gh/st39/sdk@main/api.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>  
-    <script id="unity-loader" src="js/UnityLoader.js"></script>
-    <!--<script src="Build/UnityLoader.js"></script>-->
-    <script>
-(async () => { 
-
+	<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>
+	<script id="unity-loader" src="js/UnityLoader.js"></script>
+	<!--<script src="Build/UnityLoader.js"></script>-->
+	<script>
+	combineUnityData(["rc.data.unityweb.part1.bin", "rc.data.unityweb.part2.bin"]).then(dataUrl => {
       var hostname = window.location.hostname;
       if (hostname.indexOf("dev1v1") >= 0 || hostname.indexOf("dev.1v1") >= 0 || hostname.indexOf("test1v1") >= 0 || hostname.indexOf("test.1v1") >= 0) {
       }
 
       let jsonUrl = null;
-      const dataUrl = await combineUnityData(["rc.data.unityweb.part1.bin", "rc.data.unityweb.part2.bin"])
+      
       let jsonText = `{
 "companyName": "JustPlay.LOL",
 "productName": "1v1.LOL",
@@ -129,7 +132,7 @@
 let blob = new Blob([jsonText], {type: "application/json"});
 jsonUrl = URL.createObjectURL(blob);
 
-      var gameInstance = UnityLoader.instantiate("gameContainer", jsonUrl, { onProgress: UnityProgress });
+      window.gameInstance = UnityLoader.instantiate("gameContainer", jsonUrl, { onProgress: UnityProgress });
       //var gameInstance = UnityLoader.instantiate("gameContainer", "Build/WebGL.json", {onProgress: UnityProgress});
 
       window.unityInstance = gameInstance;
@@ -152,7 +155,6 @@ jsonUrl = URL.createObjectURL(blob);
           gameLoaded = true;
         }
       };
-})(); 
 
       document.onkeydown = function (e) {
         if (e.altKey || e.ctrlKey || e.key == "F1" || e.key == "F2" || e.key == "F3" || e.key == "F4") {
@@ -279,22 +281,23 @@ jsonUrl = URL.createObjectURL(blob);
       function pauseCounter() {
         adsVisible = false;
       }
-    </script>
-    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
-    <script src="js/firebase-app.js"></script>
+  });
+	</script>
+	<!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+	<script src="js/firebase-app.js"></script>
 
-    <!-- Add Firebase products that you want to use -->
-    <script src="js/firebase-analytics.js"></script>
-    <script src="js/firebase-auth.js"></script>
-    <script src="js/firebase-firestore.js"></script>
-    <script src="js/firebase-remote-config.js"></script>
+	<!-- Add Firebase products that you want to use -->
+	<script src="js/firebase-analytics.js"></script>
+	<script src="js/firebase-auth.js"></script>
+	<script src="js/firebase-firestore.js"></script>
+	<script src="js/firebase-remote-config.js"></script>
 
-    <script src="js/firebase.js"></script>
-    <script src="js/login.js"></script>
-    <script src="js/firebase-config.js"></script>
+	<script src="js/firebase.js"></script>
+	<script src="js/login.js"></script>
+	<script src="js/firebase-config.js"></script>
 
-    <script>
-      var hostname = window.location.hostname;
+	<script>
+		var hostname = window.location.hostname;
       if (hostname.indexOf("dev1v1") >= 0 || hostname.indexOf("dev.1v1") >= 0 || hostname.indexOf("test1v1") >= 0 || hostname.indexOf("test.1v1") >= 0 || hostname.indexOf("localhost") >= 0) {
         initializeFireBaseDev();
       } else {
@@ -302,23 +305,20 @@ jsonUrl = URL.createObjectURL(blob);
       }
 
       initRemoteConfig();
-    </script>
+	</script>
 
-    <script src="js/windowResize.js"></script>
-    <script src="js/adblockManager.js"></script>
-    <script src="js/macUserAgent.js"></script>
-    <script src="js/visibilityChangeListener.js"></script>
-    <script>
-      function onUnityReady() {
+	<script src="js/windowResize.js"></script>
+	<script src="js/adblockManager.js"></script>
+	<script src="js/macUserAgent.js"></script>
+	<script src="js/visibilityChangeListener.js"></script>
+	<script>
+		function onUnityReady() {
         checkAdBlock();
         sendConfig();
       }
 
       fixMacUserAgent();
-    </script>
+	</script>
 </body>
+
 </html>
-
-
-
-
