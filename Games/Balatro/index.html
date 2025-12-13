@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web GBA Emulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0f1220;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* TOP BAR */
+#topbar {
+  height: 52px;
+  background: linear-gradient(180deg, #1a1e3a, #12152a);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+#topbar .title {
+  font-weight: 600;
+}
+  
+  #topbar .subtitle {
+    margin-right: auto;
+  }
+
+/* DROPDOWNS */
+.dropdown {
+  position: relative;
+}
+
+.dropdown button {
+  background: #262b55;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dropdown button:hover {
+  background: #323a78;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top: 44px;
+  right: 0;
+  background: #1b1f42;
+  border-radius: 10px;
+  min-width: 160px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.6);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.dropdown-content button {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #eee;
+  padding: 12px;
+  text-align: left;
+}
+
+.dropdown-content button:hover {
+  background: #2a2f63;
+}
+
+.dropdown.open .dropdown-content {
+  display: block;
+}
+
+/* EMULATOR AREA */
+#emulator {
+  width: 100%;
+  height: calc(100% - 52px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+}
+
+canvas {
+  image-rendering: pixelated;
+}
+
+/* CONTROLS POPUP */
+#controls-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+#controls-box {
+  background: #1b1f42;
+  border-radius: 14px;
+  padding: 20px 24px;
+  width: 280px;
+  align-items: center;
+  justify-content: center;
+}
+
+#controls-box h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+#controls-box table {
+  width: 100%;
+  border-collapse: collapse;
+  align-items: center;
+  justify-content: center;
+}
+
+#controls-box td {
+  padding: 6px 0;
+}
+
+#controls-box button {
+  margin-top: 14px;
+  width: 100%;
+  padding: 8px;
+  background: #323a78;
+  border: none;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* HIDDEN FILE INPUT */
+#cart_picker {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="title">Web GBA</div>
+  <div class="subtitle" id="status">Loading.</div>
+  <div class="dropdown" id="speedMenu">
+    <button>Speed ▾</button>
+    <div class="dropdown-content">
+      <button data-speed="1">1× (Normal)</button>
+      <button data-speed="2">2×</button>
+      <button data-speed="3">3×</button>
+    </div>
+  </div>
+
+  <div class="dropdown" id="controlsMenu">
+    <button>Controls ▾</button>
+  </div>
+</div>
+
+<!-- EMULATOR -->
+<div id="emulator">
+  <div id="bezel"></div>
+</div>
+
+<!-- HIDDEN FILE PICKER -->
+<input id="cart_picker" type="file" accept=".gba">
+
+<!-- CONTROLS POPUP -->
+<div id="controls-popup">
+  <div id="controls-box">
+    <h2>Controls</h2>
+    <table>
+      <tr><td><u>From:</u></td><td><u>To:</u></td></tr>
+      <tr><td>D-Pad</td><td>Arrow Keys</td></tr>
+      <tr><td>A</td><td>X</td></tr>
+      <tr><td>B</td><td>Z</td></tr>
+      <tr><td>Start</td><td>Enter</td></tr>
+      <tr><td>Select</td><td>Shift</td></tr>
+      <tr><td>L</td><td>A</td></tr>
+      <tr><td>R</td><td>S</td></tr>
+    </table>
+    <button onclick="closeControls()">Close</button>
+  </div>
+</div>
+
+<!-- EMULATOR CONSTANTS -->
+<script>
+const CANVAS_PARENT = "#bezel";
+const VIDEO_DIMS = [240, 160];
+
+const EMU_KEYS = [
+  ['x', 'a'],
+  ['z', 'b'],
+  ['Shift', 'select'],
+  ['Enter', 'start'],
+  ['ArrowUp', 'up'],
+  ['ArrowDown', 'down'],
+  ['ArrowLeft', 'left'],
+  ['ArrowRight', 'right'],
+  ['a', 'lshoulder'],
+  ['s', 'rshoulder']
+];
+</script>
+
+<!-- EMULATOR -->
+<script src="emu_loader.js"></script>
+<script src="libgba.js"></script>
+
+<script>
+/* Dropdown logic */
+document.querySelectorAll('.dropdown button').forEach(btn => {
+  btn.onclick = e => {
+    let d = e.target.closest('.dropdown');
+    document.querySelectorAll('.dropdown').forEach(o => o !== d && o.classList.remove('open'));
+    d.classList.toggle('open');
+  };
+});
+
+/* Speed control (simple frame skipping) */
+document.querySelectorAll('[data-speed]').forEach(btn => {
+  btn.onclick = e => {
+    let speed = Number(e.target.dataset.speed);
+    window.EMU_SPEED = speed;
+    document.getElementById("speedMenu").classList.remove("open");
+  };
+});
+
+/* Controls popup */
+document.getElementById("controlsMenu").onclick = () => {
+  document.getElementById("controls-popup").style.display = "flex";
+};
+
+function closeControls() {
+  document.getElementById("controls-popup").style.display = "none";
+}
+
+/* Default speed */
+window.EMU_SPEED = 1;
+
+/* Patch tick for speed */
+const _origTick = window.tick;
+window.tick = function () {
+  for (let i = 0; i < window.EMU_SPEED; i++) {
+    _origTick();
+  }
+};
+
+/* Auto scale */
+window.addEventListener("load", () => {
+  document.body.click(); // audio unlock
+});
+</script>
+
+  <script>
+async function autoBoot() {
+  let statusText = "Loading."
+  const statusEl = document.getElementById("status");
+  let count = 0;
+  const rand = Math.floor(Math.random() * 4) + 8;
+  const interval = setInterval(() => {
+    count += 1
+    if (statusText.includes("...")) {
+      statusText = "Loading.";
+    } else {
+      statusText = statusText + "."
+    }
+    statusEl.innerText = statusText;
+    if (count == rand) clearInterval(interval)
+}, 800);
+  
+  const res = await fetch("balatro_file.gba");
+  const buf = await res.arrayBuffer();
+  rom_load_array(new Uint8Array(buf));
+  audioContext.resume();
+
+statusEl.innerText = "Loaded"
+
+setTimeout(function() {
+statusEl.innerText = "Running"
+}, 1500)
+}
+
+window.addEventListener("load", autoBoot);
+</script>
+
+  
+</body>
+</html>
