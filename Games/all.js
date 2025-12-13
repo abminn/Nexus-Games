@@ -93,6 +93,10 @@ const allGames = [
   "Solar Smash",
   "Chatting",
   "Rocket Goal",
+  "Slime Rancher",
+  "Balatro",
+  "Hotline Miami",
+  "Crossy Road",
 ];
 
 adminGames = [
