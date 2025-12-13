@@ -1,302 +1,337 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<title>Web GBA Emulator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta charset="UTF-8">
+	<title>Balatro</title>
 
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #0f1220;
-  color: #eee;
-  font-family: system-ui, sans-serif;
-  overflow: hidden;
-}
+	<style>
+		html,
+		body {
+			margin: 0;
+			height: 100%;
+			font-family: system-ui, sans-serif;
+			background: #0f1220;
+			color: #eee;
+			overflow: hidden;
+		}
 
-/* TOP BAR */
-#topbar {
-  height: 52px;
-  background: linear-gradient(180deg, #1a1e3a, #12152a);
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.4);
-}
+		/* TOP BAR */
+		#topbar {
+			height: 52px;
+			background: linear-gradient(180deg, #1a1e3a, #12152a);
+			display: flex;
+			align-items: center;
+			padding: 0 14px;
+			gap: 14px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+		}
 
-#topbar .title {
-  font-weight: 600;
-}
-  
-  #topbar .subtitle {
-    margin-right: auto;
-  }
+		.title {
+			font-weight: 600;
+		}
 
-/* DROPDOWNS */
-.dropdown {
-  position: relative;
-}
+		#status {
+			margin-left: auto;
+			opacity: 0.85;
+			font-size: 14px;
+		}
 
-.dropdown button {
-  background: #262b55;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+		/* DROPDOWN */
+		.dropdown {
+			position: relative;
+		}
 
-.dropdown button:hover {
-  background: #323a78;
-}
+		.dropdown button {
+			background: #262b55;
+			color: white;
+			border: none;
+			padding: 8px 14px;
+			border-radius: 8px;
+			cursor: pointer;
+		}
 
-.dropdown-content {
-  display: none;
-  position: absolute;
-  top: 44px;
-  right: 0;
-  background: #1b1f42;
-  border-radius: 10px;
-  min-width: 160px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.6);
-  overflow: hidden;
-  z-index: 10;
-}
+		.dropdown-content button.act {
+			background: #131733;
+		}
 
-.dropdown-content button {
-  width: 100%;
-  background: none;
-  border: none;
-  color: #eee;
-  padding: 12px;
-  text-align: left;
-}
+		.dropdown-content {
+			display: none;
+			position: absolute;
+			top: 44px;
+			right: 0;
+			background: #1b1f42;
+			border-radius: 10px;
+			min-width: 160px;
+			box-shadow: 0 8px 30px rgba(0, 0, 0, .6);
+			z-index: 10;
+		}
 
-.dropdown-content button:hover {
-  background: #2a2f63;
-}
+		.dropdown-content button {
+			width: 100%;
+			background: none;
+			border: none;
+			color: #eee;
+			padding: 10px 14px;
+			text-align: left;
+			cursor: pointer;
+		}
 
-.dropdown.open .dropdown-content {
-  display: block;
-}
+		.dropdown-content button:hover {
+			background: #2a2f63;
+		}
 
-/* EMULATOR AREA */
-#emulator {
-  width: 100%;
-  height: calc(100% - 52px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: black;
-}
+		.dropdown.open .dropdown-content {
+			display: block;
+		}
 
-canvas {
-  image-rendering: pixelated;
-}
+		/* CONTROLS POPUP */
+		#controls-popup {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.7);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 20;
+		}
 
-/* CONTROLS POPUP */
-#controls-popup {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-}
+		#controls-box {
+			background: #1b1f42;
+			border-radius: 14px;
+			padding: 20px;
+			width: 280px;
+		}
 
-#controls-box {
-  background: #1b1f42;
-  border-radius: 14px;
-  padding: 20px 24px;
-  width: 280px;
-  align-items: center;
-  justify-content: center;
-}
+		#controls-box table {
+			width: 100%;
+			text-align: left;
+			border-collapse: collapse;
+		}
 
-#controls-box h2 {
-  margin-top: 0;
-  text-align: center;
-}
+		#controls-box td {
+			padding: 6px 0;
+		}
 
-#controls-box table {
-  width: 100%;
-  border-collapse: collapse;
-  align-items: center;
-  justify-content: center;
-}
+		#controls-box button {
+			margin-top: 14px;
+			width: 100%;
+			padding: 8px;
+			border-radius: 8px;
+			background: #323a78;
+			border: none;
+			color: white;
+			cursor: pointer;
+		}
 
-#controls-box td {
-  padding: 6px 0;
-}
+		#emulator {
+			width: 100%;
+			height: calc(100% - 52px);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: black;
+		}
 
-#controls-box button {
-  margin-top: 14px;
-  width: 100%;
-  padding: 8px;
-  background: #323a78;
-  border: none;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-}
+		canvas {
+			image-rendering: pixelated;
+		}
+	</style>
 
-/* HIDDEN FILE INPUT */
-#cart_picker {
-  display: none;
-}
-</style>
+	<!-- Disable audio -->
+	<script>
+		window.AudioContext = window.webkitAudioContext = function() { return { resume() {} }; };
+	</script>
+
+	<script>
+		var Module = { onRuntimeInitialized() { initEmu(); } };
+	</script>
+	<script src="libgba.js"></script>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
-<div id="topbar">
-  <div class="title">Web GBA</div>
-  <div class="subtitle" id="status">Loading.</div>
-  <div class="dropdown" id="speedMenu">
-    <button>Speed ▾</button>
-    <div class="dropdown-content">
-      <button data-speed="1">1× (Normal)</button>
-      <button data-speed="2">2×</button>
-      <button data-speed="3">3×</button>
-    </div>
-  </div>
+	<!-- TOP BAR -->
+	<div id="topbar">
+		<div class="title">Balatro (GBA)</div>
+		<div id="status">Loading…</div>
 
-  <div class="dropdown" id="controlsMenu">
-    <button>Controls ▾</button>
-  </div>
-</div>
+		<!-- Game dropdown -->
+		<div class="dropdown" id="gameMenu">
+			<button>Game ▾</button>
+			<div class="dropdown-content">
+				<button id="pauseBtn">Pause</button>
+				<button id="resetBtn">Reset</button>
+				<button id="fullscreenBtn">Fullscreen</button>
+			</div>
+		</div>
 
-<!-- EMULATOR -->
-<div id="emulator">
-  <div id="bezel"></div>
-</div>
+		<!-- Speed dropdown -->
+		<div class="dropdown" id="speedMenu">
+			<button>Speed ▾</button>
+			<div class="dropdown-content">
+				<button data-speed="1" class="act">1× Normal</button>
+				<button data-speed="2">2×</button>
+				<button data-speed="3">3×</button>
+			</div>
+		</div>
 
-<!-- HIDDEN FILE PICKER -->
-<input id="cart_picker" type="file" accept=".gba">
+		<!-- Controls dropdown -->
+		<div class="dropdown" id="controlsMenu">
+			<button>Controls ▾</button>
+		</div>
+	</div>
 
-<!-- CONTROLS POPUP -->
-<div id="controls-popup">
-  <div id="controls-box">
-    <h2>Controls</h2>
-    <table>
-      <tr><td><u>From:</u></td><td><u>To:</u></td></tr>
-      <tr><td>D-Pad</td><td>Arrow Keys</td></tr>
-      <tr><td>A</td><td>X</td></tr>
-      <tr><td>B</td><td>Z</td></tr>
-      <tr><td>Start</td><td>Enter</td></tr>
-      <tr><td>Select</td><td>Shift</td></tr>
-      <tr><td>L</td><td>A</td></tr>
-      <tr><td>R</td><td>S</td></tr>
-    </table>
-    <button onclick="closeControls()">Close</button>
-  </div>
-</div>
+	<!-- Controls popup -->
+	<div id="controls-popup">
+		<div id="controls-box">
+			<h2>Controls</h2>
+			<table>
+				<tr>
+					<td>D-Pad</td>
+					<td>Arrow Keys</td>
+				</tr>
+				<tr>
+					<td>A</td>
+					<td>X</td>
+				</tr>
+				<tr>
+					<td>B</td>
+					<td>Z</td>
+				</tr>
+				<tr>
+					<td>Start</td>
+					<td>Enter</td>
+				</tr>
+				<tr>
+					<td>Select</td>
+					<td>Shift</td>
+				</tr>
+				<tr>
+					<td>L</td>
+					<td>A</td>
+				</tr>
+				<tr>
+					<td>R</td>
+					<td>S</td>
+				</tr>
+			</table>
+			<button onclick="closeControls()">Close</button>
+		</div>
+	</div>
 
-<!-- EMULATOR CONSTANTS -->
-<script>
-const CANVAS_PARENT = "#bezel";
-const VIDEO_DIMS = [240, 160];
+	<div id="emulator"></div>
 
-const EMU_KEYS = [
-  ['x', 'a'],
-  ['z', 'b'],
-  ['Shift', 'select'],
-  ['Enter', 'start'],
-  ['ArrowUp', 'up'],
-  ['ArrowDown', 'down'],
-  ['ArrowLeft', 'left'],
-  ['ArrowRight', 'right'],
-  ['a', 'lshoulder'],
-  ['s', 'rshoulder']
-];
-</script>
+	<script>
+		const WIDTH=240, HEIGHT=160;
+let canvas, ctx, imageData;
+let FRAME_BYTES=0;
+let paused=false;
+let EMU_SPEED=1;
 
-<!-- EMULATOR -->
-<script src="emu_loader.js"></script>
-<script src="libgba.js"></script>
+function initEmu(){
+  FRAME_BYTES = Module._framebuffer_bytes();
+  createCanvas();
+  setupInput();
+  loadROM();
+}
 
-<script>
-/* Dropdown logic */
-document.querySelectorAll('.dropdown button').forEach(btn => {
-  btn.onclick = e => {
-    let d = e.target.closest('.dropdown');
-    document.querySelectorAll('.dropdown').forEach(o => o !== d && o.classList.remove('open'));
-    d.classList.toggle('open');
+function createCanvas(){
+  canvas = document.createElement("canvas");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  ctx = canvas.getContext("2d",{alpha:false});
+  imageData = new ImageData(WIDTH,HEIGHT);
+  document.getElementById("emulator").appendChild(canvas);
+  resizeCanvas();
+  window.addEventListener("resize",resizeCanvas);
+}
+
+function resizeCanvas(){
+  const emu = document.getElementById("emulator");
+  const scale = Math.floor(Math.min(emu.clientWidth/WIDTH,emu.clientHeight/HEIGHT));
+  canvas.style.width=WIDTH*scale+"px";
+  canvas.style.height=HEIGHT*scale+"px";
+}
+
+async function loadROM(){
+  setStatus("Loading ROM…");
+  const res = await fetch("balatro_file.gba");
+  const buf = await res.arrayBuffer();
+  const data = new Uint8Array(buf);
+  const ptr = Module._alloc_rom(data.length);
+  Module.HEAPU8.set(data,ptr);
+  Module._init(ptr,data.length);
+  setStatus("Running");
+  requestAnimationFrame(tick);
+}
+
+function tick(){
+  if(!paused){
+    for(let i=0;i<EMU_SPEED;i++) Module._frame();
+    const fbPtr=Module._framebuffer();
+    const frame = new Uint8ClampedArray(Module.HEAPU8.buffer, fbPtr, FRAME_BYTES);
+    imageData.data.set(frame);
+    ctx.putImageData(imageData,0,0);
+  }
+  requestAnimationFrame(tick);
+}
+
+function setStatus(t){ document.getElementById("status").textContent=t; }
+
+/* INPUT */
+const KEYS=["x","z","Shift","Enter","ArrowUp","ArrowDown","ArrowLeft","ArrowRight","a","s"];
+document.addEventListener("keydown",e=>setKey(e,1));
+document.addEventListener("keyup",e=>setKey(e,0));
+function setKey(e,down){
+  const idx=KEYS.indexOf(e.key);
+  if(idx!==-1){ e.preventDefault(); Module._set_key(idx,down); }
+}
+
+/* DROPDOWNS */
+document.querySelectorAll(".dropdown button").forEach(btn=>{
+  btn.onclick=e=>{
+    const d=e.target.closest(".dropdown");
+    document.querySelectorAll(".dropdown").forEach(o=>o!==d&&o.classList.remove("open"));
+    d.classList.toggle("open");
   };
 });
 
-/* Speed control (simple frame skipping) */
-document.querySelectorAll('[data-speed]').forEach(btn => {
-  btn.onclick = e => {
-    let speed = Number(e.target.dataset.speed);
-    window.EMU_SPEED = speed;
+/* SPEED */
+document.querySelectorAll("[data-speed]").forEach(b=>{
+  b.onclick=e=>{
+    EMU_SPEED=Number(e.target.dataset.speed);
+		document.querySelectorAll("[data-speed]").forEach(b => b.classList.remove('act'));
+		b.classList.add('act');
     document.getElementById("speedMenu").classList.remove("open");
   };
 });
 
-/* Controls popup */
-document.getElementById("controlsMenu").onclick = () => {
-  document.getElementById("controls-popup").style.display = "flex";
+/* PAUSE / RESET / FULLSCREEN */
+document.getElementById("pauseBtn").onclick = ()=>{
+  paused=!paused;
+  document.getElementById("pauseBtn").textContent = paused?"Resume":"Pause";
+	setStatus(paused ? "Paused" : "Running")
 };
 
-function closeControls() {
-  document.getElementById("controls-popup").style.display = "none";
-}
-
-/* Default speed */
-window.EMU_SPEED = 1;
-
-/* Patch tick for speed */
-const _origTick = window.tick;
-window.tick = function () {
-  for (let i = 0; i < window.EMU_SPEED; i++) {
-    _origTick();
-  }
+document.getElementById("resetBtn").onclick = ()=>{
+  loadROM();
+  paused=false;
+  document.getElementById("pauseBtn").textContent="Pause";
 };
 
-/* Auto scale */
-window.addEventListener("load", () => {
-  document.body.click(); // audio unlock
-});
-</script>
+document.getElementById("fullscreenBtn").onclick = ()=>{
+  if(canvas.requestFullscreen) canvas.requestFullscreen();
+  else if(canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+};
 
-  <script>
-async function autoBoot() {
-  let statusText = "Loading."
-  const statusEl = document.getElementById("status");
-  let count = 0;
-  const rand = Math.floor(Math.random() * 4) + 8;
-  const interval = setInterval(() => {
-    count += 1
-    if (statusText.includes("...")) {
-      statusText = "Loading.";
-    } else {
-      statusText = statusText + "."
-    }
-    statusEl.innerText = statusText;
-    if (count == rand) clearInterval(interval)
-}, 800);
-  
-  const res = await fetch("balatro_file.gba");
-  const buf = await res.arrayBuffer();
-  rom_load_array(new Uint8Array(buf));
-  audioContext.resume();
+/* CONTROLS POPUP */
+document.getElementById("controlsMenu").onclick=()=>{ document.getElementById("controls-popup").style.display="flex"; };
+function closeControls(){ document.getElementById("controls-popup").style.display="none"; }
 
-statusEl.innerText = "Loaded"
-
-setTimeout(function() {
-statusEl.innerText = "Running"
-}, 1500)
-}
-
-window.addEventListener("load", autoBoot);
-</script>
-
-  
+setTimeout(function() {document.getElementById("resetBtn").click()}, Math.floor(Math.random() * 1500) + 1500);
+	</script>
 </body>
+
 </html>
