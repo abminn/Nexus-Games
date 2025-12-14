@@ -33,7 +33,29 @@
         <script type="text/javascript" charset="utf-8" src="scenario27793.js"></script>
         <script type="text/javascript" charset="utf-8" src="jszip.min.js"></script>
         <script type="text/javascript" defer="yes">
-            function pre_main() {
+async function mergeFiles(part1Url, part2Url) {
+  const [res1, res2] = await Promise.all([
+    fetch(part1Url),
+    fetch(part2Url)
+  ]);
+
+  if (!res1.ok || !res2.ok) {
+    throw new Error("Failed to fetch one or both parts");
+  }
+
+  const buffer1 = await res1.arrayBuffer();
+  const buffer2 = await res2.arrayBuffer();
+
+  const mergedBlob = new Blob(
+    [buffer1, buffer2],
+    { type: "application/java-archive" }
+  );
+
+  return URL.createObjectURL(mergedBlob);
+}
+
+            
+            async function pre_main() {
         storage_params = [];
         storage_params["storage.standalone"] = true;
         storage_params["storage.passcode"] = "0000000000000000";
@@ -41,7 +63,7 @@
         storage_params["storage.userId"] = -1;
         storage_params["storage.userName"] = "";
 
-        var appletFile = "something.jar";
+        var appletFile = await mergeFiles("something.jar.part1.bin", "something.jar.part2.bin");
 
         var xhr = new XMLHttpRequest();
         xhr.open("GET", appletFile);
@@ -65,7 +87,9 @@
 
         xhr.send();
       }
-      pre_main();
+(async () => {
+      await pre_main();
+})();
         </script>
 
         <div style="display: inline-block;">
@@ -88,5 +112,6 @@
         </div>
     </div>
 </body>
+
 
 </html>
