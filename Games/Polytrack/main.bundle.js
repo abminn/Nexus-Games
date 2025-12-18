@@ -1,5 +1,5 @@
 function fSW() {
-fetch("https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Polytrack/simulation_worker.bundle.js")
+fetch("https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/Polytrack/simulation_worker.bundle.js")
   .then(r => r.text())
   .then(code => {
     const blob = new Blob([code], { type: "application/javascript" });
