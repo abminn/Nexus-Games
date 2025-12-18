@@ -1,12 +1,30 @@
+<base href="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@e32e8f0/Games/Blockpost/" >
 
-
-<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>Blockpost - Unblocked Games Compilation</title>
-<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/files.js"></script>
+  <style>
+    #file-merger-content {
+      display: none;
+    }
+    #file-merger-loading {
+      display: none;
+    }
+  </style>
+    </head>
+<body>
+  <script>
+    window.fileMergerConfig = {
+        files: [
+          { name: 'webgl_poki.wasm.code.unityweb', parts: 2 },
+        ],
+        basePath: 'Build/',
+        debug: true
+      };  
+  </script>
+<script src="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/merge.js"></script>
 	<script>
 	window.config = {
 		loader: 'unity',
@@ -19,7 +37,7 @@
 		numScreenshots: 4,
 
 		unityVersion: '2018.4.32f1',
-		unityWebglBuildUrl: 'https://ignistesting.mos.us-south-1.sufybkt.com/Blockpost/Build/webgl_poki.json',
+		unityWebglBuildUrl: 'Build/webgl_poki.json',
 
 		fileSize: 22,
 		cachedDecompressedFileSizes: {
@@ -29,8 +47,6 @@
 		},
 	};
 	</script>
-    </head>
-<body>
 	<script src="master-loader.js"></script>
     </body>
 </html>
