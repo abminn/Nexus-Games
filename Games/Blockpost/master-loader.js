@@ -16,13 +16,6 @@ if (!window.config.unityWebglLoaderUrl) {
         year = versionSplit[0],
         minor = versionSplit[1];
           window.config.unityWebglLoaderUrl ="./UnityLoader.js";
-    // switch (year) {
-    //     case "2019":
-    //         window.config.unityWebglLoaderUrl = 1 === minor ? "./UnityLoader.2019.1.js" : "./UnityLoader.2019.2.js";
-    //         break;
-    //     default:
-    //         window.config.unityWebglLoaderUrl = "https://game-cdn.poki.com/loaders/v2/unity/static/UnityLoader.js"
-    // }
 }
 var sdkScript = document.createElement("script");
 sdkScript.src = "./poki-sdk.js", sdkScript.onload = function() {
