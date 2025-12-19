@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
+    <base href="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/Masked%20Special%20Forces/" />
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Masked Special Forces - FreezeNova</title>
@@ -240,7 +241,31 @@
        document.getElementById("gameContainer").style.height=height + "px";
 	   
     }
-	var gameInstance = UnityLoader.instantiate("gameContainer", "https://ignistesting.mos.us-south-1.sufybkt.com/Masked%20Special%20Forces/Build/game.json", {onProgress: UnityProgress});
+
+	combineUnityData(["Build/game.data.unityweb.part1","Build/game.data.unityweb.part2","Build/game.data.unityweb.part3","Build/game.data.unityweb.part4"]).then(url => {
+
+		let jsonText = `{
+"companyName": "FreezeNova",
+"productName": "Masked Special Forces",
+"productVersion": "0.3",
+"dataUrl": "${url}",
+"wasmCodeUrl": "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/Masked%20Special%20Forces/Build/game.wasm.code.unityweb",
+"wasmFrameworkUrl": "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/Masked%20Special%20Forces/Build/game.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"splashScreenStyle": "Dark",
+"backgroundColor": "#231F20",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.36f1"
+}`
+
+let blob = new Blob([jsonText], {type: "application/json"});
+let jsonUrl = URL.createObjectURL(blob)
+
+		window.gameInstance = UnityLoader.instantiate("gameContainer", jsonUrl, {onProgress: UnityProgress});
+	});
 	
 	</script>
 
