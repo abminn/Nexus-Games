@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1.0,user-scalable=no">
+    <title>Voxmaxa</title>
+    <meta name="description" content="Voxmaxa is a free for all combat game in a block world. It is free to play online in a web browser with nothing to install.">
+    <meta name="keywords" content="game, voxel, blocks, multiplayer, free">
+    <meta name="theme-color" content="#273644">
+    <meta property="og:title" content="Voxmaxa"/>
+    <meta name="og:description" content="Voxmaxa is a free for all combat game in a block world. It is free to play online in a web browser with nothing to install.">
+    <meta property="og:type" content="website"/>
+    <link rel="icon" href="favicon.png"/>
+
+    <script>
+        function request_pointer_lock_with_unadjusted_movement(e) {
+            const promise = e.requestPointerLock({unadjustedMovement: true});
+            if (promise) {
+                promise.catch(er => {
+                    if (er.name === "NotSupportedError") {
+                        e.requestPointerLock();
+                    }
+                });
+            }
+        }
+    </script>
+    
+<script type="module">
+import init, * as bindings from '/client.js';
+init({ module_or_path: '/client_bg.wasm' }).then(wasm => {
+  
+window.wasmBindings = bindings;
+
+  
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+});
+</script>
+    
+    
+
+    <script>
+        try {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (const registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        } catch (e) {
+            console.log(e);
+        }
+
+        function startLoadInterval() {
+            let time = 0;
+            let warning = document.getElementById("load_warning");
+            let warningText = document.getElementById("load_warning_text");
+            const interval = setInterval(() => {
+                if (document.getElementById("canvas")) {
+                    // Loaded.
+                    clearInterval(interval);
+                    if (warning && warning.style) {
+                        warning.style.display = "none";
+                    }
+                    return;
+                }
+
+                if (time > 5) {
+                    warning.style.display = "initial";
+                    warningText.innerText = `Loading taking longer than expected (${Math.floor(time)}s)`;
+                }
+                time += 0.5;
+            }, 500);
+        }
+    </script>
+<link rel="modulepreload" href="client.js" crossorigin="anonymous"><link rel="preload" href="client_bg.wasm" crossorigin="anonymous" as="fetch" type="application/wasm"></head>
+<body style="background-color: #273644;" onload="startLoadInterval()">
+    <div id="load_warning" style="display: none; font-family: sans-serif; padding: 1rem; color: white; position: absolute; left: 50%; text-align: center; top: 50%; transform: translate(-50%, -50%);">
+        <h2 style="margin-top: 0;" id="load_warning_text"></h2>
+        <button onclick="window.location.reload()" style="width: 10rem; height: 3rem; border-radius: 0.5rem; background-color: #505050; border: 2px solid #606060; color: white; font-size: 1.2rem; cursor: pointer;">Click to retry</button>
+    </div>
+</body>
+</html>
