@@ -97,6 +97,13 @@ const allGames = [
   "Balatro",
   "Hotline Miami",
   "Crossy Road",
+  "Voxmaxa",
+  "Moto X3M 2",
+  "Moto X3M Winter",
+  "Half Life",
+  "Karlson",
+  "Kindergarten",
+  "Kindergarten 2",
 ];
 
 adminGames = [
