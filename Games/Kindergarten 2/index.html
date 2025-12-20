@@ -51,7 +51,7 @@ function changeUnityLoader(file) {
         ];
         alphabet.forEach(letter => {
          if (text.includes(letter + ".streamingAssetsUrl = ")) {
-            text = text.replace(`${letter}.streamingAssetsUrl = new URL(${letter}.streamingAssetsUrl,document.URL).href`, `${letter}.streamingAssetsUrl = ""`)
+            text = text.replace(`${letter}.streamingAssetsUrl = new URL(${letter}.streamingAssetsUrl, document.URL).href`, `${letter}.streamingAssetsUrl = ""`)
          }
         })
         let newUrl = "data:text/javascript;base64," + btoa(text);
