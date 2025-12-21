@@ -103,6 +103,7 @@ const allGames = [
   "Karlson",
   "Kindergarten",
   "Kindergarten 2",
+  "Kindergarten 3",
 ];
 
 adminGames = [
