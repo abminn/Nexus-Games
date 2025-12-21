@@ -1,91 +1,35 @@
+<!-- Ultimate Game Stash file--> 
+<!-- For the regularly updating doc go to https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/ -->
+
 <!DOCTYPE html>
 <html lang="en-us">
 
 <head>
-	<base
-		href="https://cdn.jsdelivr.net/gh/bubbls/youtube-playables@a2e4bb68955f2665d16669bbbf7be3123870c2e0/solar-smash/">
-	<meta charset="UTF-8">
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <base href="https://cdn.jsdelivr.net/gh/bubbls/youtube-playables@c5eefc5c13316b94c58e63cb5270b99a13c88fea/solar-smash/">
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-	<title>YT Game Wrapper WebGL Template</title>
-	<link rel="stylesheet" href="TemplateData/style.css" nonce="we8ZPMAc10sjbMeA8f_pRw">
-	<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/Solar%20Smash/ytgame.js"
-		nonce="we8ZPMAc10sjbMeA8f_pRw">
-		// Load YT Game API code
-	</script>
+  <title>YT Game Wrapper WebGL Template</title>
+  <link rel="stylesheet" href="TemplateData/style.css" nonce="we8ZPMAc10sjbMeA8f_pRw">
+  <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/Solar%20Smash/ytgame.js" nonce="we8ZPMAc10sjbMeA8f_pRw">// Load YT Game API code</script>
 </head>
 
 <body>
-	<div id="unity-container" class="unity-desktop">
-		<canvas id="unity-canvas" width=100% height=100% tabindex="-1"></canvas>
-		<div id="unity-loading-bar">
-			<div id="unity-logo"></div>
-			<div id="unity-progress-bar-empty">
-				<div id="unity-progress-bar-full"></div>
-			</div>
-		</div>
-		<div id="unity-warning"> </div>
-	</div>
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas" width=100% height=100% tabindex="-1"></canvas>
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+    <div id="unity-warning"> </div>
+  </div>
 
-	<script async>
-		function mergeFiles(fileParts) {
-        return new Promise((resolve, reject) => {
-            let buffers = [];
-
-            function fetchPart(index) {
-                if (index >= fileParts.length) {
-                    let mergedBlob = new Blob(buffers, { type: "application/octet-stream" });
-                    resolve(mergedBlob);
-                    return;
-                }
-                fetch(fileParts[index])
-                    .then((response) => response.arrayBuffer())
-                    .then((data) => {
-                        buffers.push(data);
-                        fetchPart(index + 1);
-                    })
-                    .catch(reject);
-            }
-            fetchPart(0);
-        });
-    }
-
-    function getParts(file, start, end) {
-        let parts = [];
-        for (let i = start; i <= end; i++) {
-            parts.push(file + ".part" + i);
-        }
-        return parts;
-    }
-
-    Promise.all([
-        mergeFiles(getParts("StreamingAssets/AssetBundles/WebGL/planets", 1, 2)),
-        mergeFiles(getParts("StreamingAssets/AssetBundles/WebGL/planets2", 1, 2))
-    ]).then(([planets1, planets2]) => {
-        const originalFetch = window.fetch;
-
-        window.fetch = async function (...args) {
-            const url = args[0];
-
-            if (typeof url === "string" && url.includes("StreamingAssets/AssetBundles/WebGL/planets")) {
-                if (url.includes("planets2")) {
-                    return new Response(planets2, { status: 200 });
-                } else if (url.includes("planets3")) {
-                    return originalFetch.apply(this, args);
-                } else {
-                    return new Response(planets1, { status: 200 });
-                }
-            }
-
-            return originalFetch.apply(this, args);
-        };
-    });
-	</script>
-
-	<script nonce="VdK5nAGpFKd9vu2JazSNaA">
-		"use strict";
+  <script nonce="VdK5nAGpFKd9vu2JazSNaA">
+    "use strict";
 const DIST = 1,
     EXT = DIST ? ".min.js" : ".js";
 
@@ -295,21 +239,9 @@ class Unarchiver {
     }
 }
 Unarchiver.loadedFormats = {};
-	</script>
-	<script nonce="VdK5nAGpFKd9vu2JazSNaA">
-		// Logic for Unity contianer
-function changeUnityLoader(file) {
-  return fetch(file)
-    .then(res => res.text())
-    .then(text => {
-        text = text.replace(
-            `_0xf8bd1['\x73\x74\x72\x65\x61\x6d\x69\x6e\x67\x41' + _0x4e5bd4(0x114)] = new URL(_0xf8bd1[_0x4e5bd4(0x3f5) + _0x4e5bd4(0x114)],document[_0x4e5bd4(0x210)])['\x68\x72\x65\x66'];`,
-            `_0xf8bd1['\x73\x74\x72\x65\x61\x6d\x69\x6e\x67\x41' + _0x4e5bd4(0x114)] = new URL(_0xf8bd1[_0x4e5bd4(0x3f5))['\x68\x72\x65\x66'];`
-        )
-    });
-}
-
-var container = document.querySelector("#unity-container");
+  </script>
+  <script nonce="VdK5nAGpFKd9vu2JazSNaA"> // Logic for Unity contianer
+    var container = document.querySelector("#unity-container");
     var canvas = document.querySelector("#unity-canvas");
     var loadingBar = document.querySelector("#unity-loading-bar");
     var progressBarFull = document.querySelector("#unity-progress-bar-full");
@@ -318,7 +250,13 @@ var container = document.querySelector("#unity-container");
     var quitcanvas = document.querySelector("#quit-canvas");
     var warningBanner = document.querySelector("#unity-warning");
 
-function unityShowBanner(msg, type) {
+    // For YT it is strongly encouraged that all warnings / errors show in
+    // console and banners should be in game as needed to not confuse users.
+    // 
+    // If needed please uncomment section below to show a temporary message 
+    // banner/ribbon for a few seconds, or a permanent error message on top 
+    // of the canvas if type=='error'.
+    function unityShowBanner(msg, type) {
       // function updateBannerVisibility() {
       //   warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
       // }
@@ -336,8 +274,8 @@ function unityShowBanner(msg, type) {
       // updateBannerVisibility();
     }
 
-changeUnityLoader("Build/Build.loader.js").then(loaderUrl => {
-  var buildUrl = "Build";
+    var buildUrl = "Build";
+    var loaderUrl = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/Solar%20Smash/Build.loader.js";
     var config = {
       dataUrl: buildUrl + "/Build.data",
       frameworkUrl: buildUrl + "/Build.framework.js",
@@ -503,7 +441,6 @@ changeUnityLoader("Build/Build.loader.js").then(loaderUrl => {
           progressBarFull.style.width = 100 * progress + "%";
           }).then((unityInstance) => {
             unityGameInstance = unityInstance;
-            window.unityGameInstance = unityGameInstance;
             loadingBar.style.display = "none";
           }).catch((message) => {
             console.error(message);
@@ -512,6 +449,19 @@ changeUnityLoader("Build/Build.loader.js").then(loaderUrl => {
 
       document.body.appendChild(script);
     }
+const originalFetch = window.fetch;
+
+window.fetch = function(input, options) {
+    if (typeof input === 'string' && input.endsWith("AssetBundles/WebGL/planets")) {
+        input = 'https://rawcdn.githack.com/bubbls/youtube-playables/c5eefc5c13316b94c58e63cb5270b99a13c88fea/solar-smash/StreamingAssets/AssetBundles/WebGL/planets';
+        return originalFetch(input, options);
+    } else if (typeof input === 'string' && input.endsWith("AssetBundles/WebGL/planets2")) {
+        input = 'https://rawcdn.githack.com/bubbls/youtube-playables/c5eefc5c13316b94c58e63cb5270b99a13c88fea/solar-smash/StreamingAssets/AssetBundles/WebGL/planets2';
+        return originalFetch(input, options);
+    }
+
+    return originalFetch(input, options);
+};
 
     // Path 1: Use this path if no decompression of your .wasm, .data, .js files are needed
     //InitUnitySection();
@@ -519,8 +469,6 @@ changeUnityLoader("Build/Build.loader.js").then(loaderUrl => {
     // Path 2: Use this path to Load resources (.wasm, .data) that are Zipped and need to be decompressed
     // if you dont use compresseion its best to comment out Path 1 and uncomment Path 2.
      loadResources(InitUnitySection);  // Uncomment this line to start Unity by loading zipped files
-})
-	</script>
+  </script>
 </body>
-
 </html>
