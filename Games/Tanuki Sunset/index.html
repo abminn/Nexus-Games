@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Tanuki Sunset</title>
+    <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/TemplateData/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/TemplateData/style.css">
+    <style>
+      /* Use CSS to make the game container fill the viewport */
+      body, html {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      #gameContainer {
+        width: 100%;
+        height: 100%;
+      }
+      .webgl-content {
+        width: 100%;
+        height: 100%;
+      }
+      .fullscreen {
+        display: none; /* Hide fullscreen button if necessary */
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/TemplateData/UnityProgress.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/Build/UnityLoader.js"></script>
+    <script>
+      combineUnityData(["WebGL.data.unityweb.part1.bin","WebGL.data.unityweb.part2.bin","WebGL.data.unityweb.part3.bin"]).then(dataUrl => {
+        const jsonText = `{
+          "companyName": "Squid Squad Games",
+          "productName": "Tanuki Sunset",
+          "dataUrl": "${dataUrl}",
+          "wasmCodeUrl": "https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/Build/WebGL.wasm.code.unityweb",
+          "wasmFrameworkUrl": "https://cdn.jsdelivr.net/gh/tw31122007/HTML-Games-V2@main/tanuki-sunset/Build/WebGL.wasm.framework.unityweb",
+          "TOTAL_MEMORY": 268435456,
+          "graphicsAPI": ["WebGL 2.0", "WebGL 1.0"],
+          "webglContextAttributes": {"preserveDrawingBuffer": false},
+          "splashScreenStyle": "Dark",
+          "backgroundColor": "#231F20",
+          "cacheControl": {"default": "must-revalidate"}
+         }`
+        
+        let blob = new Blob([jsonText], {type: "application/json"});
+        let jsonUrl = URL.createObjectURL(blob);
+        
+        var gameInstance = UnityLoader.instantiate("gameContainer", jsonUrl, {onProgress: UnityProgress});
+      });
+    </script>
+  </head>
+  <body>
+    <div class="webgl-content">
+      <div id="gameContainer"></div>
+      <div class="footer">
+        <div class="webgl-logo"></div>
+        <div class="fullscreen" onclick="gameInstance.SetFullscreen(1)"></div>
+        <div class="title">Tanuki Sunset</div>
+      </div>
+    </div>
+  </body>
+</html>
