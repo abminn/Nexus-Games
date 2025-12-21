@@ -102,6 +102,7 @@ const allGames = [
   "Kindergarten",
   "Kindergarten 2",
   "Kindergarten 3",
+  "Undertale",
 ];
 
 adminGames = [
