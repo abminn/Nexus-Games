@@ -295,12 +295,12 @@ PokiSDK= function() {
   // ***** ADS CONTROL *****
   this.commercialBreak= function(){
     consoleLog("--fx--PokiSDK--commercialBreak--");
-    return function() {};
+    return Promise.resolve();
   }
 
   this.rewardedBreak= function() {
    consoleLog("--fx--PokiSDK--rewardedBreak--");
-    return function() {};
+    return Promise.resolve();
   }
 
   this.displayAd= function() {
