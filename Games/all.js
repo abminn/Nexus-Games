@@ -103,6 +103,10 @@ const allGames = [
   "Kindergarten 2",
   "Kindergarten 3",
   "Undertale",
+  "The Binding of Isaac",
+  "Only Up",
+  "BuildNow.gg",
+  "Bow Masters"
 ];
 
 adminGames = [
