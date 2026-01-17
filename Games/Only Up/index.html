@@ -61,6 +61,7 @@
             <div id="progress-bar"><div id="progress-bar-fill"></div></div>
         </div>
         <script src="https://cdn.jsdelivr.net/gh/sz-games/Games8@d12ca56d8b0a51ee19122003c75987a349816837/only-up/instant-games-bridge.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"></script>
         <script>
             if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
                 let meta = document.createElement('meta')
@@ -157,14 +158,14 @@
             // initialization
             bridge
                 .initialize(bridgeOptions)
-                .then(() => {
+                .then(async () => {
                     bridge.advertisement.on('banner_state_changed', state => sendMessageToUnity('OnBannerStateChanged', state))
                     bridge.advertisement.on('interstitial_state_changed', state => sendMessageToUnity('OnInterstitialStateChanged', state))
                     bridge.advertisement.on('rewarded_state_changed', state => sendMessageToUnity('OnRewardedStateChanged', state))
                     bridge.game.on('visibility_state_changed', state => sendMessageToUnity('OnVisibilityStateChanged', state))
 
                     let unityLoader = document.createElement('script')
-                    unityLoader.src = 'https://cdn.jsdelivr.net/gh/sz-games/Games8@d12ca56d8b0a51ee19122003c75987a349816837/only-up/Build/Only Up 230815_3.loader.js'
+                    unityLoader.src = await changeUnityLoader('https://cdn.jsdelivr.net/gh/sz-games/Games8@d12ca56d8b0a51ee19122003c75987a349816837/only-up/Build/Only Up 230815_3.loader.js');
                     unityLoader.onload = () => {
                         createUnityInstance(
                             canvas,
