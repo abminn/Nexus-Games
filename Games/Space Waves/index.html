@@ -33,7 +33,7 @@
         migratePlayerPrefs();
       });
     </script>
-	
+	<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"></script>
     <script>
 	  window.addEventListener("load", function () {
         if ("serviceWorker" in navigator) {
@@ -48,8 +48,10 @@
       const progressBarFull = document.querySelector("#unity-progress-bar-full");
       const spinner = document.querySelector('.spinner');
 
+      (async () => {
+      
       const buildUrl = "Build";
-      const loaderUrl = buildUrl + "/dae5c7bd2b15915f51ae4e56b8f5367d.loader.js";
+      const loaderUrl = await changeUnityLoader(buildUrl + "/dae5c7bd2b15915f51ae4e56b8f5367d.loader.js");
       const config = {
         dataUrl: buildUrl + "/568ea6b3af616bd57f419c508c933303.data.unityweb",
         frameworkUrl: buildUrl + "/c699bc4c24abfbdb4c8b3e15b0af7d3f.framework.js.unityweb",
@@ -89,6 +91,7 @@
         });
       };
       document.body.appendChild(script);
+      })();
 	  
 	  // Focus
   	  function setFocus() {

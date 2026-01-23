@@ -106,7 +106,15 @@ const allGames = [
   "The Binding of Isaac",
   "Only Up",
   "BuildNow.gg",
-  "Bow Masters"
+  "Bow Masters",
+  "Demolition Derby",
+  "Doge Miner",
+  "Getaway Shootout",
+  "Idle Miner Tycoon",
+  "Mario 64",
+  "Pizza Tower",
+  "The Legend Of Zelda",
+  "Lucky Tower"
 ];
 
 adminGames = [
