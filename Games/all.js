@@ -114,7 +114,19 @@ const allGames = [
   "Mario 64",
   "Pizza Tower",
   "The Legend Of Zelda",
-  "Lucky Tower"
+  "Lucky Tower",
+  "A Small World Cup",
+  "Cooking Mama",
+  "Cooking Mama 2",
+  "Cooking Mama 3",
+  "FNAF 2",
+  "Idle Breakout",
+  "Idle Mage Tower Defense",
+  "Kirby The Crystal Shards",
+  "Melon Playground",
+  "Nubby's Number Factory",
+  "Pokemon Collection",
+  "Snow Rider 3D",
 ];
 
 adminGames = [
