@@ -127,6 +127,7 @@ const allGames = [
   "Nubby's Number Factory",
   "Pokemon Collection",
   "Snow Rider 3D",
+  "Airline Tycoon",
 ];
 
 adminGames = [

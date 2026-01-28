@@ -10,16 +10,17 @@
 	<meta name="description" content="Mage Tower Idle Defense" />
 	<meta name="game-version" content="48f762ca" />
 	<title>Mage Tower Idle Defense</title>
-	<script defer="defer" src="./static/js/main.a1d9a5b9.js"></script>
 	<link href="./static/css/main.2494f96b.css" rel="stylesheet" />
+	<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"></script>
 	<script>
+		changeUnityLoader("./assets/MageTower.48f762ca.loader.js").then(loaderUrl => {
 		const config = {
   "buildName": "magetower",
   "name": "Mage Tower Idle Defense",
   "version": "1.0.48f762ca",
   "platform": "crazygames",
   "unityGameConfig": {
-    "loaderScriptUrl": "./assets/MageTower.48f762ca.loader.js",
+    "loaderScriptUrl": loaderUrl,
     "dataUrl": "./assets/MageTower.48f762ca.data.br",
     "frameworkUrl": "./assets/MageTower.48f762ca.framework.js",
     "codeUrl": "./assets/MageTower.48f762ca.wasm.br",
@@ -50,7 +51,14 @@
     "sandbox": false
   }
 }
+window.config = config;
 window.gameConfig = config;
+
+let script = document.createElement("script");
+script.src = "./static/js/main.a1d9a5b9.js";
+script.defer = true;
+document.head.appendChild(script);
+    });
 	</script>
 </head>
 
