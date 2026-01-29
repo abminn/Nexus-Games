@@ -128,6 +128,9 @@ const allGames = [
   "Pokemon Collection",
   "Snow Rider 3D",
   "Airline Tycoon",
+  "N-Gon",
+  "FNAF 3",
+  "FNAF 4",
 ];
 
 adminGames = [
