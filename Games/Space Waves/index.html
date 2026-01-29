@@ -77,6 +77,7 @@
         }).then((unityInstance) => {
 		  console.log("<do.G> Unity inited");
           gameInstance = unityInstance;
+		  window.gameInstance = unityInstance;
           loadingCover.style.display = "none";
 		  resizeCanvas();
 		  loadAds();
