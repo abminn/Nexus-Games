@@ -131,6 +131,10 @@ const allGames = [
   "N-Gon",
   "FNAF 3",
   "FNAF 4",
+  "Buckshot Roulette",
+  "Eaglercraft Collection",
+  "Gladihoppers",
+  "R.E.P.O.",
 ];
 
 adminGames = [
