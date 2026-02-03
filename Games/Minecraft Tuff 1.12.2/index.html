@@ -16,7 +16,7 @@
 		<script type="text/javascript" src="files.js"></script>
 		<script type="text/javascript">
 			"use strict";
-			window.addEventListener("load", function() {
+			window.addEventListener("load", async function() {
 				if(window.location.href.indexOf("file:") === 0) {
 					alert("HTTP please, do not open this file locally, run a local HTTP server and load it via HTTP");
 				}else {
@@ -24,7 +24,7 @@
 					window.eaglercraftXOpts = {
 						demoMode: false,
 						container: "game_frame",
-						assetsURI: mergeParts(["assests.epk.part1", "assests.epk.part2"]),
+						assetsURI: await mergeParts(["assets.epk.part1", "assets.epk.part2"]),
 						localesURI: "lang/",
 						worldsDB: "worlds",
 						logInvalidCerts: true,
