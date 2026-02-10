@@ -399,24 +399,19 @@
         const CONFIG = {
             HOUR_LEN: 45, 
             MOVE_SPEED: 4.5,
-            COLLISION_RADIUS: 0.4,
+            AI_ROAM_SPEED: 1.5,
+            AI_CHASE_SPEED: 3.5,
+            COLLISION_RADIUS: 0.35,
+            INTRO_LENGTH: 30,
+            FLASHLIGHT_INTENSITY: 4.0,
+            FLASHLIGHT_DISTANCE: 45.0,
+            STAGE_POS: new THREE.Vector3(9, 0, 1.5),
+            LIGHT_RETREAT_TIME: 3.0, // Seconds until bot retreats when illuminated
             images: {
                 Devil: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQevmPBcXlRBwNwZS5Yd5fQEx2lwQZm4VaznQ&s',
                 Freak: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSv-Y-8unCnufjKBV5qT7QL_VxyGST0PPRYfw&s',
                 Absolute: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcaDc6IF51Cwx-1rYJ0XCu8LkpJGmRWZwyPA&s'
             }
-        };
-
-        const CAM_VIEWS = {
-            '1A': { pos: [9, 2.5, 4.5], rot: [-0.4, 0, 0] },
-            '1B': { pos: [14.5, 2.5, 5], rot: [-0.4, 2.5, 0] },
-            '1C': { pos: [6, 2.3, 7.5], rot: [-0.4, Math.PI / 2, 0] },
-            '2A': { pos: [5.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
-            '2B': { pos: [5.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
-            '3': { pos: [2.5, 2.0, 13], rot: [-0.3, Math.PI, 0] },
-            '4A': { pos: [12.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
-            '4B': { pos: [12.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
-            '6': { pos: [17, 2.4, 5], rot: [-0.4, Math.PI, 0] }
         };
 
         const BOT_SPOTS = {
@@ -429,6 +424,18 @@
             '4A': [12.5, 0, 14.5],
             '4B': [11.2, 0, 18.2],
             '6': [17, 0, 6.5]
+        };
+
+        const CAM_VIEWS = {
+            '1A': { pos: [9, 2.5, 4.5], rot: [-0.4, 0, 0] },
+            '1B': { pos: [14.5, 2.5, 5], rot: [-0.4, 2.5, 0] },
+            '1C': { pos: [6, 2.3, 7.5], rot: [-0.4, Math.PI / 2, 0] },
+            '2A': { pos: [5.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
+            '2B': { pos: [5.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
+            '3': { pos: [2.5, 2.0, 13], rot: [-0.3, Math.PI, 0] },
+            '4A': { pos: [12.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
+            '4B': { pos: [12.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
+            '6': { pos: [17, 2.4, 5], rot: [-0.4, Math.PI, 0] }
         };
 
         const MAP_LAYOUT = [
@@ -465,7 +472,8 @@
             pitch: 0, yaw: 0,
             keys: {},
             flashlightOn: false,
-            currentSlot: 1
+            currentSlot: 1,
+            introDone: false
         };
 
         // ======================= AUDIO =======================
@@ -474,13 +482,15 @@
             tracks: {
                 static: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/staticnoise.mp3'),
                 jumpscare: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/jumpscare.mp3'),
-                win: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/6am%20bells%20ringing.mp3')
+                win: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/6am%20bells%20ringing.mp3'),
+                intro: new Audio('https://files.catbox.moe/94ycoj.mp3')
             },
             init() {
                 if(this.initDone) return;
                 this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 this.tracks.static.loop = true;
                 this.tracks.static.volume = 0.05;
+                this.tracks.intro.loop = false;
                 this.initDone = true;
             },
             play(id) {
@@ -509,10 +519,12 @@
             hallLightL: null, hallLightR: null,
             maskL: null, maskR: null,
             flashlight: null,
+            ambience: null,
+            roomLights: [],
             bots: {
-                Devil: { m: null, spot: '1A', timer: 0, chasing: false },
-                Freak: { m: null, spot: '1A', timer: 0, chasing: false },
-                Absolute: { m: null, spot: '1B', timer: 0, chasing: false }
+                Devil: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 },
+                Freak: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 },
+                Absolute: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 }
             },
 
             init() {
@@ -528,24 +540,18 @@
 
             setupScene() {
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x010101);
-
-                this.cam = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                this.scene.background = new THREE.Color(0x000000);
+                this.cam = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.05, 1000);
                 this.cam.position.set(9, 1.4, 19.2);
                 this.cam.rotation.order = 'YXZ';
-
                 this.monCam = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
                 this.monCam.rotation.order = 'YXZ';
-
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 document.getElementById('game-view').appendChild(this.renderer.domElement);
-
                 this.clock = new THREE.Clock();
                 this.ray = new THREE.Raycaster();
-
-                // Flashlight Setup
-                this.flashlight = new THREE.SpotLight(0xffffff, 0, 15, Math.PI / 6, 0.5, 1);
+                this.flashlight = new THREE.SpotLight(0xf0f0ff, 0, CONFIG.FLASHLIGHT_DISTANCE, Math.PI / 5, 0.4, 1);
                 this.cam.add(this.flashlight);
                 this.flashlight.position.set(0.2, -0.2, 0);
                 this.flashlight.target = new THREE.Object3D();
@@ -555,17 +561,18 @@
             },
 
             setupLights() {
-                this.scene.add(new THREE.AmbientLight(0x0a0a0a));
+                this.ambience = new THREE.AmbientLight(0xffffff, 0.5);
+                this.scene.add(this.ambience);
                 const pLight = (x, y, z, c, i, d) => {
                     const l = new THREE.PointLight(c, i, d);
                     l.position.set(x, y, z);
                     this.scene.add(l);
+                    this.roomLights.push(l);
                     return l;
                 };
-                pLight(9, 2.4, 4, 0xffffff, 0.4, 15);
-                pLight(9, 2.4, 12, 0xffffff, 0.3, 15);
-                this.officeLight = pLight(9, 1.8, 18.5, 0x44ffaa, 0.6, 7);
-
+                pLight(9, 2.4, 4, 0xffffff, 0.6, 15);
+                pLight(9, 2.4, 12, 0xffffff, 0.5, 15);
+                this.officeLight = pLight(9, 1.8, 18.5, 0x44ffaa, 0.8, 7);
                 this.hallLightL = pLight(6.5, 1.8, 18.5, 0xffffff, 0, 6);
                 this.hallLightR = pLight(11.5, 1.8, 18.5, 0xffffff, 0, 6);
             },
@@ -573,31 +580,24 @@
             setupOffice() {
                 const btnMat = (c) => new THREE.MeshStandardMaterial({ color: c });
                 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-
                 const doorGeo = box(0.1, 2.8, 1.1);
                 const doorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-                
                 this.doorL = new THREE.Mesh(doorGeo, doorMat);
                 this.doorL.position.set(7.45, 4.2, 18);
                 this.scene.add(this.doorL);
-
                 this.doorR = new THREE.Mesh(doorGeo, doorMat);
                 this.doorR.position.set(10.55, 4.2, 18);
                 this.scene.add(this.doorR);
-
                 const panelGeo = new THREE.PlaneGeometry(1.2, 2.8);
                 const panelMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-                
                 this.maskL = new THREE.Mesh(panelGeo, panelMat);
                 this.maskL.position.set(7.48, 1.4, 18.2);
                 this.maskL.rotation.y = Math.PI/2;
                 this.scene.add(this.maskL);
-
                 this.maskR = new THREE.Mesh(panelGeo, panelMat);
                 this.maskR.position.set(10.52, 1.4, 18.2);
                 this.maskR.rotation.y = -Math.PI/2;
                 this.scene.add(this.maskR);
-
                 const createBtn = (x, side, type, c) => {
                     const hitBox = new THREE.Mesh(box(0.2, 0.4, 0.3), btnMat(c));
                     hitBox.position.set(x, type === 'door' ? 1.4 : 1.1, 18.8);
@@ -609,7 +609,6 @@
                 createBtn(7.51, 'left', 'light', 0x444444);
                 createBtn(10.49, 'right', 'door', 0x990000);
                 createBtn(10.49, 'right', 'light', 0x444444);
-
                 const compGroup = new THREE.Group();
                 const monMesh = new THREE.Mesh(box(0.8, 0.6, 0.2), btnMat(0x111111));
                 const scrMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.5), new THREE.MeshBasicMaterial({ color: 0x001133 }));
@@ -623,10 +622,13 @@
             },
 
             setupMap() {
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-                const ceilMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
-
+                const loader = new THREE.TextureLoader();
+                const wallTex = loader.load('https://static.vecteezy.com/system/resources/thumbnails/003/517/451/small/scary-wall-background-horror-concrete-cement-texture-for-background-photo.jpg');
+                const floorTex = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj1nQt7bq9KHw5WBU7Dgo_VHu4hUs0tWY6gw&s');
+                const ceilTex = loader.load('https://png.pngtree.com/thumb_back/fh260/background/20231008/pngtree-chilling-cement-texture-a-terrifying-wall-background-for-horror-image_13598008.png');
+                const wallMat = new THREE.MeshStandardMaterial({ map: wallTex });
+                const floorMat = new THREE.MeshStandardMaterial({ map: floorTex });
+                const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex });
                 for(let z=0; z<MAP_LAYOUT.length; z++) {
                     for(let x=0; x<MAP_LAYOUT[z].length; x++) {
                         const char = MAP_LAYOUT[z][x];
@@ -636,12 +638,10 @@
                             this.scene.add(w);
                         } else {
                             const f = new THREE.Mesh(new THREE.PlaneGeometry(1,1), floorMat);
-                            f.rotation.x = -Math.PI/2;
-                            f.position.set(x, 0, z);
+                            f.rotation.x = -Math.PI/2; f.position.set(x, 0, z);
                             this.scene.add(f);
                             const c = new THREE.Mesh(new THREE.PlaneGeometry(1,1), ceilMat);
-                            c.rotation.x = Math.PI/2;
-                            c.position.set(x, 2.8, z);
+                            c.rotation.x = Math.PI/2; c.position.set(x, 2.8, z);
                             this.scene.add(c);
                         }
                     }
@@ -650,46 +650,32 @@
 
             setupBots() {
                 const loader = new THREE.TextureLoader();
-                Object.keys(CONFIG.images).forEach(key => {
+                const names = Object.keys(CONFIG.images);
+                names.forEach((key, i) => {
                     loader.load(CONFIG.images[key], (tex) => {
                         const mat = new THREE.SpriteMaterial({ map: tex });
                         const s = new THREE.Sprite(mat);
                         s.scale.set(1.5, 1.5, 1);
                         this.bots[key].m = s;
                         this.scene.add(s);
-                        this.updateBotSpot(key);
+                        const stageOffsets = [6.5, 9, 11.5];
+                        this.bots[key].m.position.set(stageOffsets[i], 0.75, 1.5);
+                        this.bots[key].targetPos.copy(this.bots[key].m.position);
                     });
                 });
             },
 
-            updateBotSpot(key) {
-                const b = this.bots[key];
-                if(!b.m || b.chasing) return;
-                const pos = BOT_SPOTS[b.spot];
-                b.m.position.set(pos[0], 0.75, pos[2]);
-                
-                let isVisible = false;
-                if(State.monitor && State.currentCam === b.spot) isVisible = true;
-                else if (b.spot === '2B' && State.leftLight) isVisible = true;
-                else if (b.spot === '4B' && State.rightLight) isVisible = true;
-
-                b.m.visible = isVisible;
-            },
-
             bindEvents() {
                 window.addEventListener('resize', () => {
-                    const w = window.innerWidth;
-                    const h = window.innerHeight;
+                    const w = window.innerWidth, h = window.innerHeight;
                     this.renderer.setSize(w, h);
                     this.cam.aspect = w/h; this.cam.updateProjectionMatrix();
                     this.monCam.aspect = w/h; this.monCam.updateProjectionMatrix();
                 });
-
                 document.addEventListener('pointerlockchange', () => {
                     State.isLocked = document.pointerLockElement === this.renderer.domElement;
                     document.body.classList.toggle('playing', State.isLocked);
                 });
-
                 document.addEventListener('mousemove', (e) => {
                     if(State.isLocked && !State.monitor && !State.gameOver) {
                         State.yaw -= e.movementX * 0.003;
@@ -698,24 +684,15 @@
                         this.cam.rotation.set(State.pitch, State.yaw, 0);
                     }
                 });
-
                 window.addEventListener('keydown', (e) => {
                     State.keys[e.key.toLowerCase()] = true;
                     if(e.key >= '1' && e.key <= '3') this.switchSlot(parseInt(e.key));
                     if(e.key.toLowerCase() === 'f' && State.currentSlot === 1) this.toggleFlashlight();
                 });
-
-                window.addEventListener('keyup', (e) => {
-                    State.keys[e.key.toLowerCase()] = false;
-                });
-
+                window.addEventListener('keyup', (e) => State.keys[e.key.toLowerCase()] = false);
                 this.renderer.domElement.addEventListener('click', () => {
                     if(State.monitor || State.gameOver) return;
-                    if(!State.isLocked) {
-                        this.renderer.domElement.requestPointerLock();
-                        return;
-                    }
-
+                    if(!State.isLocked) { this.renderer.domElement.requestPointerLock(); return; }
                     this.ray.setFromCamera(new THREE.Vector2(0, 0), this.cam);
                     const hits = this.ray.intersectObjects(this.interactables);
                     if(hits.length > 0) {
@@ -728,16 +705,12 @@
                             if(data.side === 'left') State.leftLight = !State.leftLight;
                             else State.rightLight = !State.rightLight;
                             hits[0].object.material.color.set((data.side === 'left' ? State.leftLight : State.rightLight) ? 0xffff00 : 0x444444);
-                        } else if(data.type === 'monitor') {
-                            this.toggleMonitor();
-                        }
+                        } else if(data.type === 'monitor') this.toggleMonitor();
                         this.updateUsage();
                         Sound.click();
                     }
                 });
-
                 document.getElementById('close-monitor').addEventListener('click', () => this.toggleMonitor());
-
                 document.querySelectorAll('.cam-node').forEach(node => {
                     node.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -748,15 +721,13 @@
 
             switchSlot(n) {
                 State.currentSlot = n;
-                document.querySelectorAll('.hotbar-slot').forEach(s => {
-                    s.classList.toggle('active', parseInt(s.dataset.slot) === n);
-                });
+                document.querySelectorAll('.hotbar-slot').forEach(s => s.classList.toggle('active', parseInt(s.dataset.slot) === n));
                 Sound.click();
             },
 
             toggleFlashlight() {
                 State.flashlightOn = !State.flashlightOn;
-                this.flashlight.intensity = State.flashlightOn ? 2.5 : 0;
+                this.flashlight.intensity = State.flashlightOn ? CONFIG.FLASHLIGHT_INTENSITY : 0;
                 this.updateUsage();
                 Sound.click();
             },
@@ -766,12 +737,9 @@
                 State.monitor = !State.monitor;
                 document.getElementById('monitor-overlay').classList.toggle('active', State.monitor);
                 document.body.classList.toggle('monitor-active', State.monitor);
-                
                 if(State.monitor) document.exitPointerLock();
                 else this.renderer.domElement.requestPointerLock();
-                
                 this.updateUsage();
-                Object.keys(this.bots).forEach(k => this.updateBotSpot(k));
                 Sound.click();
             },
 
@@ -784,34 +752,29 @@
                     this.monCam.position.set(...view.pos);
                     this.monCam.rotation.set(...view.rot);
                 }
-                Object.keys(this.bots).forEach(k => this.updateBotSpot(k));
                 Sound.click();
             },
 
             updateUsage() {
                 let u = 0;
-                if(State.leftDoor) u++;
-                if(State.rightDoor) u++;
-                if(State.leftLight) u++;
-                if(State.rightLight) u++;
-                if(State.monitor) u++;
-                if(State.flashlightOn) u++;
+                if(State.leftDoor) u++; if(State.rightDoor) u++;
+                if(State.leftLight) u++; if(State.rightLight) u++;
+                if(State.monitor) u++; if(State.flashlightOn) u += 2; 
                 State.usage = Math.min(u, 5);
-
                 const bars = document.querySelectorAll('.u-bar');
                 bars.forEach((b, i) => b.classList.toggle('active', i < State.usage));
             },
 
-            checkCollision(nx, nz) {
-                const ix = Math.round(nx);
-                const iz = Math.round(nz);
-                if(iz < 0 || iz >= MAP_LAYOUT.length || ix < 0 || ix >= MAP_LAYOUT[0].length) return true;
-                if(MAP_LAYOUT[iz][ix] === 'W') return true;
-                
-                // Door Collisions
-                if(State.leftDoor && nx < 7.5 && nz > 17.5 && nz < 18.5) return true;
-                if(State.rightDoor && nx > 10.5 && nz > 17.5 && nz < 18.5) return true;
-                
+            checkCollision(nx, nz, isBot = false) {
+                const r = isBot ? 0.35 : CONFIG.COLLISION_RADIUS;
+                const points = [{x: nx, z: nz}, {x: nx+r, z: nz}, {x: nx-r, z: nz}, {x: nx, z: nz+r}, {x: nx, z: nz-r}];
+                for(let p of points) {
+                    const ix = Math.round(p.x), iz = Math.round(p.z);
+                    if(iz < 0 || iz >= MAP_LAYOUT.length || ix < 0 || ix >= MAP_LAYOUT[0].length) return true;
+                    if(MAP_LAYOUT[iz][ix] === 'W') return true;
+                    if(State.leftDoor && p.x < 7.6 && p.z > 17.8 && p.z < 18.6) return true;
+                    if(State.rightDoor && p.x > 10.4 && p.z > 17.8 && p.z < 18.6) return true;
+                }
                 return false;
             },
 
@@ -821,11 +784,9 @@
                 State.monitor = false;
                 document.getElementById('monitor-overlay').classList.remove('active');
                 document.exitPointerLock();
-
                 const img = document.getElementById('js-img');
                 img.src = CONFIG.images[botKey];
                 document.getElementById('jumpscare-overlay').style.display = 'flex';
-                
                 Sound.play('jumpscare');
                 setTimeout(() => location.reload(), 3500);
             },
@@ -833,91 +794,150 @@
             animate() {
                 requestAnimationFrame(() => this.animate());
                 const dt = this.clock.getDelta();
+                if(State.gameOver || !Sound.started) return;
 
-                if(!State.gameOver && Sound.started) {
-                    State.time += dt;
-                    const h = Math.floor(State.time / CONFIG.HOUR_LEN);
-                    if(h > State.hour) {
-                        State.hour = h;
-                        document.getElementById('clock').innerText = (State.hour === 0 ? 12 : State.hour) + " AM";
-                        if(State.hour === 6) {
-                            State.gameOver = true;
-                            document.getElementById('win-overlay').style.display = 'flex';
-                            Sound.play('win');
-                        }
+                State.time += dt;
+                
+                const h = Math.floor(State.time / CONFIG.HOUR_LEN);
+                if(h > State.hour) {
+                    State.hour = h;
+                    document.getElementById('clock').innerText = (State.hour === 0 ? 12 : State.hour) + " AM";
+                    if(State.hour === 6) {
+                        State.gameOver = true;
+                        document.getElementById('win-overlay').style.display = 'flex';
+                        Sound.play('win');
                     }
-
-                    if (State.usage > 0) {
-                        State.power -= (0.04 + State.usage * 0.11) * dt;
-                    }
-                    
-                    const pDisplay = document.getElementById('power-val');
-                    if(pDisplay) pDisplay.innerText = Math.max(0, Math.floor(State.power));
-                    if(State.power <= 0) this.jumpscare('Absolute');
-
-                    // WASD Movement
-                    if(State.isLocked && !State.monitor) {
-                        const dir = new THREE.Vector3();
-                        if(State.keys['w']) dir.z -= 1;
-                        if(State.keys['s']) dir.z += 1;
-                        if(State.keys['a']) dir.x -= 1;
-                        if(State.keys['d']) dir.x += 1;
-                        
-                        if(dir.length() > 0) {
-                            dir.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), State.yaw);
-                            const nx = this.cam.position.x + dir.x * CONFIG.MOVE_SPEED * dt;
-                            const nz = this.cam.position.z + dir.z * CONFIG.MOVE_SPEED * dt;
-                            
-                            if(!this.checkCollision(nx, this.cam.position.z)) this.cam.position.x = nx;
-                            if(!this.checkCollision(this.cam.position.x, nz)) this.cam.position.z = nz;
-                        }
-                    }
-
-                    // AI & Chase Logic
-                    Object.keys(this.bots).forEach(k => {
-                        const b = this.bots[k];
-                        if(b.chasing) {
-                            // Move towards player
-                            const dir = new THREE.Vector3().subVectors(this.cam.position, b.m.position).setY(0);
-                            const dist = dir.length();
-                            if(dist < 1.0) this.jumpscare(k);
-                            else {
-                                dir.normalize();
-                                b.m.position.addScaledVector(dir, (CONFIG.MOVE_SPEED * 0.8) * dt);
-                                b.m.visible = true; // Always visible while chasing
-                            }
-                        } else {
-                            b.timer += dt;
-                            if(b.timer > (k === 'Freak' ? 5 : 8)) {
-                                b.timer = 0;
-                                if(Math.random() < 0.45) {
-                                    if(b.spot === '1A') b.spot = '1B';
-                                    else if(b.spot === '1B') b.spot = (Math.random() > 0.5 ? '2A' : '4A');
-                                    else if(b.spot === '2A') b.spot = (Math.random() > 0.6 ? '2B' : '3');
-                                    else if(b.spot === '4A') b.spot = (Math.random() > 0.5 ? '4B' : '6');
-                                    else if(b.spot === '3') b.spot = '2A';
-                                    else if(b.spot === '6') b.spot = '4A';
-                                    else if(b.spot === '2B') {
-                                        if(!State.leftDoor && this.cam.position.z > 17) this.jumpscare(k);
-                                        else b.spot = '1A';
-                                    }
-                                    else if(b.spot === '4B') {
-                                        if(!State.rightDoor && this.cam.position.z > 17) this.jumpscare(k);
-                                        else b.spot = '1A';
-                                    }
-                                    this.updateBotSpot(k);
-                                }
-                            }
-
-                            // Trigger Chase if player is near and visible outside the office
-                            const distToPlayer = b.m.position.distanceTo(this.cam.position);
-                            const inHalls = (b.spot === '2A' || b.spot === '2B' || b.spot === '4A' || b.spot === '4B');
-                            if(distToPlayer < 4 && inHalls && !State.monitor) {
-                                b.chasing = true;
-                            }
-                        }
-                    });
                 }
+
+                if (State.usage > 0) State.power -= (0.05 + State.usage * 0.12) * dt;
+                const pDisplay = document.getElementById('power-val');
+                if(pDisplay) pDisplay.innerText = Math.max(0, Math.floor(State.power));
+                if(State.power <= 0) this.jumpscare('Absolute');
+
+                // Intro Sequence & Global Sound
+                if (State.time < CONFIG.INTRO_LENGTH) {
+                    const distToStage = this.cam.position.distanceTo(CONFIG.STAGE_POS);
+                    const vol = Math.max(0.1, 1.0 - (distToStage / 35));
+                    Sound.tracks.intro.volume = vol;
+                    
+                    if (State.time < 10) {
+                        this.ambience.intensity = 0.5;
+                        this.roomLights.forEach(l => l.intensity = 0.6);
+                    } else if (State.time < 20) {
+                        this.bots.Devil.woken = true;
+                        this.ambience.intensity = 0.2;
+                        this.roomLights.forEach(l => l.intensity = 0.3);
+                    } else {
+                        this.bots.Freak.woken = true;
+                        this.ambience.intensity = 0.1;
+                        this.roomLights.forEach(l => l.intensity = 0.15);
+                    }
+                } else if (!State.introDone) {
+                    State.introDone = true;
+                    this.bots.Absolute.woken = true;
+                    let fade = setInterval(() => {
+                        Sound.tracks.intro.volume = Math.max(0, Sound.tracks.intro.volume - 0.05);
+                        if(Sound.tracks.intro.volume <= 0) { Sound.tracks.intro.pause(); clearInterval(fade); }
+                    }, 100);
+                }
+
+                if (State.introDone) {
+                    this.ambience.intensity = State.monitor ? 0.35 : 0.005;
+                    this.roomLights.forEach(l => l.intensity = State.monitor ? 0.45 : 0.02);
+                }
+
+                // Player movement
+                if(State.isLocked && !State.monitor) {
+                    const dir = new THREE.Vector3();
+                    if(State.keys['w']) dir.z -= 1; if(State.keys['s']) dir.z += 1;
+                    if(State.keys['a']) dir.x -= 1; if(State.keys['d']) dir.x += 1;
+                    if(dir.length() > 0) {
+                        dir.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), State.yaw);
+                        const nx = this.cam.position.x + dir.x * CONFIG.MOVE_SPEED * dt;
+                        const nz = this.cam.position.z + dir.z * CONFIG.MOVE_SPEED * dt;
+                        if(!this.checkCollision(nx, this.cam.position.z)) this.cam.position.x = nx;
+                        if(!this.checkCollision(this.cam.position.x, nz)) this.cam.position.z = nz;
+                    }
+                }
+
+                // AI Logic
+                Object.keys(this.bots).forEach((key) => {
+                    const b = this.bots[key];
+                    if(!b.m || !b.woken) return;
+
+                    const distToPlayer = b.m.position.distanceTo(this.cam.position);
+                    const nearOffice = (b.m.position.z > 16.5);
+                    const playerInOffice = (this.cam.position.z > 16.5);
+
+                    // Light deterent logic
+                    let isUnderLight = false;
+                    if (nearOffice) {
+                        if (State.leftLight && b.m.position.x < 8.5) isUnderLight = true;
+                        if (State.rightLight && b.m.position.x > 9.5) isUnderLight = true;
+                    }
+
+                    if (isUnderLight) {
+                        b.lightContactTimer += dt;
+                        if (b.lightContactTimer > CONFIG.LIGHT_RETREAT_TIME) {
+                            // Retreat!
+                            b.chasing = false;
+                            b.targetPos.set(9, 0, 1.5); // Back to show stage
+                            b.waitTime = 5.0; // Wait before roaming again
+                            b.lightContactTimer = 0;
+                        }
+                    } else {
+                        b.lightContactTimer = Math.max(0, b.lightContactTimer - dt);
+                    }
+
+                    // State machine logic
+                    if (b.chasing) {
+                        b.targetPos.copy(this.cam.position);
+                        if (distToPlayer < 1.0) this.jumpscare(key);
+                        if (distToPlayer > 12 && !nearOffice) b.chasing = false;
+                    } else {
+                        b.waitTime -= dt;
+                        if (b.waitTime <= 0 && b.m.position.distanceTo(b.targetPos) < 0.6) {
+                            b.waitTime = Math.random() * 4 + 2; 
+                            const spots = Object.keys(BOT_SPOTS);
+                            const nextSpot = spots[Math.floor(Math.random() * spots.length)];
+                            b.targetPos.set(BOT_SPOTS[nextSpot][0], 0.75, BOT_SPOTS[nextSpot][2]);
+                        }
+                        if (distToPlayer < 5.0 || (nearOffice && playerInOffice)) {
+                            // If light is on, don't initiate chase immediately or allow it to be broken
+                            if (!isUnderLight) b.chasing = true;
+                        }
+                    }
+
+                    // Movement
+                    const moveDir = new THREE.Vector3().subVectors(b.targetPos, b.m.position);
+                    const currentDist = moveDir.length();
+                    if (currentDist > 0.1) {
+                        const speed = b.chasing ? CONFIG.AI_CHASE_SPEED : CONFIG.AI_ROAM_SPEED;
+                        const moveDist = Math.min(speed * dt, currentDist);
+                        moveDir.normalize().multiplyScalar(moveDist);
+                        
+                        const nextX = b.m.position.x + moveDir.x;
+                        const nextZ = b.m.position.z + moveDir.z;
+                        
+                        if (!this.checkCollision(nextX, b.m.position.z, true)) b.m.position.x = nextX;
+                        if (!this.checkCollision(b.m.position.x, nextZ, true)) b.m.position.z = nextZ;
+                    }
+
+                    // Visibility logic
+                    let isVisible = false;
+                    if (State.monitor) {
+                        const camViewPos = new THREE.Vector3(...CAM_VIEWS[State.currentCam].pos);
+                        if (b.m.position.distanceTo(camViewPos) < 14) isVisible = true;
+                    } else {
+                        if (State.flashlightOn && distToPlayer < 25) {
+                            const botDir = b.m.position.clone().sub(this.cam.position).normalize();
+                            const viewDir = new THREE.Vector3(0,0,-1).applyQuaternion(this.cam.quaternion);
+                            if(botDir.dot(viewDir) > 0.7) isVisible = true;
+                        } else if (State.leftLight && b.m.position.x < 8.2 && nearOffice) isVisible = true;
+                        else if (State.rightLight && b.m.position.x > 9.8 && nearOffice) isVisible = true;
+                    }
+                    b.m.visible = isVisible || b.chasing;
+                });
 
                 if(this.doorL) this.doorL.position.y += ((State.leftDoor ? 1.4 : 4.2) - this.doorL.position.y) * 0.15;
                 if(this.doorR) this.doorR.position.y += ((State.rightDoor ? 1.4 : 4.2) - this.doorR.position.y) * 0.15;
@@ -938,6 +958,7 @@
                     Sound.init();
                     Sound.started = true;
                     Sound.play('static');
+                    Sound.play('intro');
                     document.getElementById('main-menu').classList.add('hidden');
                     document.getElementById('game-view').classList.remove('hidden');
                     const de = document.documentElement;
