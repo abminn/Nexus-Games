@@ -401,12 +401,13 @@
             MOVE_SPEED: 4.5,
             AI_ROAM_SPEED: 1.5,
             AI_CHASE_SPEED: 3.5,
+            AI_RETREAT_SPEED: 4.5,
             COLLISION_RADIUS: 0.35,
             INTRO_LENGTH: 30,
             FLASHLIGHT_INTENSITY: 4.0,
             FLASHLIGHT_DISTANCE: 45.0,
-            STAGE_POS: new THREE.Vector3(9, 0, 1.5),
-            LIGHT_RETREAT_TIME: 3.0, // Seconds until bot retreats when illuminated
+            STAGE_POS: new THREE.Vector3(9, 0.75, 1.5),
+            LIGHT_RETREAT_TIME: 2.5, // Reduced for snappier feedback
             images: {
                 Devil: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQevmPBcXlRBwNwZS5Yd5fQEx2lwQZm4VaznQ&s',
                 Freak: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSv-Y-8unCnufjKBV5qT7QL_VxyGST0PPRYfw&s',
@@ -522,9 +523,9 @@
             ambience: null,
             roomLights: [],
             bots: {
-                Devil: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 },
-                Freak: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 },
-                Absolute: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0 }
+                Devil: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false },
+                Freak: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false },
+                Absolute: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false }
             },
 
             init() {
@@ -814,7 +815,7 @@
                 if(pDisplay) pDisplay.innerText = Math.max(0, Math.floor(State.power));
                 if(State.power <= 0) this.jumpscare('Absolute');
 
-                // Intro Sequence & Global Sound
+                // Intro Sequence
                 if (State.time < CONFIG.INTRO_LENGTH) {
                     const distToStage = this.cam.position.distanceTo(CONFIG.STAGE_POS);
                     const vol = Math.max(0.1, 1.0 - (distToStage / 35));
@@ -872,29 +873,39 @@
                     // Light deterent logic
                     let isUnderLight = false;
                     if (nearOffice) {
-                        if (State.leftLight && b.m.position.x < 8.5) isUnderLight = true;
-                        if (State.rightLight && b.m.position.x > 9.5) isUnderLight = true;
+                        // More sensitive range checks for hall lights
+                        if (State.leftLight && b.m.position.x < 8.5 && b.m.position.z > 16.0) isUnderLight = true;
+                        if (State.rightLight && b.m.position.x > 9.5 && b.m.position.z > 16.0) isUnderLight = true;
                     }
 
-                    if (isUnderLight) {
+                    if (isUnderLight && !b.forcedRetreat) {
                         b.lightContactTimer += dt;
                         if (b.lightContactTimer > CONFIG.LIGHT_RETREAT_TIME) {
-                            // Retreat!
+                            // Trigger forced retreat!
+                            b.forcedRetreat = true;
                             b.chasing = false;
-                            b.targetPos.set(9, 0, 1.5); // Back to show stage
-                            b.waitTime = 5.0; // Wait before roaming again
+                            b.targetPos.copy(CONFIG.STAGE_POS);
+                            b.waitTime = 6.0; // Long pause before coming back
                             b.lightContactTimer = 0;
                         }
                     } else {
-                        b.lightContactTimer = Math.max(0, b.lightContactTimer - dt);
+                        // Slowly decay timer if light is off
+                        b.lightContactTimer = Math.max(0, b.lightContactTimer - dt * 0.5);
                     }
 
                     // State machine logic
-                    if (b.chasing) {
+                    if (b.forcedRetreat) {
+                        // Move back to stage until close
+                        if (b.m.position.distanceTo(CONFIG.STAGE_POS) < 1.0) {
+                            b.forcedRetreat = false; // Arrival
+                        }
+                    } else if (b.chasing) {
                         b.targetPos.copy(this.cam.position);
                         if (distToPlayer < 1.0) this.jumpscare(key);
+                        // Lose chase if far and not in office zone
                         if (distToPlayer > 12 && !nearOffice) b.chasing = false;
                     } else {
+                        // Roaming / Random pathing
                         b.waitTime -= dt;
                         if (b.waitTime <= 0 && b.m.position.distanceTo(b.targetPos) < 0.6) {
                             b.waitTime = Math.random() * 4 + 2; 
@@ -902,8 +913,9 @@
                             const nextSpot = spots[Math.floor(Math.random() * spots.length)];
                             b.targetPos.set(BOT_SPOTS[nextSpot][0], 0.75, BOT_SPOTS[nextSpot][2]);
                         }
+                        // Start chasing if close
                         if (distToPlayer < 5.0 || (nearOffice && playerInOffice)) {
-                            // If light is on, don't initiate chase immediately or allow it to be broken
+                            // Don't re-chase if currently under light deterrent
                             if (!isUnderLight) b.chasing = true;
                         }
                     }
@@ -912,29 +924,40 @@
                     const moveDir = new THREE.Vector3().subVectors(b.targetPos, b.m.position);
                     const currentDist = moveDir.length();
                     if (currentDist > 0.1) {
-                        const speed = b.chasing ? CONFIG.AI_CHASE_SPEED : CONFIG.AI_ROAM_SPEED;
+                        let speed = CONFIG.AI_ROAM_SPEED;
+                        if (b.forcedRetreat) speed = CONFIG.AI_RETREAT_SPEED;
+                        else if (b.chasing) speed = CONFIG.AI_CHASE_SPEED;
+
                         const moveDist = Math.min(speed * dt, currentDist);
                         moveDir.normalize().multiplyScalar(moveDist);
                         
                         const nextX = b.m.position.x + moveDir.x;
                         const nextZ = b.m.position.z + moveDir.z;
                         
+                        // Wall Collision for bots (prevents walking through walls)
                         if (!this.checkCollision(nextX, b.m.position.z, true)) b.m.position.x = nextX;
                         if (!this.checkCollision(b.m.position.x, nextZ, true)) b.m.position.z = nextZ;
                     }
 
-                    // Visibility logic
+                    // Strategic Visibility
                     let isVisible = false;
                     if (State.monitor) {
                         const camViewPos = new THREE.Vector3(...CAM_VIEWS[State.currentCam].pos);
                         if (b.m.position.distanceTo(camViewPos) < 14) isVisible = true;
                     } else {
-                        if (State.flashlightOn && distToPlayer < 25) {
-                            const botDir = b.m.position.clone().sub(this.cam.position).normalize();
+                        // Generous illumination check for Flashlight and Hall Lights
+                        const botToCam = b.m.position.clone().sub(this.cam.position);
+                        const botDist = botToCam.length();
+                        
+                        if (State.flashlightOn && botDist < 25) {
+                            const botDir = botToCam.clone().normalize();
                             const viewDir = new THREE.Vector3(0,0,-1).applyQuaternion(this.cam.quaternion);
-                            if(botDir.dot(viewDir) > 0.7) isVisible = true;
-                        } else if (State.leftLight && b.m.position.x < 8.2 && nearOffice) isVisible = true;
-                        else if (State.rightLight && b.m.position.x > 9.8 && nearOffice) isVisible = true;
+                            if(botDir.dot(viewDir) > 0.6) isVisible = true;
+                        } 
+                        
+                        // Always visible if hall light is on and they are in that hall
+                        if (State.leftLight && b.m.position.x < 8.2 && nearOffice) isVisible = true;
+                        if (State.rightLight && b.m.position.x > 9.8 && nearOffice) isVisible = true;
                     }
                     b.m.visible = isVisible || b.chasing;
                 });
