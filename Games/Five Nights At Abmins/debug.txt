@@ -1,0 +1,249 @@
+only use if you know what youre doing this is for getting locations
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Horror - Coordinate Mapper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        canvas { display: block; }
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border: 1px solid #333;
+            cursor: pointer;
+            z-index: 10;
+            min-width: 300px;
+        }
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #0f0;
+            font-size: 12px;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+        }
+        #controls-ui {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
+        }
+        .ui-btn {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 8px 15px;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ui-btn:hover {
+            background: rgba(0, 255, 0, 0.3);
+        }
+        .ui-btn:active {
+            background: #0f0;
+            color: #000;
+        }
+        .loading-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #222;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        #loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #00ff00;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <div id="status-text">
+            <h1 class="text-xl font-bold mb-2">LOADING MAP...</h1>
+            <p class="text-xs text-gray-500 uppercase tracking-widest">Collision Engine: BYPASSED (NOCLIP)</p>
+        </div>
+        <div class="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+    </div>
+
+    <div id="hud">
+        MODE: NOCLIP_ACTIVE | POS: <span id="pos-display">0, 0, 0</span>
+    </div>
+
+    <div id="controls-ui">
+        <button id="copy-pos" class="ui-btn">Copy Coordinates</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://esm.sh/three@0.170.0';
+        import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
+
+        class Engine {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x010101);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.rotation.order = 'YXZ'; 
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+                document.body.appendChild(this.renderer.domElement);
+
+                // Start position
+                this.camera.position.set(0, 1.5, 0);
+
+                // Lighting
+                const ambient = new THREE.AmbientLight(0xffffff, 0.1);
+                this.scene.add(ambient);
+                const officeLight = new THREE.PointLight(0xffffff, 2, 20);
+                officeLight.position.set(0, 4, 0);
+                this.scene.add(officeLight);
+
+                this.moveState = { forward: false, backward: false, left: false, right: false, up: false, down: false, yaw: 0, pitch: 0 };
+                this.velocity = new THREE.Vector3();
+                this.clock = new THREE.Clock();
+
+                this.loadMap();
+                this.initEvents();
+                this.animate();
+            }
+
+            loadMap() {
+                const loader = new GLTFLoader();
+                const url = 'https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Games/Five%20Nights%20At%20Abmins/fnaf_1_map-compressed.glb';
+                const bar = document.getElementById('loading-bar');
+                const overlay = document.getElementById('overlay');
+                const statusText = document.getElementById('status-text');
+
+                loader.load(url, 
+                    (gltf) => {
+                        this.scene.add(gltf.scene);
+                        statusText.innerHTML = '<h1 class="text-xl font-bold mb-2">NOCLIP READY</h1><p class="text-xs text-green-500 font-bold">COLLISION IGNORED</p><p class="text-[10px] mt-4 text-gray-500">CLICK TO START MAPPING</p>';
+                        bar.style.width = '100%';
+                    },
+                    (xhr) => {
+                        const progress = (xhr.loaded / xhr.total) * 100;
+                        bar.style.width = progress + '%';
+                    },
+                    (error) => {
+                        console.error('An error happened', error);
+                        statusText.innerHTML = '<h1 class="text-xl font-bold mb-2 text-red-500">LOAD ERROR</h1>';
+                    }
+                );
+            }
+
+            initEvents() {
+                const overlay = document.getElementById('overlay');
+                const copyBtn = document.getElementById('copy-pos');
+
+                overlay.addEventListener('click', () => document.body.requestPointerLock());
+
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const p = this.camera.position;
+                    const coords = `POS: ${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`;
+                    navigator.clipboard.writeText(coords).then(() => {
+                        const originalText = copyBtn.innerText;
+                        copyBtn.innerText = 'COPIED!';
+                        setTimeout(() => copyBtn.innerText = originalText, 1500);
+                    });
+                });
+
+                document.addEventListener('pointerlockchange', () => {
+                    overlay.style.display = document.pointerLockElement === document.body ? 'none' : 'block';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (document.pointerLockElement !== document.body) return;
+                    this.moveState.yaw -= e.movementX * 0.002;
+                    this.moveState.pitch -= e.movementY * 0.002;
+                    this.moveState.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.moveState.pitch));
+                    this.camera.rotation.set(this.moveState.pitch, this.moveState.yaw, 0);
+                });
+
+                const keyHandler = (e, val) => {
+                    switch (e.code) {
+                        case 'KeyW': this.moveState.forward = val; break;
+                        case 'KeyS': this.moveState.backward = val; break;
+                        case 'KeyA': this.moveState.left = val; break;
+                        case 'KeyD': this.moveState.right = val; break;
+                        case 'Space': this.moveState.up = val; break;
+                        case 'ShiftLeft': this.moveState.down = val; break;
+                    }
+                };
+                window.addEventListener('keydown', (e) => keyHandler(e, true));
+                window.addEventListener('keyup', (e) => keyHandler(e, false));
+
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+
+            updateMovement(delta) {
+                const speed = 1.0;
+                const moveVec = new THREE.Vector3();
+                
+                if (this.moveState.forward) moveVec.z -= 1;
+                if (this.moveState.backward) moveVec.z += 1;
+                if (this.moveState.left) moveVec.x -= 1;
+                if (this.moveState.right) moveVec.x += 1;
+                if (this.moveState.up) moveVec.y += 1;
+                if (this.moveState.down) moveVec.y -= 1;
+
+                moveVec.normalize();
+                
+                // Get local rotation directions
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+                const up = new THREE.Vector3(0, 1, 0); // World up for noclip vertical
+
+                if (this.moveState.forward) this.camera.position.addScaledVector(forward, speed * delta);
+                if (this.moveState.backward) this.camera.position.addScaledVector(forward, -speed * delta);
+                if (this.moveState.left) this.camera.position.addScaledVector(right, -speed * delta);
+                if (this.moveState.right) this.camera.position.addScaledVector(right, speed * delta);
+                if (this.moveState.up) this.camera.position.addScaledVector(up, speed * delta);
+                if (this.moveState.down) this.camera.position.addScaledVector(up, -speed * delta);
+
+                document.getElementById('pos-display').innerText = 
+                    `${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}`;
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                const delta = this.clock.getDelta();
+                if (document.pointerLockElement === document.body) {
+                    this.updateMovement(delta);
+                }
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        new Engine();
+    </script>
+</body>
+</html>
