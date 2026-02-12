@@ -1,0 +1,1 @@
+camera 1 POS: -0.04, 2.31, -6.39 camera 2 POS: -3.61, 2.46, -5.79 camera 3 POS: 3.79, 2.64, -5.77 camera 4 POS: -4.06, 2.54, -5.65 camera 5 POS: -9.99, 2.28, -11.72 camera 6 POS: -6.36, 2.35, -22.88
