@@ -1,1 +1,6 @@
-camera 1 POS: -0.04, 2.31, -6.39 camera 2 POS: -3.61, 2.46, -5.79 camera 3 POS: 3.79, 2.64, -5.77 camera 4 POS: -4.06, 2.54, -5.65 camera 5 POS: -9.99, 2.28, -11.72 camera 6 POS: -6.36, 2.35, -22.88
+                    { id: 1, name: "CAM 01 - MAIN HALL", pos: new THREE.Vector3(-0.04, 2.31, -6.39), look: new THREE.Vector3(0, 1.5, -18) },
+                    { id: 2, name: "CAM 02 - DINING AREA", pos: new THREE.Vector3(-3.61, 2.46, 1), look: new THREE.Vector3(-2, 1.2, -15) }, 
+                    { id: 3, name: "CAM 03 - PARTY ROOM", pos: new THREE.Vector3(3.79, 2.64, 1), look: new THREE.Vector3(2, 1.2, -15) },  
+                    { id: 4, name: "CAM 04 - SUPPLY CLOSET", pos: new THREE.Vector3(-4.06, 2.54, -5.65), look: new THREE.Vector3(-8.0, 0.8, -1.0) }, 
+                    { id: 5, name: "CAM 05 - PIRATE COVE", pos: new THREE.Vector3(-9.99, 2.28, -11.72), look: new THREE.Vector3(-10, 1.5, -25) },
+                    { id: 6, name: "CAM 06 - KITCHEN HALL", pos: new THREE.Vector3(-6.36, 2.35, -22.88), look: new THREE.Vector3(5, 1.5, -10) }

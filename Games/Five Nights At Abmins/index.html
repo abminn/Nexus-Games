@@ -3,998 +3,1134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5 Nights at Abmin's - Exploration Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Nexus Horror - Advanced Surveillance Suite v8.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* ======================= RESET & BASE ======================= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            font-family: 'Press Start 2P', monospace;
-            cursor: default;
-        }
-
-        .hidden { display: none !important; }
-
-        .static-noise {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 1000;
-        }
-
-        /* ======================= MAIN MENU ======================= */
-        #main-menu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, #1a0505 0%, #000 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .menu-content { text-align: center; animation: flicker 4s infinite; }
-        @keyframes flicker {
-            0%, 90%, 100% { opacity: 1; }
-            92%, 95% { opacity: 0.8; }
-            94% { opacity: 0.5; }
-        }
-
-        .menu-title {
-            font-family: 'Creepster', cursive;
-            font-size: 80px;
-            color: #ff2222;
-            text-shadow: 0 0 20px #ff0000;
-            margin-bottom: 50px;
-        }
-
-        .menu-title span { display: block; font-size: 100px; color: #ffcc00; }
-
-        .menu-btns { display: flex; flex-direction: column; gap: 20px; align-items: center; }
-
-        .m-btn {
-            background: transparent;
-            color: #777;
-            border: 2px solid #333;
-            padding: 20px 60px;
-            font-size: 18px;
+        body { margin: 0; overflow: hidden; background: #000; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        canvas { display: block; }
+        
+        /* Core UI Elements */
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            background: rgba(0,0,0,0.95);
+            padding: 40px;
+            border: 2px solid #1a1a1a;
             cursor: pointer;
-            transition: 0.3s;
-            font-family: 'Press Start 2P', monospace;
-        }
-
-        .m-btn:hover { color: #fff; border-color: #ff2222; box-shadow: 0 0 20px rgba(255, 34, 34, 0.4); }
-
-        /* ======================= GAME UI ======================= */
-        #game-view { position: relative; width: 100vw; height: 100vh; }
-
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
             z-index: 100;
+            min-width: 350px;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
         }
-
-        #clock {
+        #crosshair {
             position: absolute;
-            top: 30px;
-            right: 40px;
-            color: #fff;
-            font-size: 32px;
-            text-shadow: 2px 2px #000;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.4);
+            border: 1px solid rgba(0,0,0,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
         }
-
-        #power-hud {
+        #hud {
             position: absolute;
             bottom: 30px;
             left: 30px;
             color: #0f0;
-            font-size: 16px;
-            text-shadow: 0 0 10px #0f0;
+            font-size: 10px;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px black;
+            opacity: 0.7;
+            letter-spacing: 1px;
         }
 
-        #usage-meter { display: flex; gap: 8px; margin-top: 10px; }
-        .u-bar { width: 15px; height: 25px; background: #030; border: 1px solid #060; }
-        .u-bar.active { background: #0f0; box-shadow: 0 0 10px #0f0; }
+        /* Battery and Usage Meter */
+        #battery-ui {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: right;
+            pointer-events: none;
+            z-index: 50;
+        }
+        #battery-pct { font-size: 32px; font-weight: bold; margin-bottom: 2px; text-shadow: 2px 2px 4px black; }
+        .usage-container { display: flex; align-items: center; gap: 4px; justify-content: flex-end; opacity: 0.8; }
+        .usage-bar { width: 10px; height: 16px; background: #111; border: 1px solid #333; }
+        .usage-bar.active { background: #0f0; border-color: #0f0; box-shadow: 0 0 8px #0f0; }
 
-        /* ======================= HOTBAR ======================= */
+        /* Equipment Hotbar */
         #hotbar {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border: 2px solid #333;
-            pointer-events: all;
-            z-index: 500;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px;
+            border: 1px solid #222;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 50;
         }
-
         .hotbar-slot {
-            width: 60px;
-            height: 60px;
-            border: 2px solid #555;
-            background: #111;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 2px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            color: #444;
-            font-size: 10px;
+            justify-content: center;
             position: relative;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            overflow: hidden;
         }
-
-        .hotbar-slot.active { border-color: #0f0; box-shadow: 0 0 10px rgba(0, 255, 0, 0.3); color: #fff; }
-        .slot-key { position: absolute; top: 2px; left: 4px; font-size: 8px; color: #666; }
-
-        /* ======================= MONITOR ======================= */
-        #monitor-overlay {
+        .hotbar-slot.selected {
+            border-color: #0f0;
+            box-shadow: inset 0 0 8px rgba(0, 255, 0, 0.2);
+            background: rgba(0, 255, 0, 0.03);
+        }
+        .item-label {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            z-index: 150;
-            pointer-events: all;
+            bottom: 2px;
+            font-size: 6px;
+            color: #0f0;
+            text-transform: uppercase;
         }
 
-        #monitor-overlay.active { display: block; }
-        #cam-info { position: absolute; top: 50px; left: 50px; color: #fff; font-size: 20px; }
-
-        #map-container {
+        /* Interaction Feedback */
+        #interaction-msg {
             position: absolute;
             bottom: 120px;
-            right: 50px;
-            width: 380px;
-            height: 380px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #444;
-            padding: 10px;
-        }
-
-        .map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
-        .cam-node {
-            position: absolute;
-            z-index: 10;
-            background: #000;
-            color: #888;
-            border: 1px solid #444;
-            font-size: 9px;
-            padding: 8px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .cam-node.active { background: #0a4; color: #fff; border-color: #0f0; box-shadow: 0 0 10px #0f0; }
-
-        #office-node {
-            position: absolute;
-            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
-            background: #000;
-            border: 3px solid #fff;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             color: #fff;
-            font-size: 9px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            transition: opacity 0.2s, bottom 0.2s;
+            pointer-events: none;
+            border-left: 3px solid #0f0;
+            white-space: nowrap;
+            z-index: 60;
         }
-
-        #office-node::after { content: "YOU"; display: block; margin-top: 5px; animation: pulse 1s infinite; }
-        @keyframes pulse { 50% { opacity: 0.3; } }
-
-        #close-monitor {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 400px;
-            height: 80px;
-            background: rgba(30, 30, 30, 0.95);
-            color: #fff;
-            border: 3px solid #777;
-            border-bottom: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            font-size: 16px;
+        
+        /* Advanced Camera Interface */
+        #camera-ui {
+            display: none;
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
             z-index: 200;
         }
-
-        #close-monitor:hover { background: #555; border-color: #fff; }
-
-        /* ======================= OVERLAYS ======================= */
-        #jumpscare-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: none;
-            z-index: 3000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #jumpscare-overlay img { height: 90%; animation: sc-shake 0.05s infinite; }
-
-        @keyframes sc-shake {
-            0% { transform: translate(5px, 5px) rotate(0.5deg); }
-            50% { transform: translate(-5px, -5px) rotate(-0.5deg); }
-            100% { transform: translate(0, 0); }
-        }
-
-        #win-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            color: #fff;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 3001;
-            font-size: 100px;
-        }
-
-        #crosshair {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 12px;
-            height: 12px;
-            background: transparent;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5000;
-            pointer-events: none;
-            display: none;
-        }
-
-        #crosshair::after {
-            content: '';
+        #camera-overlay {
             position: absolute;
-            top: 50%; left: 50%;
-            width: 2px; height: 2px;
-            background: white;
-            transform: translate(-50%, -50%);
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.8);
+        }
+        #camera-noise {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.12;
+            pointer-events: none;
+            animation: noiseMove 0.2s steps(4) infinite;
+        }
+        @keyframes noiseMove { 0% { transform: translate(0,0); } 100% { transform: translate(2px,2px); } }
+
+        #camera-flicker {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.02);
+            opacity: 0;
+            pointer-events: none;
+            animation: flicker 4s linear infinite;
+        }
+        @keyframes flicker {
+            0% { opacity: 0; }
+            10% { opacity: 0.05; }
+            11% { opacity: 0; }
+            30% { opacity: 0; }
+            31% { opacity: 0.08; }
+            32% { opacity: 0; }
+            100% { opacity: 0; }
         }
 
-        body.playing #crosshair { display: block; }
-        body.monitor-active #crosshair { display: none; }
+        #camera-label {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            color: #0f0;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px #000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .recording-dot {
+            width: 15px;
+            height: 15px;
+            background: #f00;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
 
-        canvas { display: block; outline: none; }
+        #exit-cams-btn {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(60, 0, 0, 0.85);
+            color: #fff;
+            border: 2px solid #f00;
+            padding: 12px 50px;
+            cursor: pointer;
+            pointer-events: auto;
+            text-transform: uppercase;
+            font-weight: black;
+            font-size: 16px;
+            letter-spacing: 5px;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        #exit-cams-btn:hover { background: #f00; box-shadow: 0 0 25px #f00; transform: translateX(-50%) scale(1.05); }
+
+        /* Game State Overlays */
+        #power-outage, #jumpscare {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: black;
+            z-index: 1000;
+            color: #400;
+            font-family: 'Courier New', Courier, monospace;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #jumpscare { background: #000; color: #f00; z-index: 2000; }
+
+        .loading-bar-container {
+            width: 100%;
+            height: 2px;
+            background: #111;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        #loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #00ff00;
+            transition: width 0.1s;
+        }
+        
+        #controls-ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
+        }
+        .ui-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            color: #666;
+            padding: 6px 12px;
+            font-size: 9px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ui-btn:hover { border-color: #0f0; color: #0f0; background: rgba(0,255,0,0.05); }
     </style>
 </head>
-<body class="menu-active">
+<body>
 
-    <div class="static-noise"></div>
     <div id="crosshair"></div>
+    <div id="interaction-msg">SYSTEM INTERACTED</div>
 
-    <!-- MAIN MENU -->
-    <div id="main-menu">
-        <div class="menu-content">
-            <h1 class="menu-title">Five Nights<br><span>at Abmin's</span></h1>
-            <div class="menu-btns">
-                <button class="m-btn" id="new-game-btn">NEW GAME</button>
-                <button class="m-btn" id="continue-btn">CONTINUE</button>
-            </div>
+    <div id="camera-ui">
+        <div id="camera-noise"></div>
+        <div id="camera-flicker"></div>
+        <div id="camera-overlay"></div>
+        <div id="camera-label">
+            <div class="recording-dot"></div>
+            <span>CAM 01 - MAIN HALL</span>
+        </div>
+        <button id="exit-cams-btn">DISCONNECT FEED [X]</button>
+    </div>
+
+    <div id="power-outage">
+        <div>
+            <h1 class="text-4xl font-bold mb-4">CRITICAL POWER FAILURE</h1>
+            <p class="animate-pulse mb-8">ALL SECURITY SEALS DISENGAGED</p>
+            <button id="reset-outage-btn" class="ui-btn border-[#0f0] text-[#0f0]">REBOOT CORE</button>
         </div>
     </div>
 
-    <!-- GAME VIEW -->
-    <div id="game-view" class="hidden">
-        <div id="ui-layer">
-            <div id="clock">12 AM</div>
-            <div id="power-hud">
-                <div>POWER LEFT: <span id="power-val">100</span>%</div>
-                <div id="usage-meter">
-                    <div class="u-bar"></div>
-                    <div class="u-bar"></div>
-                    <div class="u-bar"></div>
-                    <div class="u-bar"></div>
-                    <div class="u-bar"></div>
-                </div>
-            </div>
-
-            <div id="hotbar">
-                <div class="hotbar-slot active" data-slot="1">
-                    <span class="slot-key">1</span>
-                    FLASHLIGHT
-                </div>
-                <div class="hotbar-slot" data-slot="2">
-                    <span class="slot-key">2</span>
-                    EMPTY
-                </div>
-                <div class="hotbar-slot" data-slot="3">
-                    <span class="slot-key">3</span>
-                    EMPTY
-                </div>
-            </div>
+    <div id="jumpscare">
+        <div>
+            <h1 class="text-6xl font-black mb-4 italic">YOU ARE NOT ALONE</h1>
+            <p class="animate-ping">CONNECTION TERMINATED</p>
+            <button id="reset-jumpscare-btn" class="mt-12 ui-btn border-[#f00] text-[#f00] hover:bg-[#200]">RETRY SHIFT</button>
         </div>
-
-        <!-- CAMERA OVERLAY -->
-        <div id="monitor-overlay">
-            <div id="cam-info">CAM 1A - SHOW STAGE</div>
-            
-            <div id="map-container">
-                <svg class="map-bg" viewBox="0 0 380 380">
-                    <path d="M 190 20 L 190 140" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" /> 
-                    <path d="M 190 80 L 80 80" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 190 80 L 300 80" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 190 140 L 100 140" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 190 140 L 280 140" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 100 140 L 100 300" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 100 140 L 50 140" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 280 140 L 280 300" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 100 300 L 160 300" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                    <path d="M 280 300 L 220 300" stroke="#fff" stroke-width="2" fill="none" opacity="0.4" />
-                </svg>
-                
-                <div class="cam-node active" data-cam="1A" data-label="SHOW STAGE" style="top:10px; left:40%;">1A</div>
-                <div class="cam-node" data-cam="1B" data-label="DINING AREA" style="top:70px; left:42%;">1B</div>
-                <div class="cam-node" data-cam="1C" data-label="PIRATE COVE" style="top:70px; left:10%;">1C</div>
-                
-                <div class="cam-node" data-cam="2A" data-label="W. HALL NORTH" style="top:130px; left:20%;">2A</div>
-                <div class="cam-node" data-cam="2B" data-label="W. HALL SOUTH" style="top:250px; left:20%;">2B</div>
-                
-                <div class="cam-node" data-cam="4A" data-label="E. HALL NORTH" style="top:130px; left:65%;">4A</div>
-                <div class="cam-node" data-cam="4B" data-label="E. HALL SOUTH" style="top:250px; left:65%;">4B</div>
-                
-                <div class="cam-node" data-cam="3" data-label="SUPPLY CLOSET" style="top:130px; left:2%;">3</div>
-                <div class="cam-node" data-cam="6" data-label="KITCHEN" style="top:70px; left:75%;">6</div>
-
-                <div id="office-node">OFFICE</div>
-            </div>
-
-            <div id="close-monitor">CLOSE MONITOR</div>
-        </div>
-
-        <div id="jumpscare-overlay">
-            <img id="js-img" src="" alt="">
-        </div>
-
-        <div id="win-overlay">6 AM</div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        // ======================= CONFIG =======================
-        const CONFIG = {
-            HOUR_LEN: 45, 
-            MOVE_SPEED: 4.5,
-            AI_ROAM_SPEED: 1.5,
-            AI_CHASE_SPEED: 3.5,
-            AI_RETREAT_SPEED: 4.5,
-            COLLISION_RADIUS: 0.35,
-            INTRO_LENGTH: 30,
-            FLASHLIGHT_INTENSITY: 4.0,
-            FLASHLIGHT_DISTANCE: 45.0,
-            STAGE_POS: new THREE.Vector3(9, 0.75, 1.5),
-            LIGHT_RETREAT_TIME: 2.5, // Reduced for snappier feedback
-            images: {
-                Devil: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQevmPBcXlRBwNwZS5Yd5fQEx2lwQZm4VaznQ&s',
-                Freak: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSv-Y-8unCnufjKBV5qT7QL_VxyGST0PPRYfw&s',
-                Absolute: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcaDc6IF51Cwx-1rYJ0XCu8LkpJGmRWZwyPA&s'
-            }
-        };
+    <div id="overlay">
+        <div id="status-text">
+            <h1 class="text-2xl font-black mb-1 tracking-tighter">FAZBEAR ENTERTAINMENT</h1>
+            <p class="text-[10px] text-gray-500 uppercase tracking-[0.3em] mb-4">Remote Access & Surveillance Initialized</p>
+            <p id="loading-subtext" class="text-xs text-gray-400">Constructing Spatial Maps & AI Logic...</p>
+        </div>
+        <div class="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+    </div>
 
-        const BOT_SPOTS = {
-            '1A': [9, 0, 1.5],
-            '1B': [9.5, 0, 7.5],
-            '1C': [2.5, 0, 7.5],
-            '2A': [5.5, 0, 14.5],
-            '2B': [6.8, 0, 18.2],
-            '3': [2.5, 0, 14.5],
-            '4A': [12.5, 0, 14.5],
-            '4B': [11.2, 0, 18.2],
-            '6': [17, 0, 6.5]
-        };
+    <div id="hud">
+        PHYSICAL_CORE: v8.5 // LOC: <span id="pos-display">0.0, 0.0, 0.0</span>
+    </div>
 
-        const CAM_VIEWS = {
-            '1A': { pos: [9, 2.5, 4.5], rot: [-0.4, 0, 0] },
-            '1B': { pos: [14.5, 2.5, 5], rot: [-0.4, 2.5, 0] },
-            '1C': { pos: [6, 2.3, 7.5], rot: [-0.4, Math.PI / 2, 0] },
-            '2A': { pos: [5.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
-            '2B': { pos: [5.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
-            '3': { pos: [2.5, 2.0, 13], rot: [-0.3, Math.PI, 0] },
-            '4A': { pos: [12.5, 2.2, 11.5], rot: [-0.4, Math.PI, 0] },
-            '4B': { pos: [12.5, 2.2, 16], rot: [-0.4, Math.PI, 0] },
-            '6': { pos: [17, 2.4, 5], rot: [-0.4, Math.PI, 0] }
-        };
+    <div id="hotbar">
+        <div class="hotbar-slot selected" data-slot="0"></div>
+        <div class="hotbar-slot" data-slot="1"></div>
+        <div class="hotbar-slot" data-slot="2"></div>
+        <div class="hotbar-slot" data-slot="3"></div>
+        <div class="hotbar-slot" data-slot="4"></div>
+    </div>
 
-        const MAP_LAYOUT = [
-            "WWWWWWWWWWWWWWWWWWWW",
-            "WGGGWSSSSSSSSWWWWWWW",
-            "WGGGWSSSSSSSSWWWWWWW",
-            "WGGGWSSSSSSSSWWWWWWW",
-            "WGGGWGGGGGGGGGGGGGGW",
-            "WGGGGGGGGGGGGGGGGGGW",
-            "WPPPGGGGGGGGGGGGGGGW",
-            "WPPPGGGGGGGGGWWWWWWW",
-            "WPPPGGGGGGGGGGGGGGGW",
-            "WGGGGGGGGGGGGGGGGGGW",
-            "WGGGGGGGGGGGGGGGGGGW",
-            "WWWWWGGWWWWWWGGGGWWW",
-            "WGGWWGGWWWWWWGGGGWWW",
-            "WGGGGGGWWWWWWGGGGWWW",
-            "WGGWWGGWWWWWWGGGGWWW",
-            "WWWWWGGWWWWWWGGGGWWW",
-            "WWWWWGGWWWWWWGGGGWWW",
-            "WWWWWGGWDDDWWGGGGWWW",
-            "WWWWWGGOGGOGGGGGGGGW",
-            "WWWWWGGWGGGWGGGGWWWW",
-            "WWWWWWWGGGGWWWWWWWWW"
-        ];
+    <div id="battery-ui">
+        <div id="battery-pct">100%</div>
+        <div class="usage-container" id="usage-bars">
+            <span class="text-[10px] uppercase mr-2">Usage:</span>
+            <div class="usage-bar"></div>
+            <div class="usage-bar"></div>
+            <div class="usage-bar"></div>
+            <div class="usage-bar"></div>
+            <div class="usage-bar"></div>
+        </div>
+    </div>
 
-        // ======================= STATE =======================
-        const State = {
-            power: 100, usage: 0, hour: 0, time: 0,
-            leftDoor: false, rightDoor: false,
-            leftLight: false, rightLight: false,
-            monitor: false, currentCam: '1A',
-            isLocked: false, gameOver: false,
-            pitch: 0, yaw: 0,
-            keys: {},
-            flashlightOn: false,
-            currentSlot: 1,
-            introDone: false
-        };
+    <div id="controls-ui">
+        <button id="copy-pos" class="ui-btn">Log Current Coordinates</button>
+    </div>
 
-        // ======================= AUDIO =======================
-        const Sound = {
-            initDone: false, audioCtx: null, started: false,
-            tracks: {
-                static: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/staticnoise.mp3'),
-                jumpscare: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/jumpscare.mp3'),
-                win: new Audio('https://github.com/SimonKlamcah/asdasdas/raw/refs/heads/main/6am%20bells%20ringing.mp3'),
-                intro: new Audio('https://files.catbox.moe/94ycoj.mp3')
-            },
-            init() {
-                if(this.initDone) return;
-                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                this.tracks.static.loop = true;
-                this.tracks.static.volume = 0.05;
-                this.tracks.intro.loop = false;
-                this.initDone = true;
-            },
-            play(id) {
-                if(!this.initDone) return;
-                this.tracks[id].currentTime = 0;
-                this.tracks[id].play().catch(() => {});
-            },
-            click() {
-                if(!this.audioCtx) return;
-                const o = this.audioCtx.createOscillator();
-                const g = this.audioCtx.createGain();
-                o.connect(g); g.connect(this.audioCtx.destination);
-                o.frequency.setValueAtTime(600, this.audioCtx.currentTime);
-                g.gain.setValueAtTime(0.015, this.audioCtx.currentTime);
-                o.start();
-                g.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.1);
-                o.stop(this.audioCtx.currentTime + 0.1);
-            }
-        };
+    <script type="module">
+        import * as THREE from 'https://esm.sh/three@0.170.0';
+        import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
+        import { Octree } from 'https://esm.sh/three@0.170.0/examples/jsm/math/Octree.js';
+        import { Capsule } from 'https://esm.sh/three@0.170.0/examples/jsm/math/Capsule.js';
 
-        // ======================= GAME ENGINE =======================
-        const App = {
-            scene: null, cam: null, monCam: null, renderer: null, clock: null, ray: null,
-            interactables: [],
-            doorL: null, doorR: null,
-            hallLightL: null, hallLightR: null,
-            maskL: null, maskR: null,
-            flashlight: null,
-            ambience: null,
-            roomLights: [],
-            bots: {
-                Devil: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false },
-                Freak: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false },
-                Absolute: { m: null, spot: '1A', timer: 0, chasing: false, targetPos: new THREE.Vector3(), woken: false, waitTime: 0, lightContactTimer: 0, forcedRetreat: false }
-            },
-
-            init() {
-                this.setupScene();
-                this.setupLights();
-                this.setupOffice();
-                this.setupMap();
-                this.setupBots();
-                this.bindEvents();
-                this.updateUsage();
-                this.animate();
-            },
-
-            setupScene() {
+        /**
+         * Nexus Horror Engine - Advanced Surveillance and Physics Systems
+         * Optimized for high-fidelity lighting and complex collision meshes.
+         * v8.5: Refined camera look-vectors and lighting.
+         */
+        class Engine {
+            constructor() {
+                // Initial Scene Setup
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x000000);
-                this.cam = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.05, 1000);
-                this.cam.position.set(9, 1.4, 19.2);
-                this.cam.rotation.order = 'YXZ';
-                this.monCam = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-                this.monCam.rotation.order = 'YXZ';
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.scene.background = new THREE.Color(0x010101);
+
+                // Perspective Camera for First Person View
+                this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.rotation.order = 'YXZ';
+
+                // WebGL Renderer Configuration
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
-                document.getElementById('game-view').appendChild(this.renderer.domElement);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+                this.renderer.toneMapping = THREE.ReinhardToneMapping;
+                this.renderer.shadowMap.enabled = true;
+                document.body.appendChild(this.renderer.domElement);
+
+                // Core System States
+                this.battery = 100.0;
+                this.isPowerOut = false;
+                this.isLoaded = false;
+                this.activeSlot = 0;
+                this.isGameOver = false;
+                this.inCams = false;
+                this.camBatteryTimer = 0;
+               
+                this.hasFlashlight = false;
+                this.flashlightActive = false;
+                this.flashlightBeam = null;
+                this.flashlightWorldModel = null;
+
+                // SURVEILLANCE LOCATIONS
+                // v8.5 REFINED: Facing interiors for cams 2, 3, 4, and 6.
+                this.camData = [
+                    { id: 1, name: "CAM 01 - MAIN HALL", pos: new THREE.Vector3(-0.04, 2.31, -6.39), look: new THREE.Vector3(0, 1.5, -18) },
+                    { id: 2, name: "CAM 02 - DINING AREA", pos: new THREE.Vector3(-3.61, 2.46, 1), look: new THREE.Vector3(-2, 1.2, -15) }, 
+                    { id: 3, name: "CAM 03 - PARTY ROOM", pos: new THREE.Vector3(3.79, 2.64, 1), look: new THREE.Vector3(2, 1.2, -15) },  
+                    { id: 4, name: "CAM 04 - SUPPLY CLOSET", pos: new THREE.Vector3(-4.06, 2.54, -5.65), look: new THREE.Vector3(-8.0, 0.8, -1.0) }, 
+                    { id: 5, name: "CAM 05 - PIRATE COVE", pos: new THREE.Vector3(-9.99, 2.28, -11.72), look: new THREE.Vector3(-10, 1.5, -25) },
+                    { id: 6, name: "CAM 06 - KITCHEN HALL", pos: new THREE.Vector3(-6.36, 2.35, -22.88), look: new THREE.Vector3(5, 1.5, -10) }
+                ];
+                this.activeCamId = -1;
+
+                // ANIMATRONICS CONFIG
+                // Balanced movement speed for a tense experience.
+                this.animatronics = [
+                    { name: 'Devil', texture: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQevmPBcXlRBwNwZS5Yd5fQEx2lwQZm4VaznQ&s', spawn: new THREE.Vector3(0.13, 0.40, -19.20), state: 'WAKEUP', mesh: null, lightTimer: 0, target: null, side: 'center', wakeTimer: 8.0, waitTimer: 0, stalkLevel: 0, speed: 0.52 },
+                    { name: 'Freak', texture: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSv-Y-8unCnufjKBV5qT7QL_VxyGST0PPRYfw&s', spawn: new THREE.Vector3(2.64, 0.28, -17.91), state: 'WAKEUP', mesh: null, lightTimer: 0, target: null, side: 'right', wakeTimer: 18.0, waitTimer: 0, stalkLevel: 0, speed: 0.46 },
+                    { name: 'Absolute', texture: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcaDc6IF51Cwx-1rYJ0XCu8LkpJGmRWZwyPA&s', spawn: new THREE.Vector3(-2.62, 0.30, -17.80), state: 'WAKEUP', mesh: null, lightTimer: 0, target: null, side: 'left', wakeTimer: 28.0, waitTimer: 0, stalkLevel: 0, speed: 0.38 }
+                ];
+
+                // NAVIGATION NODES
+                this.roamNodes = [
+                    new THREE.Vector3(0, 0.4, -10), new THREE.Vector3(-6, 0.4, -12),
+                    new THREE.Vector3(6, 0.4, -12), new THREE.Vector3(-10, 0.4, -15),
+                    new THREE.Vector3(10, 0.4, -15), new THREE.Vector3(-4, 0.4, -5),
+                    new THREE.Vector3(4, 0.4, -5), new THREE.Vector3(0, 0.4, -18),
+                    new THREE.Vector3(-2, 0.4, -3), new THREE.Vector3(2, 0.4, -3),
+                    new THREE.Vector3(-8, 0.4, -18), new THREE.Vector3(8, 0.4, -18)
+                ];
+
+                this.hallwayNodes = {
+                    left: [new THREE.Vector3(-8.0, 0.4, -8.0), new THREE.Vector3(-4.0, 0.4, -4.0), new THREE.Vector3(-2.2, 0.4, 1.2)],
+                    right: [new THREE.Vector3(8.0, 0.4, -8.0), new THREE.Vector3(4.0, 0.4, -4.0), new THREE.Vector3(2.2, 0.4, 1.2)],
+                    center: [new THREE.Vector3(0.0, 0.4, -10.0), new THREE.Vector3(1.5, 0.4, -4.0), new THREE.Vector3(2.2, 0.4, 1.2)]
+                };
+
+                // Interactive Objects
+                this.doors = {
+                    left: { closed: false, pos: new THREE.Vector3(-1.56, 1.41, 0.51), mesh: null },
+                    right: { closed: false, pos: new THREE.Vector3(1.57, 1.65, 0.74), mesh: null }
+                };
+
+                // Door collision removal logic for decorative elements
+                this.phaseableDoorPositions = [
+                    new THREE.Vector3(-1.56, 1.41, 0.51), new THREE.Vector3(1.57, 1.65, 0.74),
+                    new THREE.Vector3(2.63, 1.00, -6.03), new THREE.Vector3(-2.88, 1.14, -6.04),
+                    new THREE.Vector3(-3.92, 1.37, -3.93), new THREE.Vector3(-3.51, 1.92, -19.41),
+                    new THREE.Vector3(-9.93, 1.65, -15.04)
+                ];
+
+                // Physics Engine Configuration
+                this.worldOctree = new Octree();
+                this.playerCollider = new Capsule(new THREE.Vector3(0, 0.35, 0), new THREE.Vector3(0, 1.45, 0), 0.35);
+                this.playerVelocity = new THREE.Vector3();
+                this.playerDirection = new THREE.Vector3();
+                this.playerOnGround = false;
+
+                // Player Movement Settings
+                this.bobTimer = 0;
+                this.tiltAmount = 0;
+                this.maxSpeed = 1.35;
+                this.friction = 35.0;
+                this.accel = 100.0;
+
+                // Interaction Matrix
+                this.interactionData = [
+                    { pos: [-1.48, 1.36, 1.62], name: 'LEFT DOOR', action: 'toggleLeftDoor', radius: 0.14 },
+                    { pos: [-1.41, 1.09, 1.66], name: 'LEFT LIGHT', action: 'toggleLeftLight', radius: 0.14 },
+                    { pos: [1.40, 1.32, 1.64], name: 'RIGHT DOOR', action: 'toggleRightDoor', radius: 0.14 },
+                    { pos: [1.40, 1.12, 1.64], name: 'RIGHT LIGHT', action: 'toggleRightLight', radius: 0.14 },
+                    { pos: [1.08, 1.13, -0.47], name: 'CAM FEED 1', action: 'cam', camId: 1, radius: 0.22 },
+                    { pos: [0.83, 1.56, -0.59], name: 'CAM FEED 2', action: 'cam', camId: 2, radius: 0.22 },
+                    { pos: [0.59, 1.12, -0.69], name: 'CAM FEED 3', action: 'cam', camId: 3, radius: 0.22 },
+                    { pos: [-0.47, 1.51, -0.60], name: 'CAM FEED 4', action: 'cam', camId: 4, radius: 0.22 },
+                    { pos: [-0.56, 1.11, -0.59], name: 'CAM FEED 5', action: 'cam', camId: 5, radius: 0.22 },
+                    { pos: [-1.13, 1.31, -0.49], name: 'CAM FEED 6', action: 'cam', camId: 6, radius: 0.22 }
+                ];
+                this.interactables = [];
+
+                // Lighting Components
+                this.officeLight = new THREE.PointLight(0xffffff, 2.0, 10);
+                this.officeLight.position.set(0, 2.5, 1);
+                this.officeLight.castShadow = true;
+                this.scene.add(this.officeLight);
+                
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.08);
+                this.scene.add(this.ambientLight);
+
+                this.raycaster = new THREE.Raycaster();
+                this.raycaster.far = 2.8;
+
                 this.clock = new THREE.Clock();
-                this.ray = new THREE.Raycaster();
-                this.flashlight = new THREE.SpotLight(0xf0f0ff, 0, CONFIG.FLASHLIGHT_DISTANCE, Math.PI / 5, 0.4, 1);
-                this.cam.add(this.flashlight);
-                this.flashlight.position.set(0.2, -0.2, 0);
-                this.flashlight.target = new THREE.Object3D();
-                this.cam.add(this.flashlight.target);
-                this.flashlight.target.position.set(0, 0, -5);
-                this.scene.add(this.cam);
-            },
+                this.initSystems();
+                this.loadMap();
+                this.loadFlashlight();
+                this.initAnimatronics();
+                this.createHotspots();
+                this.initEvents();
+                this.animate();
+            }
 
-            setupLights() {
-                this.ambience = new THREE.AmbientLight(0xffffff, 0.5);
-                this.scene.add(this.ambience);
-                const pLight = (x, y, z, c, i, d) => {
-                    const l = new THREE.PointLight(c, i, d);
-                    l.position.set(x, y, z);
-                    this.scene.add(l);
-                    this.roomLights.push(l);
-                    return l;
+            /**
+             * Initialize static scene components like office doors and hallway lights.
+             */
+            initSystems() {
+                const doorGeo = new THREE.BoxGeometry(0.1, 4, 1.8);
+                const doorMat = new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.0, depthWrite: false });
+                
+                this.doors.left.mesh = new THREE.Mesh(doorGeo, doorMat);
+                this.doors.left.mesh.position.copy(this.doors.left.pos);
+                this.scene.add(this.doors.left.mesh);
+                
+                this.doors.right.mesh = new THREE.Mesh(doorGeo, doorMat);
+                this.doors.right.mesh.position.copy(this.doors.right.pos);
+                this.scene.add(this.doors.right.mesh);
+
+                this.hallwayLights = {
+                    left: { on: false, light: new THREE.PointLight(0xffffff, 0, 8), pos: new THREE.Vector3(-2.2, 1.8, 1.2) },
+                    right: { on: false, light: new THREE.PointLight(0xffffff, 0, 8), pos: new THREE.Vector3(2.2, 1.8, 1.2) }
                 };
-                pLight(9, 2.4, 4, 0xffffff, 0.6, 15);
-                pLight(9, 2.4, 12, 0xffffff, 0.5, 15);
-                this.officeLight = pLight(9, 1.8, 18.5, 0x44ffaa, 0.8, 7);
-                this.hallLightL = pLight(6.5, 1.8, 18.5, 0xffffff, 0, 6);
-                this.hallLightR = pLight(11.5, 1.8, 18.5, 0xffffff, 0, 6);
-            },
+                
+                this.scene.add(this.hallwayLights.left.light);
+                this.hallwayLights.left.light.position.copy(this.hallwayLights.left.pos);
+                this.scene.add(this.hallwayLights.right.light);
+                this.hallwayLights.right.light.position.copy(this.hallwayLights.right.pos);
+               
+                this.flashlightBeam = new THREE.SpotLight(0xffffff, 0, 25, Math.PI * 0.12, 0.4, 1);
+                this.scene.add(this.flashlightBeam);
+                this.flashlightBeam.target = new THREE.Object3D();
+                this.scene.add(this.flashlightBeam.target);
+            }
 
-            setupOffice() {
-                const btnMat = (c) => new THREE.MeshStandardMaterial({ color: c });
-                const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-                const doorGeo = box(0.1, 2.8, 1.1);
-                const doorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-                this.doorL = new THREE.Mesh(doorGeo, doorMat);
-                this.doorL.position.set(7.45, 4.2, 18);
-                this.scene.add(this.doorL);
-                this.doorR = new THREE.Mesh(doorGeo, doorMat);
-                this.doorR.position.set(10.55, 4.2, 18);
-                this.scene.add(this.doorR);
-                const panelGeo = new THREE.PlaneGeometry(1.2, 2.8);
-                const panelMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-                this.maskL = new THREE.Mesh(panelGeo, panelMat);
-                this.maskL.position.set(7.48, 1.4, 18.2);
-                this.maskL.rotation.y = Math.PI/2;
-                this.scene.add(this.maskL);
-                this.maskR = new THREE.Mesh(panelGeo, panelMat);
-                this.maskR.position.set(10.52, 1.4, 18.2);
-                this.maskR.rotation.y = -Math.PI/2;
-                this.scene.add(this.maskR);
-                const createBtn = (x, side, type, c) => {
-                    const hitBox = new THREE.Mesh(box(0.2, 0.4, 0.3), btnMat(c));
-                    hitBox.position.set(x, type === 'door' ? 1.4 : 1.1, 18.8);
-                    hitBox.userData = { side, type };
-                    this.interactables.push(hitBox);
-                    this.scene.add(hitBox);
-                };
-                createBtn(7.51, 'left', 'door', 0x990000);
-                createBtn(7.51, 'left', 'light', 0x444444);
-                createBtn(10.49, 'right', 'door', 0x990000);
-                createBtn(10.49, 'right', 'light', 0x444444);
-                const compGroup = new THREE.Group();
-                const monMesh = new THREE.Mesh(box(0.8, 0.6, 0.2), btnMat(0x111111));
-                const scrMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.5), new THREE.MeshBasicMaterial({ color: 0x001133 }));
-                scrMesh.position.z = 0.101;
-                compGroup.add(monMesh); compGroup.add(scrMesh);
-                compGroup.position.set(9, 1.0, 18.2);
-                compGroup.rotation.y = Math.PI;
-                monMesh.userData = { type: 'monitor' };
-                this.interactables.push(monMesh);
-                this.scene.add(compGroup);
-            },
-
-            setupMap() {
+            /**
+             * Setup animatronic entities with billboard planes and physical capsules.
+             */
+            initAnimatronics() {
                 const loader = new THREE.TextureLoader();
-                const wallTex = loader.load('https://static.vecteezy.com/system/resources/thumbnails/003/517/451/small/scary-wall-background-horror-concrete-cement-texture-for-background-photo.jpg');
-                const floorTex = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj1nQt7bq9KHw5WBU7Dgo_VHu4hUs0tWY6gw&s');
-                const ceilTex = loader.load('https://png.pngtree.com/thumb_back/fh260/background/20231008/pngtree-chilling-cement-texture-a-terrifying-wall-background-for-horror-image_13598008.png');
-                const wallMat = new THREE.MeshStandardMaterial({ map: wallTex });
-                const floorMat = new THREE.MeshStandardMaterial({ map: floorTex });
-                const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex });
-                for(let z=0; z<MAP_LAYOUT.length; z++) {
-                    for(let x=0; x<MAP_LAYOUT[z].length; x++) {
-                        const char = MAP_LAYOUT[z][x];
-                        if(char === 'W') {
-                            const w = new THREE.Mesh(new THREE.BoxGeometry(1, 2.8, 1), wallMat);
-                            w.position.set(x, 1.4, z);
-                            this.scene.add(w);
-                        } else {
-                            const f = new THREE.Mesh(new THREE.PlaneGeometry(1,1), floorMat);
-                            f.rotation.x = -Math.PI/2; f.position.set(x, 0, z);
-                            this.scene.add(f);
-                            const c = new THREE.Mesh(new THREE.PlaneGeometry(1,1), ceilMat);
-                            c.rotation.x = Math.PI/2; c.position.set(x, 2.8, z);
-                            this.scene.add(c);
+                this.animatronics.forEach(cfg => {
+                    const texture = loader.load(cfg.texture);
+                    const mat = new THREE.MeshStandardMaterial({
+                        map: texture,
+                        transparent: true,
+                        side: THREE.DoubleSide,
+                        alphaTest: 0.5,
+                        roughness: 0.8,
+                        metalness: 0.2
+                    });
+                    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.1), mat);
+                    plane.position.copy(cfg.spawn).add(new THREE.Vector3(0, 1.05, 0));
+                    plane.castShadow = true;
+                    plane.receiveShadow = true;
+                    this.scene.add(plane);
+                    
+                    cfg.mesh = plane;
+                    cfg.collider = new Capsule(cfg.spawn.clone().add(new THREE.Vector3(0,0.35,0)), cfg.spawn.clone().add(new THREE.Vector3(0,1.45,0)), 0.5);
+                    cfg.target = cfg.spawn.clone();
+                    cfg.targetNodeIdx = -1;
+                });
+            }
+
+            /**
+             * Instantiate collision-detectable spheres for raycasting interactions.
+             */
+            createHotspots() {
+                this.interactionData.forEach(data => {
+                    const geo = new THREE.SphereGeometry(data.radius || 0.15, 12, 12);
+                    const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.0, depthWrite: false });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(...data.pos);
+                    mesh.userData = { ...data };
+                    this.scene.add(mesh);
+                    this.interactables.push(mesh);
+                });
+            }
+
+            /**
+             * Load the flashlight collectible model from the external CDN.
+             */
+            loadFlashlight() {
+                const loader = new GLTFLoader();
+                loader.load('https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Games/Five%20Nights%20At%20Abmins/flashlight.glb', (gltf) => {
+                    const scene = gltf.scene || gltf.scenes[0];
+                    if (!scene) return;
+                    this.flashlightWorldModel = scene;
+                    this.flashlightWorldModel.position.set(0.06, 1.05, -0.39);
+                    this.flashlightWorldModel.scale.set(0.1, 0.1, 0.1);
+                    this.flashlightWorldModel.rotation.set(0, Math.PI, 0);
+                    this.scene.add(this.flashlightWorldModel);
+                });
+            }
+
+            /**
+             * Load the main restaurant map and construct the Octree for world collisions.
+             */
+            loadMap() {
+                const loader = new GLTFLoader();
+                const url = 'https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Games/Five%20Nights%20At%20Abmins/fnaf_1_map-compressed.glb';
+                const bar = document.getElementById('loading-bar');
+                const statusText = document.getElementById('status-text');
+                const subtext = document.getElementById('loading-subtext');
+               
+                loader.load(url, (gltf) => {
+                    const scene = gltf.scene || gltf.scenes[0];
+                    if (!scene) return;
+                    this.scene.add(scene);
+                    subtext.innerText = "Applying Physical Filters...";
+                   
+                    setTimeout(() => {
+                        const collisionGroup = new THREE.Group();
+                        const box = new THREE.Box3();
+                        const center = new THREE.Vector3();
+                        scene.updateMatrixWorld(true);
+                        
+                        scene.traverse((n) => {
+                            if (n.isMesh) {
+                                n.castShadow = true;
+                                n.receiveShadow = true;
+                                const name = n.name.toLowerCase();
+                                n.geometry.computeBoundingBox();
+                                box.copy(n.geometry.boundingBox).applyMatrix4(n.matrixWorld);
+                                box.getCenter(center);
+                                
+                                // Selective collision removal for decorative doors
+                                let isDoor = name.includes('door') || name.includes('locked');
+                                let nearPhaseable = false;
+                                for (const pos of this.phaseableDoorPositions) {
+                                    if (center.distanceTo(pos) < 2.0) {
+                                        nearPhaseable = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!isDoor && !nearPhaseable) {
+                                    collisionGroup.add(n.clone());
+                                }
+                            }
+                        });
+
+                        this.worldOctree.fromGraphNode(collisionGroup);
+                        this.playerCollider.start.set(0, 0.35, 0);
+                        this.playerCollider.end.set(0, 1.45, 0);
+                       
+                        this.isLoaded = true;
+                        statusText.innerHTML = '<h1 class="text-2xl font-black mb-1">CONNECTED</h1><p class="text-[10px] text-green-500 font-bold uppercase tracking-[0.3em]">Network Active</p><p class="text-[10px] mt-6 text-gray-500">CLICK TO COMMENCE SHIFT</p>';
+                        bar.style.width = '100%';
+                    }, 100);
+
+                }, (xhr) => {
+                    if (xhr.total > 0) bar.style.width = (xhr.loaded / xhr.total * 100) + '%';
+                    else bar.style.width = '80%';
+                });
+            }
+
+            /**
+             * Reset the entire engine state to 12 AM values.
+             */
+            resetGame() {
+                document.getElementById('jumpscare').style.display = 'none';
+                document.getElementById('power-outage').style.display = 'none';
+                this.exitCamera();
+                this.battery = 100.0;
+                this.isPowerOut = false;
+                this.isGameOver = false;
+                this.playerVelocity.set(0, 0, 0);
+                this.playerCollider.start.set(0, 0.35, 0);
+                this.playerCollider.end.set(0, 1.45, 0);
+                this.moveState.yaw = 0;
+                this.moveState.pitch = 0;
+                this.camera.position.copy(this.playerCollider.end);
+                this.doors.left.closed = false;
+                this.doors.left.mesh.material.opacity = 0;
+                this.doors.right.closed = false;
+                this.doors.right.mesh.material.opacity = 0;
+                this.hallwayLights.left.on = false;
+                this.hallwayLights.left.light.intensity = 0;
+                this.hallwayLights.right.on = false;
+                this.hallwayLights.right.light.intensity = 0;
+                this.officeLight.intensity = 2.0;
+                this.ambientLight.intensity = 0.08;
+                
+                this.animatronics.forEach((anim, i) => {
+                    anim.state = 'WAKEUP';
+                    anim.wakeTimer = 8.0 + (i * 10.0);
+                    anim.waitTimer = 0;
+                    anim.lightTimer = 0;
+                    anim.stalkLevel = 0;
+                    anim.target = anim.spawn.clone();
+                    anim.collider.start.copy(anim.spawn).add(new THREE.Vector3(0, 0.35, 0));
+                    anim.collider.end.copy(anim.spawn).add(new THREE.Vector3(0, 1.45, 0));
+                    anim.mesh.position.copy(anim.collider.end).add(new THREE.Vector3(0, -0.4, 0));
+                });
+                document.body.requestPointerLock();
+            }
+
+            /**
+             * Activate camera mode, applying visual filters and boosting visibility.
+             */
+            enterCamera(camId) {
+                if (this.isPowerOut || this.isGameOver) return;
+                const cam = this.camData.find(c => c.id === camId);
+                if (!cam) return;
+                
+                this.inCams = true;
+                this.activeCamId = camId;
+                
+                // UI Updates
+                document.getElementById('camera-ui').style.display = 'block';
+                document.querySelector('#camera-label span').innerText = cam.name;
+                document.getElementById('hud').style.display = 'none';
+                document.exitPointerLock();
+                
+                // View Updates
+                this.camera.position.copy(cam.pos);
+                this.camera.lookAt(cam.look);
+                
+                // LIGHTING BOOST: Enhanced visibility in surveillance mode
+                this.ambientLight.intensity = 0.35;
+                
+                this.showInteractFeedback(`SECURE FEED: ${cam.name}`, null);
+            }
+
+            /**
+             * Deactivate camera mode and return to first person view.
+             */
+            exitCamera() {
+                this.inCams = false;
+                this.activeCamId = -1;
+                document.getElementById('camera-ui').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                this.camera.position.copy(this.playerCollider.end);
+                
+                // Restore standard lighting
+                this.ambientLight.intensity = 0.08;
+                
+                document.body.requestPointerLock();
+            }
+
+            /**
+             * Input and Event Listeners registration.
+             */
+            initEvents() {
+                const overlay = document.getElementById('overlay');
+                overlay.addEventListener('click', () => { 
+                    if (!this.isPowerOut && this.isLoaded && !this.isGameOver && !this.inCams) 
+                        document.body.requestPointerLock(); 
+                });
+                
+                document.getElementById('reset-jumpscare-btn').onclick = () => this.resetGame();
+                document.getElementById('reset-outage-btn').onclick = () => this.resetGame();
+                document.getElementById('exit-cams-btn').onclick = () => this.exitCamera();
+
+                document.addEventListener('mousedown', () => {
+                    if (this.inCams) return;
+                    if (document.pointerLockElement !== document.body || this.isPowerOut || !this.isLoaded || this.isGameOver) return;
+                    
+                    this.raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
+                    const hits = this.raycaster.intersectObjects(this.interactables);
+                    
+                    if (hits.length > 0) {
+                        const target = hits[0].object;
+                        const action = target.userData.action;
+                        let msg = target.userData.name;
+                        
+                        if (action === 'toggleLeftDoor') { 
+                            this.doors.left.closed = !this.doors.left.closed; 
+                            this.doors.left.mesh.material.opacity = this.doors.left.closed ? 0.3 : 0.0; 
+                            msg += this.doors.left.closed ? ' : SHUT' : ' : OPEN'; 
+                        }
+                        if (action === 'toggleRightDoor') { 
+                            this.doors.right.closed = !this.doors.right.closed; 
+                            this.doors.right.mesh.material.opacity = this.doors.right.closed ? 0.3 : 0.0; 
+                            msg += this.doors.right.closed ? ' : SHUT' : ' : OPEN'; 
+                        }
+                        if (action === 'toggleLeftLight') { 
+                            this.hallwayLights.left.on = !this.hallwayLights.left.on; 
+                            this.hallwayLights.left.light.intensity = this.hallwayLights.left.on ? 12.0 : 0.0; 
+                            msg += this.hallwayLights.left.on ? ' : ACTIVE' : ' : INACTIVE'; 
+                        }
+                        if (action === 'toggleRightLight') { 
+                            this.hallwayLights.right.on = !this.hallwayLights.right.on; 
+                            this.hallwayLights.right.light.intensity = this.hallwayLights.right.on ? 12.0 : 0.0; 
+                            msg += this.hallwayLights.right.on ? ' : ACTIVE' : ' : INACTIVE'; 
+                        }
+                        if (action === 'cam') { 
+                            this.enterCamera(target.userData.camId); 
+                            return; 
+                        }
+                        this.showInteractFeedback(msg, target);
+                    }
+
+                    // Item collection check
+                    if (!this.hasFlashlight && this.flashlightWorldModel) {
+                        if (this.camera.position.distanceTo(this.flashlightWorldModel.position) < 2.8) {
+                            this.hasFlashlight = true;
+                            this.scene.remove(this.flashlightWorldModel);
+                            this.flashlightWorldModel = null;
+                            this.showInteractFeedback("FLASHLIGHT COLLECTED", null);
+                            this.updateHotbarVisuals();
                         }
                     }
-                }
-            },
+                });
 
-            setupBots() {
-                const loader = new THREE.TextureLoader();
-                const names = Object.keys(CONFIG.images);
-                names.forEach((key, i) => {
-                    loader.load(CONFIG.images[key], (tex) => {
-                        const mat = new THREE.SpriteMaterial({ map: tex });
-                        const s = new THREE.Sprite(mat);
-                        s.scale.set(1.5, 1.5, 1);
-                        this.bots[key].m = s;
-                        this.scene.add(s);
-                        const stageOffsets = [6.5, 9, 11.5];
-                        this.bots[key].m.position.set(stageOffsets[i], 0.75, 1.5);
-                        this.bots[key].targetPos.copy(this.bots[key].m.position);
-                    });
+                document.getElementById('copy-pos').onclick = (e) => { 
+                    e.stopPropagation(); 
+                    navigator.clipboard.writeText(`POS: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}`); 
+                };
+                
+                document.addEventListener('pointerlockchange', () => { 
+                    if (!this.inCams) overlay.style.display = document.pointerLockElement === document.body ? 'none' : 'block'; 
                 });
-            },
+                
+                const moveMap = { KeyW: 'forward', KeyS: 'backward', KeyA: 'left', KeyD: 'right' };
+                this.moveState = { forward: false, backward: false, left: false, right: false, yaw: 0, pitch: 0 };
+                
+                window.onkeydown = (e) => {
+                    if (this.inCams) {
+                        if (e.code === 'KeyX' || e.code === 'Escape') this.exitCamera();
+                        return;
+                    }
+                    if (moveMap[e.code]) this.moveState[moveMap[e.code]] = true;
+                    const key = parseInt(e.key); 
+                    if (key >= 1 && key <= 5) this.setHotbarSlot(key - 1);
+                    if (e.code === 'KeyF') this.toggleFlashlight();
+                };
+                
+                window.onkeyup = (e) => { if (moveMap[e.code]) this.moveState[moveMap[e.code]] = false; };
+                
+                document.onmousemove = (e) => {
+                    if (this.inCams || document.pointerLockElement !== document.body || this.isPowerOut || !this.isLoaded || this.isGameOver) return;
+                    this.moveState.yaw -= e.movementX * 0.0012; 
+                    this.moveState.pitch -= e.movementY * 0.0012;
+                    this.moveState.pitch = Math.max(-1.5, Math.min(1.5, this.moveState.pitch));
+                };
+            }
 
-            bindEvents() {
-                window.addEventListener('resize', () => {
-                    const w = window.innerWidth, h = window.innerHeight;
-                    this.renderer.setSize(w, h);
-                    this.cam.aspect = w/h; this.cam.updateProjectionMatrix();
-                    this.monCam.aspect = w/h; this.monCam.updateProjectionMatrix();
-                });
-                document.addEventListener('pointerlockchange', () => {
-                    State.isLocked = document.pointerLockElement === this.renderer.domElement;
-                    document.body.classList.toggle('playing', State.isLocked);
-                });
-                document.addEventListener('mousemove', (e) => {
-                    if(State.isLocked && !State.monitor && !State.gameOver) {
-                        State.yaw -= e.movementX * 0.003;
-                        State.pitch -= e.movementY * 0.003;
-                        State.pitch = Math.max(-1.4, Math.min(1.4, State.pitch));
-                        this.cam.rotation.set(State.pitch, State.yaw, 0);
+            toggleFlashlight() { 
+                if (this.hasFlashlight && !this.isPowerOut) { 
+                    this.flashlightActive = !this.flashlightActive; 
+                    this.flashlightBeam.intensity = this.flashlightActive ? 25 : 0; 
+                } 
+            }
+            
+            updateHotbarVisuals() { if (this.hasFlashlight) document.querySelectorAll('.hotbar-slot')[0].innerHTML = '<span class="item-label">FLASH</span>'; }
+            
+            showInteractFeedback(msg, target) {
+                const im = document.getElementById('interaction-msg'); 
+                im.innerText = msg; 
+                im.style.opacity = '1'; 
+                im.style.bottom = '130px';
+                if (target) { target.material.opacity = 0.8; target.scale.set(1.4, 1.4, 1.4); }
+                setTimeout(() => { 
+                    im.style.opacity = '0'; 
+                    im.style.bottom = '120px'; 
+                    if (target) { target.material.opacity = 0.0; target.scale.set(1, 1, 1); } 
+                }, 200);
+            }
+            
+            setHotbarSlot(index) { 
+                this.activeSlot = index; 
+                document.querySelectorAll('.hotbar-slot').forEach((s, idx) => { 
+                    if (idx === index) s.classList.add('selected'); 
+                    else s.classList.remove('selected'); 
+                }); 
+            }
+
+            /**
+             * Process AI behavior for animatronics including pathfinding and attacking.
+             */
+            updateAnimatronics(delta) {
+                if (!this.isLoaded || this.isPowerOut || this.isGameOver) return;
+
+                this.animatronics.forEach(anim => {
+                    // Update billboard rotation to face observer
+                    const lookPoint = this.inCams ? this.camera.position : this.camera.position;
+                    anim.mesh.lookAt(lookPoint.x, anim.mesh.position.y, lookPoint.z);
+                    const distToPlayer = anim.mesh.position.distanceTo(this.playerCollider.end);
+
+                    if (anim.waitTimer > 0) { anim.waitTimer -= delta; return; }
+
+                    if (anim.state === 'WAKEUP') {
+                        anim.wakeTimer -= delta;
+                        const res = this.worldOctree.capsuleIntersect(anim.collider);
+                        if (res) anim.collider.translate(res.normal.multiplyScalar(res.depth));
+                        if (anim.wakeTimer <= 0) anim.state = 'ROAM';
+                        return;
+                    }
+
+                    // Lighting detection logic
+                    const inHallwayLight = (anim.side === 'left' && this.hallwayLights.left.on && anim.mesh.position.distanceTo(this.hallwayLights.left.pos) < 5.0) ||
+                                           (anim.side === 'right' && this.hallwayLights.right.on && anim.mesh.position.distanceTo(this.hallwayLights.right.pos) < 5.0);
+                    let inFlashlight = false;
+                    if (this.flashlightActive) {
+                        const dirToAnim = anim.mesh.position.clone().sub(this.playerCollider.end).normalize();
+                        const camDir = new THREE.Vector3(0,0,-1).applyQuaternion(this.camera.quaternion);
+                        if (camDir.angleTo(dirToAnim) < 0.3 && distToPlayer < 10.0) inFlashlight = true;
+                    }
+
+                    if (inHallwayLight || inFlashlight) {
+                        anim.lightTimer += delta;
+                        if (anim.lightTimer > 0.3) {
+                            const retreatDir = anim.mesh.position.clone().sub(this.playerCollider.end).setY(0).normalize();
+                            anim.collider.translate(retreatDir.multiplyScalar(2.0 * delta));
+                            if (anim.lightTimer > 2.0) {
+                                anim.state = 'RETREAT';
+                                const hallwayStart = this.hallwayNodes[anim.side][1] || this.roamNodes[0];
+                                anim.target = hallwayStart.clone();
+                                anim.stalkLevel = Math.max(0, anim.stalkLevel - 0.2);
+                            }
+                        }
+                    } else { anim.lightTimer = Math.max(0, anim.lightTimer - delta); }
+
+                    // Movement speed logic
+                    let speed = anim.speed;
+                    if (anim.state === 'RETREAT') {
+                        speed = 3.0;
+                        if (anim.mesh.position.distanceTo(anim.target) < 1.0) {
+                            anim.state = 'ROAM';
+                            anim.lightTimer = 0;
+                            anim.waitTimer = 3.0;
+                        }
+                    } else {
+                        // Region-based wandering AI
+                        if (anim.mesh.position.distanceTo(anim.target) < 1.8 || anim.targetNodeIdx === -1) {
+                            anim.waitTimer = 2.0 + Math.random() * 4.0; 
+                           
+                            if (Math.random() < (0.2 + anim.stalkLevel * 0.1)) {
+                                const path = this.hallwayNodes[anim.side] || this.hallwayNodes.center;
+                                anim.targetNodeIdx = Math.min(anim.targetNodeIdx + 1, path.length - 1);
+                                anim.target = path[anim.targetNodeIdx].clone();
+                                anim.stalkLevel += 0.03;
+                            } else {
+                                if (Math.random() < 0.4) {
+                                    const camLoc = this.camData[Math.floor(Math.random() * this.camData.length)].pos;
+                                    anim.target = camLoc.clone().setY(0.4);
+                                } else {
+                                    const randomNode = this.roamNodes[Math.floor(Math.random() * this.roamNodes.length)];
+                                    anim.target = randomNode.clone();
+                                }
+                            }
+                            anim.target.x += (Math.random() - 0.5) * 3.0;
+                            anim.target.z += (Math.random() - 0.5) * 3.0;
+                        }
+
+                        // Aggression range check
+                        const dx = Math.abs(anim.mesh.position.x - this.playerCollider.end.x);
+                        const dz = Math.abs(anim.mesh.position.z - this.playerCollider.end.z);
+                        if (dx < 3.0 && dz < 3.0 && !this.isBlocked(anim, distToPlayer)) {
+                            speed = 2.2; 
+                            anim.target.copy(this.playerCollider.end).setY(anim.mesh.position.y);
+                        }
+                    }
+
+                    // Physics update for animatronic
+                    const subSteps = 2;
+                    const subDelta = delta / subSteps;
+                    const moveDir = anim.target.clone().sub(anim.mesh.position).setY(0).normalize();
+                    for (let s = 0; s < subSteps; s++) {
+                        anim.collider.translate(moveDir.clone().multiplyScalar(speed * subDelta));
+                        for (let i = 0; i < 4; i++) {
+                            const result = this.worldOctree.capsuleIntersect(anim.collider);
+                            if (result) anim.collider.translate(result.normal.multiplyScalar(result.depth * 0.95 + 0.0001));
+                        }
+                    }
+                    anim.collider.translate(new THREE.Vector3(0, -9.8 * delta, 0));
+                    const floorResult = this.worldOctree.capsuleIntersect(anim.collider);
+                    if (floorResult) anim.collider.translate(floorResult.normal.multiplyScalar(floorResult.depth * 0.95));
+                    anim.mesh.position.copy(anim.collider.end).add(new THREE.Vector3(0, -0.4, 0));
+
+                    // Detection / Kill check
+                    if (distToPlayer < 1.45) {
+                        const isProtected = (anim.mesh.position.x < -0.5 && this.doors.left.closed) || (anim.mesh.position.x > 0.5 && this.doors.right.closed);
+                        if (!isProtected) {
+                            this.triggerGameOver();
+                        } else {
+                            const pushBackDir = anim.mesh.position.clone().sub(this.playerCollider.end).setY(0).normalize();
+                            anim.collider.translate(pushBackDir.multiplyScalar(1.5));
+                            anim.state = 'RETREAT';
+                            const stalkPoint = this.hallwayNodes[anim.side][1] || this.roamNodes[0];
+                            anim.target = stalkPoint.clone();
+                            anim.targetNodeIdx = -1;
+                            anim.waitTimer = 1.0;
+                        }
                     }
                 });
-                window.addEventListener('keydown', (e) => {
-                    State.keys[e.key.toLowerCase()] = true;
-                    if(e.key >= '1' && e.key <= '3') this.switchSlot(parseInt(e.key));
-                    if(e.key.toLowerCase() === 'f' && State.currentSlot === 1) this.toggleFlashlight();
-                });
-                window.addEventListener('keyup', (e) => State.keys[e.key.toLowerCase()] = false);
-                this.renderer.domElement.addEventListener('click', () => {
-                    if(State.monitor || State.gameOver) return;
-                    if(!State.isLocked) { this.renderer.domElement.requestPointerLock(); return; }
-                    this.ray.setFromCamera(new THREE.Vector2(0, 0), this.cam);
-                    const hits = this.ray.intersectObjects(this.interactables);
-                    if(hits.length > 0) {
-                        const data = hits[0].object.userData;
-                        if(data.type === 'door') {
-                            if(data.side === 'left') State.leftDoor = !State.leftDoor;
-                            else State.rightDoor = !State.rightDoor;
-                            hits[0].object.material.color.set((data.side === 'left' ? State.leftDoor : State.rightDoor) ? 0x00ff00 : 0x990000);
-                        } else if(data.type === 'light') {
-                            if(data.side === 'left') State.leftLight = !State.leftLight;
-                            else State.rightLight = !State.rightLight;
-                            hits[0].object.material.color.set((data.side === 'left' ? State.leftLight : State.rightLight) ? 0xffff00 : 0x444444);
-                        } else if(data.type === 'monitor') this.toggleMonitor();
-                        this.updateUsage();
-                        Sound.click();
-                    }
-                });
-                document.getElementById('close-monitor').addEventListener('click', () => this.toggleMonitor());
-                document.querySelectorAll('.cam-node').forEach(node => {
-                    node.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.switchCam(node.dataset.cam, node.dataset.label);
-                    });
-                });
-            },
+            }
 
-            switchSlot(n) {
-                State.currentSlot = n;
-                document.querySelectorAll('.hotbar-slot').forEach(s => s.classList.toggle('active', parseInt(s.dataset.slot) === n));
-                Sound.click();
-            },
-
-            toggleFlashlight() {
-                State.flashlightOn = !State.flashlightOn;
-                this.flashlight.intensity = State.flashlightOn ? CONFIG.FLASHLIGHT_INTENSITY : 0;
-                this.updateUsage();
-                Sound.click();
-            },
-
-            toggleMonitor() {
-                if(State.gameOver) return;
-                State.monitor = !State.monitor;
-                document.getElementById('monitor-overlay').classList.toggle('active', State.monitor);
-                document.body.classList.toggle('monitor-active', State.monitor);
-                if(State.monitor) document.exitPointerLock();
-                else this.renderer.domElement.requestPointerLock();
-                this.updateUsage();
-                Sound.click();
-            },
-
-            switchCam(id, label) {
-                State.currentCam = id;
-                document.getElementById('cam-info').innerText = `CAM ${id} - ${label}`;
-                document.querySelectorAll('.cam-node').forEach(n => n.classList.toggle('active', n.dataset.cam === id));
-                const view = CAM_VIEWS[id];
-                if(view) {
-                    this.monCam.position.set(...view.pos);
-                    this.monCam.rotation.set(...view.rot);
-                }
-                Sound.click();
-            },
-
-            updateUsage() {
-                let u = 0;
-                if(State.leftDoor) u++; if(State.rightDoor) u++;
-                if(State.leftLight) u++; if(State.rightLight) u++;
-                if(State.monitor) u++; if(State.flashlightOn) u += 2; 
-                State.usage = Math.min(u, 5);
-                const bars = document.querySelectorAll('.u-bar');
-                bars.forEach((b, i) => b.classList.toggle('active', i < State.usage));
-            },
-
-            checkCollision(nx, nz, isBot = false) {
-                const r = isBot ? 0.35 : CONFIG.COLLISION_RADIUS;
-                const points = [{x: nx, z: nz}, {x: nx+r, z: nz}, {x: nx-r, z: nz}, {x: nx, z: nz+r}, {x: nx, z: nz-r}];
-                for(let p of points) {
-                    const ix = Math.round(p.x), iz = Math.round(p.z);
-                    if(iz < 0 || iz >= MAP_LAYOUT.length || ix < 0 || ix >= MAP_LAYOUT[0].length) return true;
-                    if(MAP_LAYOUT[iz][ix] === 'W') return true;
-                    if(State.leftDoor && p.x < 7.6 && p.z > 17.8 && p.z < 18.6) return true;
-                    if(State.rightDoor && p.x > 10.4 && p.z > 17.8 && p.z < 18.6) return true;
-                }
+            isBlocked(anim, dist) {
+                if (anim.mesh.position.x < -0.5 && this.doors.left.closed && dist < 4.0) return true;
+                if (anim.mesh.position.x > 0.5 && this.doors.right.closed && dist < 4.0) return true;
                 return false;
-            },
+            }
 
-            jumpscare(botKey) {
-                if(State.gameOver) return;
-                State.gameOver = true;
-                State.monitor = false;
-                document.getElementById('monitor-overlay').classList.remove('active');
+            triggerGameOver() {
+                this.isGameOver = true;
+                this.exitCamera();
+                document.getElementById('jumpscare').style.display = 'flex';
                 document.exitPointerLock();
-                const img = document.getElementById('js-img');
-                img.src = CONFIG.images[botKey];
-                document.getElementById('jumpscare-overlay').style.display = 'flex';
-                Sound.play('jumpscare');
-                setTimeout(() => location.reload(), 3500);
-            },
+            }
+
+            /**
+             * Resolve player character vs world and office door collisions.
+             */
+            playerCollisions() {
+                this.playerOnGround = false;
+                for (let i = 0; i < 4; i++) {
+                    const result = this.worldOctree.capsuleIntersect(this.playerCollider);
+                    if (result) {
+                        this.playerOnGround = this.playerOnGround || result.normal.y > 0.5;
+                        const projection = this.playerVelocity.dot(result.normal);
+                        if (projection < 0) this.playerVelocity.addScaledVector(result.normal, -projection);
+                        this.playerCollider.translate(result.normal.multiplyScalar(result.depth * 0.95 + 0.0001));
+                    }
+                }
+                
+                const doorBox = new THREE.Box3();
+                [this.doors.left, this.doors.right].forEach(door => {
+                    if (door.closed) {
+                        doorBox.setFromObject(door.mesh);
+                        const intersect = doorBox.intersectsSphere({ center: this.playerCollider.start, radius: 0.35 }) || doorBox.intersectsSphere({ center: this.playerCollider.end, radius: 0.35 });
+                        if (intersect) {
+                            const pushDir = this.playerCollider.start.clone().sub(door.pos).setY(0).normalize();
+                            this.playerCollider.translate(pushDir.multiplyScalar(0.01));
+                            const velDot = this.playerVelocity.dot(pushDir);
+                            if (velDot < 0) this.playerVelocity.addScaledVector(pushDir, -velDot * 0.75);
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Calculate and update global power consumption levels.
+             */
+            updateBattery(delta) {
+                if (this.isPowerOut || !this.isLoaded || this.isGameOver) return;
+                
+                let activeSystems = (this.doors.left.closed ? 1 : 0) + (this.doors.right.closed ? 1 : 0) + 
+                                    (this.hallwayLights.left.on ? 1 : 0) + (this.hallwayLights.right.on ? 1 : 0);
+                const flashlightDrain = this.flashlightActive ? 0.2 : 0;
+                
+                if (this.inCams) {
+                    this.camBatteryTimer += delta;
+                    if (this.camBatteryTimer >= 8.0) {
+                        this.battery -= 1.0;
+                        this.camBatteryTimer = 0;
+                    }
+                } else { this.camBatteryTimer = 0; }
+
+                this.battery -= (0.05 + activeSystems * 0.8 + flashlightDrain) * delta;
+                if (this.battery <= 0) { this.battery = 0; this.triggerOutage(); }
+                
+                document.getElementById('battery-pct').innerText = Math.ceil(this.battery) + '%';
+                const bars = document.getElementById('usage-bars').getElementsByClassName('usage-bar');
+                const displayUsage = Math.min(5, activeSystems + (this.flashlightActive ? 1 : 0) + (this.inCams ? 1 : 0));
+                for (let i = 0; i < bars.length; i++) { if (i < displayUsage) bars[i].classList.add('active'); else bars[i].classList.remove('active'); }
+            }
+
+            triggerOutage() {
+                this.isPowerOut = true; 
+                this.exitCamera();
+                this.flashlightActive = false; 
+                this.flashlightBeam.intensity = 0;
+                this.doors.left.closed = this.doors.right.closed = this.hallwayLights.left.on = this.hallwayLights.right.on = false;
+                this.doors.left.mesh.material.opacity = this.doors.right.mesh.material.opacity = 0;
+                this.hallwayLights.left.light.intensity = this.hallwayLights.right.light.intensity = this.officeLight.intensity = 0;
+                this.ambientLight.intensity = 0;
+                document.getElementById('power-outage').style.display = 'flex'; 
+                document.exitPointerLock();
+            }
+
+            updatePlayer(delta) {
+                if (!this.isLoaded || this.isGameOver || this.inCams) return;
+                
+                if (this.playerOnGround) { 
+                    this.playerVelocity.x -= this.playerVelocity.x * this.friction * delta; 
+                    this.playerVelocity.z -= this.playerVelocity.z * this.friction * delta; 
+                } else {
+                    this.playerVelocity.y -= 35.0 * delta;
+                }
+                
+                const horiz = new THREE.Vector2(this.playerVelocity.x, this.playerVelocity.z);
+                if (horiz.length() > this.maxSpeed) { 
+                    horiz.setLength(this.maxSpeed); 
+                    this.playerVelocity.x = horiz.x; 
+                    this.playerVelocity.z = horiz.y; 
+                }
+                
+                this.playerCollider.translate(this.playerVelocity.clone().multiplyScalar(delta)); 
+                this.playerCollisions();
+                
+                const moving = (this.moveState.forward || this.moveState.backward || this.moveState.left || this.moveState.right) && this.playerOnGround;
+                if (moving) {
+                    this.bobTimer += delta * 7.0; 
+                    this.camera.position.copy(this.playerCollider.end);
+                    this.camera.position.y += Math.sin(this.bobTimer) * 0.032; 
+                    this.camera.position.x += Math.cos(this.bobTimer * 0.5) * 0.012;
+                    let targetTilt = this.moveState.left ? 0.01 : (this.moveState.right ? -0.01 : 0);
+                    this.tiltAmount = THREE.MathUtils.lerp(this.tiltAmount, targetTilt, 0.1);
+                } else { 
+                    this.camera.position.lerp(this.playerCollider.end, 0.1); 
+                    this.tiltAmount = THREE.MathUtils.lerp(this.tiltAmount, 0, 0.1); 
+                }
+                
+                this.camera.rotation.set(this.moveState.pitch, this.moveState.yaw, this.tiltAmount);
+                if (this.flashlightBeam) { 
+                    this.flashlightBeam.position.copy(this.camera.position); 
+                    const dir = new THREE.Vector3(0,0,-1).applyQuaternion(this.camera.quaternion); 
+                    this.flashlightBeam.target.position.copy(this.camera.position).add(dir); 
+                }
+            }
+
+            getForwardVector() { 
+                this.camera.getWorldDirection(this.playerDirection); 
+                this.playerDirection.y = 0; 
+                this.playerDirection.normalize(); 
+                return this.playerDirection; 
+            }
+            
+            getSideVector() { 
+                this.camera.getWorldDirection(this.playerDirection); 
+                this.playerDirection.y = 0; 
+                this.playerDirection.normalize(); 
+                this.playerDirection.cross(this.camera.up); 
+                return this.playerDirection; 
+            }
 
             animate() {
                 requestAnimationFrame(() => this.animate());
-                const dt = this.clock.getDelta();
-                if(State.gameOver || !Sound.started) return;
-
-                State.time += dt;
+                const delta = Math.min(0.03, this.clock.getDelta());
                 
-                const h = Math.floor(State.time / CONFIG.HOUR_LEN);
-                if(h > State.hour) {
-                    State.hour = h;
-                    document.getElementById('clock').innerText = (State.hour === 0 ? 12 : State.hour) + " AM";
-                    if(State.hour === 6) {
-                        State.gameOver = true;
-                        document.getElementById('win-overlay').style.display = 'flex';
-                        Sound.play('win');
-                    }
+                if (document.pointerLockElement === document.body && !this.isPowerOut && this.isLoaded && !this.isGameOver && !this.inCams) {
+                    const speed = this.playerOnGround ? this.accel : 30;
+                    if (this.moveState.forward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(speed * delta));
+                    if (this.moveState.backward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(-speed * delta));
+                    if (this.moveState.left) this.playerVelocity.add(this.getSideVector().multiplyScalar(-speed * delta));
+                    if (this.moveState.right) this.playerVelocity.add(this.getSideVector().multiplyScalar(speed * delta));
                 }
 
-                if (State.usage > 0) State.power -= (0.05 + State.usage * 0.12) * dt;
-                const pDisplay = document.getElementById('power-val');
-                if(pDisplay) pDisplay.innerText = Math.max(0, Math.floor(State.power));
-                if(State.power <= 0) this.jumpscare('Absolute');
-
-                // Intro Sequence
-                if (State.time < CONFIG.INTRO_LENGTH) {
-                    const distToStage = this.cam.position.distanceTo(CONFIG.STAGE_POS);
-                    const vol = Math.max(0.1, 1.0 - (distToStage / 35));
-                    Sound.tracks.intro.volume = vol;
-                    
-                    if (State.time < 10) {
-                        this.ambience.intensity = 0.5;
-                        this.roomLights.forEach(l => l.intensity = 0.6);
-                    } else if (State.time < 20) {
-                        this.bots.Devil.woken = true;
-                        this.ambience.intensity = 0.2;
-                        this.roomLights.forEach(l => l.intensity = 0.3);
-                    } else {
-                        this.bots.Freak.woken = true;
-                        this.ambience.intensity = 0.1;
-                        this.roomLights.forEach(l => l.intensity = 0.15);
-                    }
-                } else if (!State.introDone) {
-                    State.introDone = true;
-                    this.bots.Absolute.woken = true;
-                    let fade = setInterval(() => {
-                        Sound.tracks.intro.volume = Math.max(0, Sound.tracks.intro.volume - 0.05);
-                        if(Sound.tracks.intro.volume <= 0) { Sound.tracks.intro.pause(); clearInterval(fade); }
-                    }, 100);
+                this.updatePlayer(delta);
+                this.updateBattery(delta);
+                this.updateAnimatronics(delta);
+                
+                if (!this.inCams) {
+                    document.getElementById('pos-display').innerText = `${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}`;
+                } else {
+                    document.getElementById('pos-display').innerText = "REMOTE ACCESS ACTIVE";
                 }
 
-                if (State.introDone) {
-                    this.ambience.intensity = State.monitor ? 0.35 : 0.005;
-                    this.roomLights.forEach(l => l.intensity = State.monitor ? 0.45 : 0.02);
-                }
-
-                // Player movement
-                if(State.isLocked && !State.monitor) {
-                    const dir = new THREE.Vector3();
-                    if(State.keys['w']) dir.z -= 1; if(State.keys['s']) dir.z += 1;
-                    if(State.keys['a']) dir.x -= 1; if(State.keys['d']) dir.x += 1;
-                    if(dir.length() > 0) {
-                        dir.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), State.yaw);
-                        const nx = this.cam.position.x + dir.x * CONFIG.MOVE_SPEED * dt;
-                        const nz = this.cam.position.z + dir.z * CONFIG.MOVE_SPEED * dt;
-                        if(!this.checkCollision(nx, this.cam.position.z)) this.cam.position.x = nx;
-                        if(!this.checkCollision(this.cam.position.x, nz)) this.cam.position.z = nz;
-                    }
-                }
-
-                // AI Logic
-                Object.keys(this.bots).forEach((key) => {
-                    const b = this.bots[key];
-                    if(!b.m || !b.woken) return;
-
-                    const distToPlayer = b.m.position.distanceTo(this.cam.position);
-                    const nearOffice = (b.m.position.z > 16.5);
-                    const playerInOffice = (this.cam.position.z > 16.5);
-
-                    // Light deterent logic
-                    let isUnderLight = false;
-                    if (nearOffice) {
-                        // More sensitive range checks for hall lights
-                        if (State.leftLight && b.m.position.x < 8.5 && b.m.position.z > 16.0) isUnderLight = true;
-                        if (State.rightLight && b.m.position.x > 9.5 && b.m.position.z > 16.0) isUnderLight = true;
-                    }
-
-                    if (isUnderLight && !b.forcedRetreat) {
-                        b.lightContactTimer += dt;
-                        if (b.lightContactTimer > CONFIG.LIGHT_RETREAT_TIME) {
-                            // Trigger forced retreat!
-                            b.forcedRetreat = true;
-                            b.chasing = false;
-                            b.targetPos.copy(CONFIG.STAGE_POS);
-                            b.waitTime = 6.0; // Long pause before coming back
-                            b.lightContactTimer = 0;
-                        }
-                    } else {
-                        // Slowly decay timer if light is off
-                        b.lightContactTimer = Math.max(0, b.lightContactTimer - dt * 0.5);
-                    }
-
-                    // State machine logic
-                    if (b.forcedRetreat) {
-                        // Move back to stage until close
-                        if (b.m.position.distanceTo(CONFIG.STAGE_POS) < 1.0) {
-                            b.forcedRetreat = false; // Arrival
-                        }
-                    } else if (b.chasing) {
-                        b.targetPos.copy(this.cam.position);
-                        if (distToPlayer < 1.0) this.jumpscare(key);
-                        // Lose chase if far and not in office zone
-                        if (distToPlayer > 12 && !nearOffice) b.chasing = false;
-                    } else {
-                        // Roaming / Random pathing
-                        b.waitTime -= dt;
-                        if (b.waitTime <= 0 && b.m.position.distanceTo(b.targetPos) < 0.6) {
-                            b.waitTime = Math.random() * 4 + 2; 
-                            const spots = Object.keys(BOT_SPOTS);
-                            const nextSpot = spots[Math.floor(Math.random() * spots.length)];
-                            b.targetPos.set(BOT_SPOTS[nextSpot][0], 0.75, BOT_SPOTS[nextSpot][2]);
-                        }
-                        // Start chasing if close
-                        if (distToPlayer < 5.0 || (nearOffice && playerInOffice)) {
-                            // Don't re-chase if currently under light deterrent
-                            if (!isUnderLight) b.chasing = true;
-                        }
-                    }
-
-                    // Movement
-                    const moveDir = new THREE.Vector3().subVectors(b.targetPos, b.m.position);
-                    const currentDist = moveDir.length();
-                    if (currentDist > 0.1) {
-                        let speed = CONFIG.AI_ROAM_SPEED;
-                        if (b.forcedRetreat) speed = CONFIG.AI_RETREAT_SPEED;
-                        else if (b.chasing) speed = CONFIG.AI_CHASE_SPEED;
-
-                        const moveDist = Math.min(speed * dt, currentDist);
-                        moveDir.normalize().multiplyScalar(moveDist);
-                        
-                        const nextX = b.m.position.x + moveDir.x;
-                        const nextZ = b.m.position.z + moveDir.z;
-                        
-                        // Wall Collision for bots (prevents walking through walls)
-                        if (!this.checkCollision(nextX, b.m.position.z, true)) b.m.position.x = nextX;
-                        if (!this.checkCollision(b.m.position.x, nextZ, true)) b.m.position.z = nextZ;
-                    }
-
-                    // Strategic Visibility
-                    let isVisible = false;
-                    if (State.monitor) {
-                        const camViewPos = new THREE.Vector3(...CAM_VIEWS[State.currentCam].pos);
-                        if (b.m.position.distanceTo(camViewPos) < 14) isVisible = true;
-                    } else {
-                        // Generous illumination check for Flashlight and Hall Lights
-                        const botToCam = b.m.position.clone().sub(this.cam.position);
-                        const botDist = botToCam.length();
-                        
-                        if (State.flashlightOn && botDist < 25) {
-                            const botDir = botToCam.clone().normalize();
-                            const viewDir = new THREE.Vector3(0,0,-1).applyQuaternion(this.cam.quaternion);
-                            if(botDir.dot(viewDir) > 0.6) isVisible = true;
-                        } 
-                        
-                        // Always visible if hall light is on and they are in that hall
-                        if (State.leftLight && b.m.position.x < 8.2 && nearOffice) isVisible = true;
-                        if (State.rightLight && b.m.position.x > 9.8 && nearOffice) isVisible = true;
-                    }
-                    b.m.visible = isVisible || b.chasing;
-                });
-
-                if(this.doorL) this.doorL.position.y += ((State.leftDoor ? 1.4 : 4.2) - this.doorL.position.y) * 0.15;
-                if(this.doorR) this.doorR.position.y += ((State.rightDoor ? 1.4 : 4.2) - this.doorR.position.y) * 0.15;
-                if(this.maskL) this.maskL.visible = !State.leftLight;
-                if(this.maskR) this.maskR.visible = !State.rightLight;
-                if(this.hallLightL) this.hallLightL.intensity = State.leftLight ? 2.5 : 0;
-                if(this.hallLightR) this.hallLightR.intensity = State.rightLight ? 2.5 : 0;
-
-                this.renderer.render(this.scene, State.monitor ? this.monCam : this.cam);
+                this.renderer.render(this.scene, this.camera);
             }
-        };
+        }
 
-        const Main = {
-            init() {
-                const ng = document.getElementById('new-game-btn');
-                const cn = document.getElementById('continue-btn');
-                const start = () => {
-                    Sound.init();
-                    Sound.started = true;
-                    Sound.play('static');
-                    Sound.play('intro');
-                    document.getElementById('main-menu').classList.add('hidden');
-                    document.getElementById('game-view').classList.remove('hidden');
-                    const de = document.documentElement;
-                    if (de.requestFullscreen) de.requestFullscreen().catch(() => {});
-                    App.init();
-                    App.renderer.domElement.requestPointerLock();
-                };
-                ng.addEventListener('click', start);
-                cn.addEventListener('click', start);
-            }
-        };
-
-        window.onload = Main.init;
+        // Initialize Engine
+        new Engine();
     </script>
 </body>
 </html>
