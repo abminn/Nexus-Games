@@ -233,7 +233,31 @@
         .layer-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .canvas-stack { position: relative; width: 100%; max-width: 800px; aspect-ratio: 4/3; background: #fff; border-radius: 1rem; overflow: hidden; }
         .onion-skin { opacity: 0.3; pointer-events: none; z-index: 1; }
+        .sub-tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        .sub-tab.active {
+            background: var(--accent-color);
+            color: #000;
+        }
+        .sub-tab:not(.active) {
+            color: var(--text-color);
+            background: rgba(var(--accent-rgb), 0.05);
+        }
+        .sub-tab:not(.active):hover {
+            background: rgba(var(--accent-rgb), 0.1);
+            border-color: rgba(var(--accent-rgb), 0.2);
+        }
 	</style>
+<link rel="stylesheet" href="/index.css">
 </head>
 
 <body>
@@ -285,6 +309,184 @@
             { id: 'solar', name: 'Solar Flare', class: 'theme-solar' }
         ];
 
+        const Storage = {
+            save: (key, val) => {
+                try {
+                    // Don't save blobs or local URLs
+                    const cleanVal = JSON.parse(JSON.stringify(val, (k, v) => {
+                        if (typeof v === 'string' && (v.startsWith('blob:') || v.startsWith('data:'))) return null;
+                        return v;
+                    }));
+                    localStorage.setItem('nexus_' + key, JSON.stringify(cleanVal));
+                } catch (e) { console.warn('Storage save failed:', e); }
+            },
+            saveRaw: (key, val) => {
+                try {
+                    localStorage.setItem('nexus_' + key, JSON.stringify(val));
+                } catch (e) { 
+                    console.warn('Storage save failed:', e);
+                    if (e.name === 'QuotaExceededError' || e.code === 22) {
+                        alert('Nexus Storage Full: Your custom creations (likely images) are too large to save locally. Try using a URL for the thumbnail instead.');
+                    }
+                }
+            },
+            load: (key, defaultVal) => {
+                try {
+                    const item = localStorage.getItem('nexus_' + key);
+                    if (!item) return defaultVal;
+                    return JSON.parse(item);
+                } catch (e) { return defaultVal; }
+            }
+        };
+
+        const EAGLERCRAFT_GAMES = {
+            "Archimedes Client": "clarchimedesclient.html",
+            "Astra Client": "clastraclient.html",
+            "Astra WASM": "clastrawasm.html",
+            "Clay Uncraft": "clclayuncraft.html",
+            "CoderCraft": "clcodercraft.html",
+            "Eagler Forge": "cleaglerforge.html",
+            "Eaglercraft Lite": "cleaglercraftlite.html",
+            "Eaglercraft Magic": "cleaglercraftmagic.html",
+            "Eaglercraft Nebula": "cleaglercraftnebula.html",
+            "EaglerCraft Odd Future": "cloddfuture.html",
+            "Eaglercraft Shadow": "cleaglercraftshadow.html",
+            "Eaglercraft Sky": "cleaglercraftsky.html",
+            "Eaglercraft Tech": "clEaglerCraftTech.html",
+            "Eaglercraft Ultimate": "cleaglerultimate.html",
+            "Explore Modpack": "clexploremodpack.html",
+            "GX Client": "clGXclient.html",
+            "JMO Client": "cljmocraft.html",
+            "Justin Client": "cljustinclient.html",
+            "Kerosene Client": "clkerosenclient.html",
+            "Lambda Client": "cllambdaclient.html",
+            "Mega Client": "clmegaclient.html",
+            "Minecraft 1.11.2": "EaglercraftZ_1.11.2.html",
+            "Minecraft 1.12.2": "Eaglercraft1.12.html",
+            "Minecraft 1.5.2": "eaglercraft.1.5.2.html",
+            "Minecraft 1.7.3": "Eaglercraft-Beta-1.7.3-Offline.html",
+            "Minecraft 1.8.8 (EaglecraftX)": "EaglercraftX 1.8.8(u29).html",
+            "Minecraft 1.9": "EaglercraftL_1.9_v0_7_0_Offline_Signed.html",
+            "Minecraft Alpha 1.2.6": "Eaglercraft-Alpha-1.2.6-Offline.html",
+            "Minecraft Beta 1.3": "Eaglercraft-Beta-1.3-Offline.html",
+            "Minecraft Indev": "Eaglercraft-Indev-Offline.html",
+            "Nit Client": "clnitclient.html",
+            "Nova Client": "clnovaclient.html",
+            "Pi Client": "clpiclient.html",
+            "Pixel Client": "clpixelclient.html",
+            "Precision Client": "clprecisionclient.html",
+            "Prism Client": "clprismclient.html",
+            "Reborn Client": "clrebornclient.html",
+            "Resent Client": "clresentclient.html",
+            "Skyfactory": "clskyfactory.html",
+            "Solar Client": "clsolarclient.html",
+            "Starlike Client": "clstarlike.html",
+            "UwU Client": "cluwuclient.html",
+            "Wurst Client": "clwurstclient.html",
+            "Zeta Client": "clZetaClient.html",
+        };
+
+        const POKEMON_GAMES = {
+            "Pokemon Battle Factory": "clpokebattlefact.html",
+            "Pokemon Blue Version": "clpokeblue.html",
+            "Pokéclassic": "clpokeclassic.html",
+            "Pokemon Clover": "clpokemonclover.html",
+            "Pokemon Crown": "clpokecrown.html",
+            "Pokemon Crystal": "clpokemoncrystal.html",
+            "Pokemon Crystal Clear": "clpokecrystalclear.html",
+            "Pokemon Dreamstone": "clpokedreamstone.html",
+            "Pokemon Elite Redux": "clpokeeliteredux.html",
+            "Pokemon Elysium A": "clpokeelysiuma.html",
+            "Pokemon Elysium B": "clpokeelysiumb.html",
+            "Pokemon Emerald": "clpokemonemerald.html",
+            "Pokemon Emerald Crest": "clpokemonemeraldcrest.html",
+            "Pokemon Emerald Enhanced": "clpokeemeraldenhanced.html",
+            "Pokémon Emerald Horizons": "clpokeemeraldhorizons.html",
+            "Pokemon Emerald Imperium": "clpokemonemeraldimperium.html",
+            "Pokemon Emerald Kaizo": "clpokemonemeraldkaizo.html",
+            "Pokemon Emerald Mini": "clpokemonemeraldmini.html",
+            "Pokemon Emerald Randomized": "clpokeemeraldrandom.html",
+            "Pokemon Emerald Rouge": "clPokemonemeraldrouge.html",
+            "Pokemon Emerald Seaglass": "clpokemonemeraldseaglass.html",
+            "Pokemon Energized Emerald": "clpokemonenergizedemerald.html",
+            "Pokemon Evolved": "clpokemonevolvedsfdgsdfs.html",
+            "Pokémon Exceeded Emerald": "clpokerechargedyellow.html",
+            "Pokemon Firered": "clpokemonfirered.html",
+            "Pokemon Firered Randomized": "clpokemonfireredrandomized.html",
+            "Pokemon Firered Rocket Edition": "clPokemonrocketedition.html",
+            "Pokémon Fire Gold": "clpokefiregold.html",
+            "Pokemon Flora Sky": "clpokeflora.html",
+            "Pokemon Gaia": "clpokegaia.html",
+            "Pokemon Gold": "clpokemongold.html",
+            "Pokemon Heart & Soul": "clheartandsoul.html",
+            "Pokemon Inclement Emerald": "clinclementemerald.html",
+            "Pokemon Kaizo Iron Fire Red": "clpokemonkaizoironfirered.html",
+            "Pokemon Lazarus": "clpokemonlazarus.html",
+            "Pokemon Leaf Green": "clpokemonleafgreen.html",
+            "Pokemon Light Platinum": "clpokelightplatinum.html",
+            "Pokemon Liquid Crystal": "clpokeliquidcrysta.html",
+            "Pokemon Mega Moemon": "clpokemegamoemon.html",
+            "Pokemon Modern Emerald": "clpokemonmodernemerald.html",
+            "Pokemon Mystery Dungeon": "clpokemonmysterydungeon.html",
+            "Pokemon Odyssey": "clpokeodyssey.html",
+            "Pokémon Perfect Fire Red": "clpokeperfectfirered.html",
+            "Pokemon Pisces": "clpokepisces.html",
+            "Pokémon Pit of 100 trials (generation 9)": "clpokethepit.html",
+            "Pokémon Polished Crystal": "clpolishedcrystal.html",
+            "Pokemon Quetzal": "clpokemonquetzal.html",
+            "Pokemon Radical Red": "clradicalred.html",
+            "Pokémon Recharged Pink": "clpokerechargedpink.html",
+            "Pokemon Recharged Yellow": "clpokerechargedyellow.html",
+            "Pokémon Record Keepers": "clpokerecordkeepers.html",
+            "Pokemon Red Version": "clpokered.html",
+            "Pokemon Roaring Red": "clpokemonroaringred.html",
+            "Pokemon ROWE": "clpokerowe.html",
+            "Pokemon Ruby": "clpokeruby.html",
+            "Pokemon Run and Bun": "clpokerunandbun.html",
+            "Pokemon Sapphire": "clpokemonsapphire.html",
+            "Pokemon Scorched Silver": "clpokescorchedsilver.html",
+            "Pokemon Shiny Gold Sigma": "clpokemonshinsigma.html",
+            "Pokemon Silver": "clpokemonsilver.html",
+            "Pokemon Stunning Steel": "clPokémonstunningsteel.html",
+            "Pokemon Sword and Shield Ultimate Plus": "clswordandshieldultimateplus.html",
+            "Pokémon: Team Rocket Edition": "clpokerocketedition.html",
+            "Pokemon the Last Fire Red": "cllastfirered.html",
+            "Pokemon Too Many Types": "cltoomanytypes.html",
+            "Pokémon Tourmaline Version": "clpoketourmaline.html",
+            "Pokemon Ultra Violet": "clpokeultraviolet.html",
+            "Pokemon Unbound": "clpokemonunbound.html",
+            "Pokémon Unova Emerald": "clpokeunovaemerald.html",
+            "Pokemon Vega": "clpokevega.html",
+            "Pokemon Voyager": "clpokevoyager.html",
+            "Pokemon Yellow Version": "clpokeyellow.html",
+            "Pokemon White Version": "clpokewhite.html",
+            "Pokemon Black Version": "clpokeblack.html",
+        };
+
+        const EAGLERCRAFT_COLLECTION = Object.entries(EAGLERCRAFT_GAMES).map(([name, file]) => ({
+            name,
+            versions: {
+                Nexus: {
+                    name,
+                    url: "https://cdn.jsdelivr.net/gh/Zotronix/egc@4b63a86/files/" + (file.startsWith("cl") ? file.substring(2) : file),
+                    cover: "https://files.catbox.moe/jpdt7m.webp",
+                    isCollection: true
+                }
+            }
+        }));
+
+        const POKEMON_COLLECTION = Object.entries(POKEMON_GAMES).map(([name, file]) => ({
+            name,
+            versions: {
+                Nexus: {
+                    name,
+                    url: "https://cdn.jsdelivr.net/gh/bubbls/ugs-singlefile/UGS-Files/" + file,
+                    cover: "https://files.catbox.moe/17x0dp.jpg",
+                    isCollection: true
+                }
+            }
+        }));
+
         // 3D Weighted Smooth Tilt
         const InteractiveTilt = ({ children, className = "", scale = 1.025, rotate = 14 }) => {
             const x = useMotionValue(0);
@@ -322,38 +524,125 @@
         const ToolIcon = () => createElement('svg', { className: 'w-5 h-5 fill-current', viewBox: '0 0 24 24' }, createElement('path', { d: 'M22.7,19l-91-91c0.9-2.3,0.4-5-1.5-6.9c-2-2-5-2.4-7.4-1.3L9,6.5L6.5,9L1.7,4.2c-1.1,2.4-0.7,5.4,1.3,7.4c1.9,1.9,4.5,2.4,6.9,1.5l9.1,9.1c0.4,0.4,1,0.4,1.4,0l2.3-2.3C23.1,19.9,23.1,19.3,22.7,19z' }));
         const ArtIcon = () => createElement('svg', { className: 'w-5 h-5 fill-current', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' }));
 
-        const SettingsModal = ({ onClose, currentTheme, onThemeChange, currentCloak, onCloakChange }) => (
-            createElement('div', { className: 'fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md', onClick: onClose },
-                createElement(InteractiveTilt, { scale: 1.01, rotate: 4 },
-                    createElement(motion.div, { 
-                        initial: { opacity: 0, y: 50, scale: 0.9 }, animate: { opacity: 1, y: 0, scale: 1 }, transition: { type: "spring", stiffness: 200, damping: 25 },
-                        className: 'glass w-full max-md p-10 rounded-[2.5rem] flex flex-col gap-10', onClick: e => e.stopPropagation() 
-                    },
-                        createElement('h2', { className: 'text-3xl font-black text-white italic tracking-tighter uppercase' }, 'Settings'),
-                        createElement('div', { className: 'space-y-4' },
-                            createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Tab Rename - Used for GoGuardian'),
-                            createElement('input', { 
-                                type: 'text', value: currentCloak, 
-                                onChange: (e) => onCloakChange(e.target.value), 
-                                placeholder: 'Tab Title...', 
-                                className: 'w-full themed-input rounded-2xl px-6 py-4 text-sm transition-all focus:border-white/30 outline-none' 
-                            })
+        const ConfirmModal = ({ title, message, onConfirm, onCancel }) => (
+            createElement(motion.div, { 
+                initial: { opacity: 0 }, animate: { opacity: 1 }, 
+                className: 'fixed inset-0 z-[300] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8' 
+            },
+                createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
+                    createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-md flex flex-col gap-8 text-center' },
+                        createElement('div', { className: 'space-y-2' },
+                            createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, title),
+                            createElement('p', { className: 'text-white/40 text-[10px] font-bold uppercase tracking-widest leading-relaxed' }, message)
                         ),
-                        createElement('div', { className: 'space-y-4' },
-                            createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Visual Themes'),
-                            createElement('div', { className: 'grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 visible-scroll' },
-                                THEMES.map(theme => createElement('button', { 
-                                    key: theme.id, 
-                                    onClick: () => onThemeChange(theme.id), 
-                                    className: `p-4 rounded-xl border text-[12px] font-black uppercase transition-all ${currentTheme === theme.id ? 'themed-btn' : 'themed-btn-secondary opacity-50 hover:opacity-100'}` 
-                                }, theme.name))
-                            )
-                        ),
-                        createElement('button', { onClick: onClose, className: 'themed-btn w-full py-5 rounded-3xl uppercase text-sm tracking-[0.2em]' }, 'Save Settings')
+                        createElement('div', { className: 'flex gap-3' },
+                            createElement('button', { onClick: onCancel, className: 'flex-1 py-5 rounded-3xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10' }, 'Cancel'),
+                            createElement('button', { onClick: onConfirm, className: 'flex-1 py-5 rounded-3xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 shadow-[0_0_30px_rgba(239,68,68,0.3)]' }, 'Confirm')
+                        )
                     )
                 )
             )
         );
+
+        const SettingsModal = ({ onClose, currentTheme, onThemeChange, currentCloak, onCloakChange, activeNodes, onKillNode, localCreations, onDeleteCreation, onWipeAll }) => {
+            const [confirm, setConfirm] = useState(null);
+
+            return createElement(Fragment, null,
+                createElement('div', { className: 'fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md', onClick: onClose },
+                    createElement(InteractiveTilt, { scale: 1.01, rotate: 4 },
+                        createElement(motion.div, { 
+                            initial: { opacity: 0, y: 50, scale: 0.9 }, animate: { opacity: 1, y: 0, scale: 1 }, transition: { type: "spring", stiffness: 200, damping: 25 },
+                            className: 'glass w-full max-w-2xl p-10 rounded-[2.5rem] flex flex-col gap-8 max-h-[90vh] overflow-hidden', onClick: e => e.stopPropagation() 
+                        },
+                            createElement('div', { className: 'flex justify-between items-center' },
+                                createElement('h2', { className: 'text-3xl font-black text-white italic tracking-tighter uppercase' }, 'Settings'),
+                                createElement('button', { onClick: onClose, className: 'text-white/40 hover:text-white transition-colors' }, '✕')
+                            ),
+                            createElement('div', { className: 'overflow-y-auto pr-2 visible-scroll space-y-10' },
+                                createElement('div', { className: 'space-y-4' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Tab Rename - Used for GoGuardian'),
+                                    createElement('input', { 
+                                        type: 'text', value: currentCloak, 
+                                        onChange: (e) => onCloakChange(e.target.value), 
+                                        placeholder: 'Tab Title...', 
+                                        className: 'w-full themed-input rounded-2xl px-6 py-4 text-sm transition-all focus:border-white/30 outline-none' 
+                                    })
+                                ),
+                                createElement('div', { className: 'space-y-4' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Visual Themes'),
+                                    createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                                        THEMES.map(theme => createElement('button', { 
+                                            key: theme.id, 
+                                            onClick: () => onThemeChange(theme.id), 
+                                            className: `p-4 rounded-xl border text-[12px] font-black uppercase transition-all ${currentTheme === theme.id ? 'themed-btn' : 'themed-btn-secondary opacity-50 hover:opacity-100'}` 
+                                        }, theme.name))
+                                    )
+                                ),
+                                activeNodes.length > 0 && createElement('div', { className: 'space-y-4' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Active Nodes (Clear Saves)'),
+                                    createElement('div', { className: 'space-y-2' },
+                                        activeNodes.map(node => createElement('div', { key: node.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
+                                            createElement('div', null,
+                                                createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, node.gameEntry.name),
+                                                createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, node.isMinimized ? 'Frozen' : 'Running')
+                                            ),
+                                            createElement('button', { 
+                                                onClick: () => setConfirm({ 
+                                                    title: 'Kill Node', 
+                                                    message: `Are you sure you want to kill ${node.gameEntry.name}?`, 
+                                                    onConfirm: () => { onKillNode(node.id); setConfirm(null); } 
+                                                }), 
+                                                className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
+                                            }, 'Kill')
+                                        ))
+                                    ),
+                                    createElement('button', { 
+                                        onClick: () => setConfirm({ 
+                                            title: 'Kill All Nodes', 
+                                            message: 'Are you sure you want to kill ALL active nodes?', 
+                                            onConfirm: () => { activeNodes.forEach(n => onKillNode(n.id)); setConfirm(null); } 
+                                        }),
+                                        className: 'w-full bg-red-500/20 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/30 transition-all border border-red-500/20'
+                                    }, 'Kill All Nodes')
+                                ),
+                                (localCreations.games.length > 0 || localCreations.tools.length > 0) && createElement('div', { className: 'space-y-4' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-sky-500' }, 'Custom Creations'),
+                                    createElement('div', { className: 'space-y-2' },
+                                        [...localCreations.games.map(g => ({ ...g, type: 'game' })), ...localCreations.tools.map(t => ({ ...t, type: 'tool' }))].map(item => createElement('div', { key: item.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
+                                            createElement('div', null,
+                                                createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, item.name),
+                                                createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, item.type)
+                                            ),
+                                            createElement('button', { 
+                                                onClick: () => setConfirm({ 
+                                                    title: 'Delete Creation', 
+                                                    message: `Are you sure you want to delete ${item.name}?`, 
+                                                    onConfirm: () => { onDeleteCreation(item.type, item.id); setConfirm(null); } 
+                                                }), 
+                                                className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
+                                            }, 'Delete')
+                                        ))
+                                    )
+                                ),
+                                createElement('div', { className: 'space-y-4 pt-4 border-t border-white/5' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Danger Zone'),
+                                    createElement('button', { 
+                                        onClick: () => setConfirm({ 
+                                            title: 'Wipe All Creations', 
+                                            message: 'DANGER: This will permanently delete ALL your custom saved games and tools. Are you absolutely sure?', 
+                                            onConfirm: () => { onWipeAll(); setConfirm(null); } 
+                                        }),
+                                        className: 'w-full bg-red-600/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600/20 transition-all border border-red-600/20'
+                                    }, 'Wipe All Custom Creations')
+                                )
+                            ),
+                            createElement('button', { onClick: onClose, className: 'themed-btn w-full py-5 rounded-3xl uppercase text-sm tracking-[0.2em]' }, 'Save Settings')
+                        )
+                    )
+                ),
+                confirm && createElement(ConfirmModal, { ...confirm, onCancel: () => setConfirm(null) })
+            );
+        };
 
         // Helper to get correct canvas coordinates regardless of scaling
         const getCanvasCoords = (e, canvas) => {
@@ -371,8 +660,8 @@
         // --- ART SECTION: DRAWING ---
         const DrawingTool = () => {
             const canvasRef = useRef(null);
-            const [color, setColor] = useState('#000000');
-            const [brushSize, setBrushSize] = useState(5);
+            const [color, setColor] = useState(Storage.load('drawing_color', '#000000'));
+            const [brushSize, setBrushSize] = useState(Storage.load('drawing_brushSize', 5));
             const [history, setHistory] = useState([]);
             const [redoStack, setRedoStack] = useState([]);
             const isDrawing = useRef(false);
@@ -382,16 +671,29 @@
                 const ctx = canvas.getContext('2d');
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-                // Initialize white background
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                saveState();
+                
+                const saved = localStorage.getItem('nexus_drawing_canvas');
+                if (saved) {
+                    restoreState(saved);
+                } else {
+                    // Initialize white background if no saved state
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    saveState();
+                }
             }, []);
+
+            useEffect(() => {
+                Storage.save('drawing_color', color);
+                Storage.save('drawing_brushSize', brushSize);
+            }, [color, brushSize]);
 
             const saveState = () => {
                 const canvas = canvasRef.current;
-                setHistory(prev => [...prev, canvas.toDataURL()]);
+                const dataUrl = canvas.toDataURL();
+                setHistory(prev => [...prev, dataUrl]);
                 setRedoStack([]);
+                localStorage.setItem('nexus_drawing_canvas', dataUrl);
             };
 
             const undo = () => {
@@ -497,12 +799,12 @@
 
         // --- ART SECTION: ANIMATING ---
         const AnimatingTool = () => {
-            const [layers, setLayers] = useState([
+            const [layers, setLayers] = useState(Storage.load('anim_layers', [
                 { id: 'l1', name: 'Layer 1', visible: true, locked: false, opacity: 1 }
-            ]);
-            const [frames, setFrames] = useState([{ content: {} }]);
+            ]));
+            const [frames, setFrames] = useState(Storage.load('anim_frames', [{ content: {} }]));
             const [currentFrameIdx, setCurrentFrameIdx] = useState(0);
-            const [activeLayerId, setActiveLayerId] = useState('l1');
+            const [activeLayerId, setActiveLayerId] = useState(layers[0]?.id || 'l1');
             const [isMediaLoading, setIsMediaLoading] = useState(false);
             
             const activeCanvasRef = useRef(null);
@@ -511,16 +813,26 @@
             const onionCanvasRef = useRef(null);
             
             const [isPlaying, setIsPlaying] = useState(false);
-            const [fps, setFps] = useState(12);
-            const [onionSkin, setOnionSkin] = useState(true);
-            const [brushSize, setBrushSize] = useState(5);
-            const [brushOpacity, setBrushOpacity] = useState(100);
-            const [color, setColor] = useState('#000000');
+            const [fps, setFps] = useState(Storage.load('anim_fps', 12));
+            const [onionSkin, setOnionSkin] = useState(Storage.load('anim_onionSkin', true));
+            const [brushSize, setBrushSize] = useState(Storage.load('anim_brushSize', 5));
+            const [brushOpacity, setBrushOpacity] = useState(Storage.load('anim_brushOpacity', 100));
+            const [color, setColor] = useState(Storage.load('anim_color', '#000000'));
             const isDrawing = useRef(false);
             const playInterval = useRef(null);
 
             const videoImportRef = useRef(null);
             const imageImportRef = useRef(null);
+
+            useEffect(() => {
+                Storage.save('anim_layers', layers);
+                Storage.save('anim_frames', frames);
+                Storage.save('anim_fps', fps);
+                Storage.save('anim_onionSkin', onionSkin);
+                Storage.save('anim_brushSize', brushSize);
+                Storage.save('anim_brushOpacity', brushOpacity);
+                Storage.save('anim_color', color);
+            }, [layers, frames, fps, onionSkin, brushSize, brushOpacity, color]);
 
             // Redraw display components whenever dependencies change
             useEffect(() => {
@@ -866,14 +1178,109 @@
             );
         };
 
-        const IDE = ({ onDeploy, onClose }) => {
+        const SaveModal = ({ content, onSave, onRun, onClose }) => {
+            const [name, setName] = useState('');
+            const [type, setType] = useState('game');
+            const [cover, setCover] = useState('');
+            const imageUploadRef = useRef(null);
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setCover(ev.target.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            return createElement(motion.div, { 
+                initial: { opacity: 0 }, animate: { opacity: 1 }, 
+                className: 'fixed inset-0 z-[250] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8' 
+            },
+                createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
+                    createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-lg flex flex-col gap-8' },
+                        createElement('div', { className: 'text-center' },
+                            createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Save Creation'),
+                            createElement('p', { className: 'text-white/30 text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Add to your local collection')
+                        ),
+                        createElement('div', { className: 'flex flex-col gap-6' },
+                            createElement('div', { className: 'space-y-2' },
+                                createElement('label', { className: 'text-[9px] font-black uppercase text-white/40 tracking-widest ml-4' }, 'Name'),
+                                createElement('input', { 
+                                    value: name, onChange: e => setName(e.target.value),
+                                    className: 'w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-white/30 transition-all font-bold tracking-widest uppercase text-[10px]',
+                                    placeholder: 'My Awesome App...'
+                                })
+                            ),
+                            createElement('div', { className: 'space-y-2' },
+                                createElement('label', { className: 'text-[9px] font-black uppercase text-white/40 tracking-widest ml-4' }, 'Type'),
+                                createElement('div', { className: 'flex gap-3' },
+                                    ['game', 'tool'].map(t => createElement('button', {
+                                        key: t, onClick: () => setType(t),
+                                        className: `flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${type === t ? 'themed-btn' : 'bg-white/5 text-white/40 hover:bg-white/10'}`
+                                    }, t))
+                                )
+                            ),
+                            type === 'game' && createElement('div', { className: 'space-y-2' },
+                                createElement('label', { className: 'text-[9px] font-black uppercase text-white/40 tracking-widest ml-4' }, 'Thumbnail'),
+                                createElement('div', { className: 'flex gap-3' },
+                                    createElement('input', { 
+                                        value: cover.startsWith('data:') ? 'Image Uploaded' : cover, 
+                                        onChange: e => setCover(e.target.value),
+                                        className: 'flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl text-white outline-none focus:border-white/30 transition-all font-bold tracking-widest uppercase text-[10px]',
+                                        placeholder: 'https://...'
+                                    }),
+                                    createElement('button', { 
+                                        onClick: () => imageUploadRef.current.click(),
+                                        className: 'px-6 rounded-2xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-all flex items-center justify-center'
+                                    }, '📁'),
+                                    createElement('input', { 
+                                        type: 'file', ref: imageUploadRef, accept: 'image/*', 
+                                        className: 'hidden', onChange: handleImageUpload 
+                                    })
+                                )
+                            )
+                        ),
+                        createElement('div', { className: 'flex flex-col gap-3' },
+                            createElement('div', { className: 'flex gap-3' },
+                                createElement('button', { onClick: onClose, className: 'flex-1 py-5 rounded-3xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10' }, 'Cancel'),
+                                createElement('button', { 
+                                    onClick: () => onRun({ name: name || 'Unsaved Creation', content }),
+                                    className: 'flex-1 py-5 rounded-3xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10' 
+                                }, 'Run Once')
+                            ),
+                            createElement('button', { 
+                                onClick: () => onSave({ name, type, cover, content }),
+                                className: 'w-full py-5 rounded-3xl themed-btn text-[10px] font-black uppercase tracking-widest' 
+                            }, 'Save to Nexus')
+                        )
+                    )
+                )
+            );
+        };
+
+        const IDE = ({ onDeploy, onSave, onClose }) => {
             const editorHostRef = useRef(null);
             const cmInstance = useRef(null);
+            const uploadRef = useRef(null);
             const [isModified, setIsModified] = useState(false);
+
+            const handleUpload = (e) => {
+                const file = e.target.files[0];
+                if (file && cmInstance.current) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        cmInstance.current.setValue(ev.target.result);
+                        setIsModified(true);
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
             useEffect(() => {
                 if (!editorHostRef.current) return;
                 const editor = CodeMirror(editorHostRef.current, {
-                    value: "<!-- Nexus Development Workspace -->\n<html>\n  <head>\n    <style>\n      body {\n        background: #000; color: #fff;\n        display: flex; flex-direction: column; align-items: center; justify-content: center;\n        height: 100vh; font-family: 'Space Grotesk', sans-serif;\n      }\n    </style>\n  </head>\n  <body>\n    <h1>Nexus Project Node</h1>\n    <p>Build the stars.</p>\n  </body>\n</html>", 
+                    value: "<!-- Nexus Development Workspace -->\n<html>\n  <head>\n    <style>\n      body {\n        background: #000; color: #fff;\n        display: flex; flex-direction: column; align-items: center; justify-content: center;\n        height: 100vh; font-family: 'Space Grotesk', sans-serif;\n      }\n    </style>\n  </head>\n  <body>\n    <h1>Nexus Project Node</h1>\n    <p>Build the stars.</p>\n  <script type=\"module\" src=\"/index.tsx\"><\/script>\n</body>\n</html>", 
                     mode: "htmlmixed", theme: "dracula", lineNumbers: true,
                     autoCloseTags: true, autoCloseBrackets: true,
                     foldGutter: true, tabSize: 2, lineWrapping: true
@@ -907,8 +1314,11 @@
                             isModified && createElement('div', { className: 'w-2.5 h-2.5 rounded-full bg-sky-500 shadow-[0_0_15px_#0ea5e9] animate-pulse' })
                         ),
                         createElement('div', { className: 'flex gap-4' },
+                            createElement('button', { onClick: () => uploadRef.current.click(), className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Upload'),
+                            createElement('input', { type: 'file', ref: uploadRef, accept: '.html', className: 'hidden', onChange: handleUpload }),
                             createElement('button', { onClick: formatCode, className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Format'),
                             createElement('button', { onClick: () => onDeploy(cmInstance.current.getValue()), className: 'themed-btn px-10 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform' }, 'Deploy'),
+                            createElement('button', { onClick: () => onSave(cmInstance.current.getValue()), className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Save'),
                             createElement('button', { onClick: downloadCode, className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Archive'),
                             createElement('button', { onClick: onClose, className: 'bg-red-500/10 text-red-500 px-7 py-3 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20' }, 'Kill Node')
                         )
@@ -919,11 +1329,14 @@
         };
 
         const GameCard = ({ gameEntry, variant = 'normal', onClick }) => {
-            const prioritizedGame = gameEntry.versions['Zotronix'] || gameEntry.versions['Abminn'] || gameEntry.versions['Nexus'];
+            const prioritizedGame = gameEntry.versions['Zotronix'] || gameEntry.versions['Abminn'] || gameEntry.versions['Nexus'] || Object.values(gameEntry.versions)[0];
+            if (!prioritizedGame) return null;
             const isHot = HOT_TITLES.includes(gameEntry.name);
             const isFeatured = FEATURED_TITLES.includes(gameEntry.name);
             const sizeClasses = { hero: 'aspect-square w-full h-full', wide: 'aspect-video w-full', normal: 'aspect-[3/4] w-full', carousel: 'aspect-[3/4] w-[220px] flex-shrink-0', vault: 'aspect-[3/4] w-full' };
-            const coverSrc = prioritizedGame.isLocal ? 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png' : (prioritizedGame.cover.includes("{COVER_URL}") ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE) : prioritizedGame.cover);
+            const coverSrc = (prioritizedGame.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
+                ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
+                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
             return createElement(InteractiveTilt, { className: sizeClasses[variant] },
                 createElement(motion.div, { whileTap: { scale: 0.98 }, onClick, className: 'group glass rounded-[2.5rem] overflow-hidden cursor-pointer w-full h-full relative' },
                     createElement('img', { src: coverSrc, className: 'w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110', loading: 'lazy' }),
@@ -934,22 +1347,33 @@
             );
         };
 
-        const GamePlayer = ({ gameEntry, onClose, onNavigate }) => {
+        const GamePlayer = ({ node, onMinimize, onRestore, onKill, onNavigate, index }) => {
+            const { gameEntry, isMinimized } = node;
             const availableSources = Object.keys(gameEntry.versions);
             const [currentSource, setCurrentSource] = useState(availableSources.includes('Zotronix') ? 'Zotronix' : availableSources[0]);
             const [isLoading, setIsLoading] = useState(true);
             const [playerUrl, setPlayerUrl] = useState('');
             const [showTopBar, setShowTopBar] = useState(true);
             const [menuOpen, setMenuOpen] = useState(false);
+            const [hasBeenResumed, setHasBeenResumed] = useState(!isMinimized);
             const containerRef = useRef(null);
             const buttonRef = useRef(null);
+            const iframeRef = useRef(null);
             const dragPos = useRef({ x: 0, y: 0, startX: 0, startY: 0, initialX: 0, initialY: 0, isDragging: false, hasMoved: false });
+            
             const onPointerDown = (e) => { const btn = buttonRef.current; if (!btn) return; btn.setPointerCapture(e.pointerId); dragPos.current.isDragging = true; dragPos.current.startX = e.clientX; dragPos.current.startY = e.clientY; dragPos.current.initialX = dragPos.current.x; dragPos.current.initialY = dragPos.current.y; dragPos.current.hasMoved = false; };
             const onPointerMove = (e) => { if (!dragPos.current.isDragging) return; const dx = e.clientX - dragPos.current.startX; const dy = e.clientY - dragPos.current.startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { dragPos.current.hasMoved = true; } dragPos.current.x = dragPos.current.initialX + dx; dragPos.current.y = dragPos.current.initialY + dy; requestAnimationFrame(() => { if (buttonRef.current) buttonRef.current.style.transform = `translate(${dragPos.current.x}px, ${dragPos.current.y}px)`; }); };
             const onPointerUp = (e) => { if (!dragPos.current.isDragging) return; dragPos.current.isDragging = false; e.currentTarget.releasePointerCapture(e.pointerId); if (!dragPos.current.hasMoved) { e.stopPropagation(); setMenuOpen(true); } };
+            
             const activeVersion = gameEntry.versions[currentSource];
+            
+            useEffect(() => {
+                if (!isMinimized) setHasBeenResumed(true);
+            }, [isMinimized]);
+
             useEffect(() => {
                 const resolveAndLoad = async () => {
+                    if (!hasBeenResumed && isMinimized) return;
                     setIsLoading(true);
                     let finalUrl = activeVersion.url;
                     if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = activeVersion.url.replace("{HTML_URL}", HTML_BASE);
@@ -957,32 +1381,82 @@
                     if (isSingleHtml) {
                         try {
                             const res = await fetch(finalUrl); var html = await res.text();
+                            const parser = new DOMParser(); var doc = parser.parseFromString(html, "text/html");
+                            
+                            doc.head.innerHTML += `
+                            <script>
+                                (function() {
+                                    const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+                                    if (OrigAudioContext) {
+                                        window._nexusAudioContexts = [];
+                                        const ProxiedAudioContext = function() {
+                                            const ctx = new OrigAudioContext(...arguments);
+                                            window._nexusAudioContexts.push(ctx);
+                                            return ctx;
+                                        };
+                                        window.AudioContext = window.webkitAudioContext = ProxiedAudioContext;
+                                    }
+                                })();
+                                window.addEventListener('message', (e) => {
+                                    if (e.data.type === 'NEXUS_MUTE') {
+                                        document.querySelectorAll('audio, video').forEach(m => {
+                                            m.muted = e.data.muted;
+                                        });
+                                        if (window._nexusAudioContexts) {
+                                            window._nexusAudioContexts.forEach(ctx => {
+                                                if (e.data.muted) ctx.suspend();
+                                                else ctx.resume();
+                                            });
+                                        }
+                                    }
+                                });
+                            <\/script>`;
+
                             if (html.includes("createUnityInstance")) {
-                                const parser = new DOMParser(); var doc = parser.parseFromString(html, "text/html");
                                 doc.head.innerHTML += `<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"><\/script><script>const realConsole = window.console; window.runnerWindow = window; window.runnerWindow.proxyConsole = { log: (...args) => realConsole.log(...args), error: (...args) => realConsole.error(...args), warn: (...args) => realConsole.warn(...args) }; const origAppendChild = Node.prototype.appendChild; Node.prototype.appendChild = function (node) { if (node.tagName === 'SCRIPT' && node.src) { if (node.src.endsWith('.loader.js')) { const prevSrc = node.src; node.remove(); changeUnityLoader(prevSrc).then(loaderUrl => { const script = document.createElement('script'); script.src = loaderUrl; script.onload = () => { createUnityInstance(canvas, config, (progress) => { progressBarFull.style.width = (100 * progress) + '%'; }).then((unityInstance) => { unityGameInstance = unityInstance; window.unityGameInstance = unityGameInstance; loadingBar.style.display = 'none'; }).catch((message) => { console.error(message); }); }; document.body.appendChild(script); }); } else { return origAppendChild.call(this, node); } } else { return origAppendChild.call(this, node); } };<\/script>`;
-                                html = doc.documentElement.outerHTML;
                             }
+                            html = doc.documentElement.outerHTML;
                             if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
 							if (html.includes("var config")) html = html.replaceAll("var ", "window.");
                             const blob = new Blob([html], { type: "text/html" }); setPlayerUrl(URL.createObjectURL(blob));
                         } catch (e) { setPlayerUrl(finalUrl); }
                     } else { setPlayerUrl(finalUrl); }
                     setIsLoading(false);
-                }; resolveAndLoad();
+                }; 
+                resolveAndLoad();
                 return () => { if (playerUrl?.startsWith('blob:')) URL.revokeObjectURL(playerUrl); };
-            }, [activeVersion]);
+            }, [activeVersion, hasBeenResumed]);
+
+            useEffect(() => {
+                if (iframeRef.current && iframeRef.current.contentWindow) {
+                    iframeRef.current.contentWindow.postMessage({ type: 'NEXUS_MUTE', muted: isMinimized }, '*');
+                }
+            }, [isMinimized]);
+
             const handleFullscreen = () => { if (containerRef.current?.requestFullscreen) { containerRef.current.requestFullscreen(); setShowTopBar(false); } };
             const handleDownload = async () => { try { const res = await fetch(playerUrl); const html = await res.text(); const blob = new Blob([html], { type: "text/html" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${gameEntry.name.replace(/\s+/g, '_')}_Nexus.html`; a.click(); URL.revokeObjectURL(url); } catch (e) { alert("Download failed"); } };
-            return createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.8 }, className: `fixed inset-0 z-[120] bg-black flex flex-col` },
-                showTopBar && createElement('header', { className: 'glass px-8 py-5 flex items-center justify-between border-b border-white/10' },
-                    createElement('div', { className: 'flex items-center gap-6' }, createElement('span', { className: 'text-white font-bold text-[12px] uppercase tracking-[0.3em] opacity-80' }, gameEntry.name), availableSources.length > 1 && createElement('div', { className: 'flex items-center gap-3 glass p-1 rounded-2xl px-4' }, createElement('span', { className: 'text-[9px] font-black uppercase text-white/30 tracking-widest' }, 'Servers'), createElement('div', { className: 'flex gap-2' }, availableSources.map(src => createElement('button', { key: src, onClick: () => setCurrentSource(src), className: `px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${currentSource === src ? 'bg-white text-black' : 'hover:bg-white/5 text-white/50'}` }, src))))),
-                    createElement('div', { className: 'flex gap-4' }, createElement('button', { onClick: handleFullscreen, className: 'px-8 py-2.5 glass rounded-2xl text-[11px] font-bold uppercase hover:bg-white/10' }, 'fullscreen'), createElement('button', { onClick: handleDownload, className: 'px-8 py-2.5 glass rounded-2xl text-[11px] font-bold uppercase hover:bg-white/10 flex items-center gap-2' }, createElement('svg', { className: 'w-3.5 h-3.5 fill-current', viewBox: '0 0 24 24' }, createElement('path', { d: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z' })), 'Download'), createElement('button', { onClick: onClose, className: 'px-8 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[11px] font-bold uppercase hover:bg-red-500/20' }, 'go bye bye'))
-                ),
-                createElement('div', { ref: containerRef, className: 'flex-1 relative bg-black overflow-hidden' },
-                    isLoading && createElement('div', { className: 'absolute inset-0 flex items-center justify-center' }, createElement('div', { className: 'w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin' })),
-                    createElement('button', { ref: buttonRef, onPointerDown, onPointerMove, onPointerUp, style: { touchAction: 'none', userSelect: 'none' }, className: 'absolute top-6 right-6 z-[130] w-16 h-16 flex items-center justify-center rounded-2xl bg-white/40 hover:bg-white/60 opacity-100 backdrop-blur-3xl border-2 border-white/50 cursor-grab active:cursor-grabbing shadow-[0_0_50px_rgba(0,0,0,1)]' }, createElement('svg', { className: 'w-8 h-8 fill-white pointer-events-none', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' }))),
-                    menuOpen && createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'absolute inset-0 z-[140] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6' }, createElement(InteractiveTilt, { scale: 1.02, rotate: 4 }, createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-sm flex flex-col gap-8' }, createElement('div', { className: 'text-center' }, createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Paused'), createElement('p', { className: 'text-white/30 text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Pause Menu')), createElement('div', { className: 'flex flex-col gap-3' }, createElement('button', { onClick: () => setMenuOpen(false), className: 'themed-btn py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Return to Game'), createElement('button', { onClick: onClose, className: 'bg-red-500/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20' }, 'go bye bye')), createElement('div', { className: 'h-px bg-white/5 w-full' }), createElement('div', { className: 'grid grid-cols-2 gap-3' }, ['home', 'games', 'anime', 'manga', 'art', 'utilities'].map(tab => createElement('button', { key: tab, onClick: () => { onNavigate(tab); onClose(); }, className: 'py-3 rounded-xl bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-all border border-white/5' }, tab)))))),
-                    playerUrl && createElement('iframe', { src: playerUrl, className: `w-full h-full border-none`, allow: "fullscreen; autoplay; gamepad; microphone; camera; midi; encrypted-media", referrerPolicy: "no-referrer" })
+
+            return createElement(Fragment, null,
+                /* Full Screen View */
+                createElement(motion.div, { 
+                    initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.8 }, 
+                    style: { display: isMinimized ? 'none' : 'flex' },
+                    className: `fixed inset-0 z-[120] bg-black flex flex-col` 
+                },
+                    showTopBar && createElement('header', { className: 'glass px-8 py-5 flex items-center justify-between border-b border-white/10' },
+                        createElement('div', { className: 'flex items-center gap-6' }, createElement('span', { className: 'text-white font-bold text-[12px] uppercase tracking-[0.3em] opacity-80' }, gameEntry.name), availableSources.length > 1 && createElement('div', { className: 'flex items-center gap-3 glass p-1 rounded-2xl px-4' }, createElement('span', { className: 'text-[9px] font-black uppercase text-white/30 tracking-widest' }, 'Servers'), createElement('div', { className: 'flex gap-2' }, availableSources.map(src => createElement('button', { key: src, onClick: () => setCurrentSource(src), className: `px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${currentSource === src ? 'bg-white text-black' : 'hover:bg-white/5 text-white/50'}` }, src))))),
+                        createElement('div', { className: 'flex gap-4' }, 
+                            createElement('button', { onClick: handleFullscreen, className: 'px-8 py-2.5 glass rounded-2xl text-[11px] font-bold uppercase hover:bg-white/10' }, 'fullscreen'), 
+                            createElement('button', { onClick: handleDownload, className: 'px-8 py-2.5 glass rounded-2xl text-[11px] font-bold uppercase hover:bg-white/10 flex items-center gap-2' }, createElement('svg', { className: 'w-3.5 h-3.5 fill-current', viewBox: '0 0 24 24' }, createElement('path', { d: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z' })), 'Download'), 
+                            createElement('button', { onClick: onMinimize, className: 'px-8 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[11px] font-bold uppercase hover:bg-red-500/20' }, 'Go Bye Bye')
+                        )
+                    ),
+                    createElement('div', { ref: containerRef, className: 'flex-1 relative bg-black overflow-hidden' },
+                        isLoading && createElement('div', { className: 'absolute inset-0 flex items-center justify-center' }, createElement('div', { className: 'w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin' })),
+                        createElement('button', { ref: buttonRef, onPointerDown, onPointerMove, onPointerUp, style: { touchAction: 'none', userSelect: 'none' }, className: 'absolute top-6 right-6 z-[130] w-16 h-16 flex items-center justify-center rounded-2xl bg-white/40 hover:bg-white/60 opacity-100 backdrop-blur-3xl border-2 border-white/50 cursor-grab active:cursor-grabbing shadow-[0_0_50px_rgba(0,0,0,1)]' }, createElement('svg', { className: 'w-8 h-8 fill-white pointer-events-none', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' }))),
+                        menuOpen && createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'absolute inset-0 z-[140] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6' }, createElement(InteractiveTilt, { scale: 1.02, rotate: 4 }, createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-sm flex flex-col gap-8' }, createElement('div', { className: 'text-center' }, createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Paused'), createElement('p', { className: 'text-white/30 text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Pause Menu')), createElement('div', { className: 'flex flex-col gap-3' }, createElement('button', { onClick: () => setMenuOpen(false), className: 'themed-btn py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Return to Game'), createElement('button', { onClick: onMinimize, className: 'bg-red-500/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20' }, 'Go Bye Bye')), createElement('div', { className: 'h-px bg-white/5 w-full' }), createElement('div', { className: 'grid grid-cols-2 gap-3' }, ['home', 'games', 'anime', 'manga', 'art', 'utilities'].map(tab => createElement('button', { key: tab, onClick: () => { onNavigate(tab); onMinimize(); }, className: 'py-3 rounded-xl bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-all border border-white/5' }, tab)))))),
+                        (hasBeenResumed || !isMinimized) && playerUrl && createElement('iframe', { ref: iframeRef, src: playerUrl, className: `w-full h-full border-none`, allow: "fullscreen; autoplay; gamepad; microphone; camera; midi; encrypted-media", referrerPolicy: "no-referrer" })
+                    )
                 )
             );
         };
@@ -999,7 +1473,58 @@
         };
 
         const App = () => {
-            const [zones, setZones] = useState([]); const [search, setSearch] = useState(""); const [activeTab, setActiveTab] = useState('home'); const [activeGame, setActiveGame] = useState(null); const [currentTheme, setCurrentTheme] = useState('dark'); const [cloak, setCloak] = useState('Nexus'); const [settingsOpen, setSettingsOpen] = useState(false); const [showIDE, setShowIDE] = useState(false); const fileRef = useRef(null); const [forceSidebar, setForceSidebar] = useState(false); const [forceHeader, setForceHeader] = useState(false);
+            const [zones, setZones] = useState([]); 
+            const [search, setSearch] = useState(""); 
+            const [activeTab, setActiveTab] = useState(Storage.load('activeTab', 'home')); 
+            const [activeNodes, setActiveNodes] = useState(Storage.load('activeNodes', []));
+            const [currentTheme, setCurrentTheme] = useState(Storage.load('theme', 'dark')); 
+            const [cloak, setCloak] = useState(Storage.load('cloak', 'Nexus')); 
+            const [settingsOpen, setSettingsOpen] = useState(false); 
+            const [showIDE, setShowIDE] = useState(false); 
+            const [localCreations, setLocalCreations] = useState(Storage.load('localCreations', { games: [], tools: [] }));
+            const [saveModalData, setSaveModalData] = useState(null);
+            const fileRef = useRef(null); 
+            const [forceSidebar, setForceSidebar] = useState(false); 
+            const [forceHeader, setForceHeader] = useState(false);
+            const [gameSubTab, setGameSubTab] = useState(Storage.load('gameSubTab', 'all'));
+
+            useEffect(() => {
+                Storage.save('activeTab', activeTab);
+                Storage.save('theme', currentTheme);
+                Storage.save('cloak', cloak);
+                Storage.save('gameSubTab', gameSubTab);
+                Storage.save('activeNodes', activeNodes);
+                Storage.saveRaw('localCreations', localCreations);
+            }, [activeTab, currentTheme, cloak, gameSubTab, activeNodes, localCreations]);
+
+            const addNode = (gameEntry) => {
+                const existingIndex = activeNodes.findIndex(n => n.gameEntry.name === gameEntry.name);
+                if (existingIndex !== -1) {
+                    const newNodes = activeNodes.map((n, i) => ({
+                        ...n,
+                        isMinimized: i !== existingIndex
+                    }));
+                    setActiveNodes(newNodes);
+                } else {
+                    const newNode = { id: Date.now(), gameEntry, isMinimized: false };
+                    setActiveNodes(prev => prev.map(n => ({ ...n, isMinimized: true })).concat(newNode));
+                }
+            };
+
+            const minimizeNode = (id) => {
+                setActiveNodes(prev => prev.map(n => n.id === id ? { ...n, isMinimized: true } : n));
+            };
+
+            const restoreNode = (id) => {
+                setActiveNodes(prev => prev.map(n => ({
+                    ...n,
+                    isMinimized: n.id !== id
+                })));
+            };
+
+            const killNode = (id) => {
+                setActiveNodes(prev => prev.filter(n => n.id !== id));
+            };
             useEffect(() => { 
                 const load = async () => {
                     try {
@@ -1017,24 +1542,141 @@
             useEffect(() => { document.title = cloak || 'Nexus'; document.body.className = THEMES.find(t => t.id === currentTheme)?.class || ''; }, [currentTheme, cloak]);
             useEffect(() => { setForceSidebar(false); setForceHeader(false); if (activeTab === 'home') { setForceSidebar(true); const t = setTimeout(() => setForceSidebar(false), 1500); return () => clearTimeout(t); } else { setForceHeader(true); const t = setTimeout(() => setForceHeader(false), 1500); return () => clearTimeout(t); } }, [activeTab]);
             const filteredData = useMemo(() => {
-                const res = zones.filter(z => z.name.toLowerCase().includes(search.toLowerCase())); if (!res.length && search) return null;
+                const combinedZones = [...zones];
+                localCreations.games.forEach(lg => {
+                    const blob = new Blob([lg.content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    combinedZones.push({
+                        name: lg.name,
+                        versions: {
+                            Local: {
+                                name: lg.name,
+                                url: url,
+                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png',
+                                isLocal: true
+                            }
+                        }
+                    });
+                });
+
+                const res = combinedZones.filter(z => 
+                    z.name && typeof z.name === 'string' &&
+                    z.name.toLowerCase().includes(search.toLowerCase()) && 
+                    z.name !== "Pokemon Collection" && 
+                    z.name !== "Eaglercraft Collection"
+                ).sort((a, b) => a.name.localeCompare(b.name));
+
+                if (!res.length && search) return null;
                 const dIdx = Math.floor(Date.now() / 86400000);
                 const featured = res.filter(z => FEATURED_TITLES.includes(z.name)).sort((a,b) => FEATURED_TITLES.indexOf(a.name) - FEATURED_TITLES.indexOf(b.name));
                 const hot = res.filter(z => HOT_TITLES.includes(z.name)).sort((a,b) => HOT_TITLES.indexOf(a.name) - HOT_TITLES.indexOf(b.name));
                 let hero = null, restF = [];
                 if (featured.length) { hero = featured[dIdx % featured.length]; const rem = featured.filter(f => f !== hero); restF = [...rem.slice(dIdx % (rem.length||1)), ...rem.slice(0, dIdx % (rem.length||1))]; }
-                const alpha = {}; res.forEach(z => { let c = z.name[0].toUpperCase(); if (/[0-9]/.test(c)) c = '#'; if (!alpha[c]) alpha[c] = []; alpha[c].push(z); });
+                const alpha = {}; res.forEach(z => { 
+                    const char = z.name.charAt(0).toUpperCase();
+                    const c = /[0-9]/.test(char) ? '#' : char;
+                    if (!alpha[c]) alpha[c] = []; 
+                    alpha[c].push(z); 
+                });
                 return { hero, restFeatured: restF, hot, alpha: Object.keys(alpha).sort().map(k => ({ char: k, games: alpha[k] })) };
-            }, [zones, search]);
+            }, [zones, search, localCreations]);
             return createElement('div', { className: 'min-h-screen flex flex-col' },
                 createElement('div', { className: 'sidebar-trigger' }),
                 createElement('aside', { className: `sidebar flex flex-col p-9 gap-12 ${forceSidebar ? 'forced' : ''}` }, createElement('div', { className: 'flex items-center gap-5' }, createElement('div', { className: 'w-11 h-11 themed-btn rounded-2xl flex items-center justify-center text-2xl' }, 'N'), createElement('span', { className: 'font-black italic text-2xl text-white tracking-tighter uppercase' }, 'NEXUS')), createElement('nav', { className: 'flex-1 flex flex-col gap-3' }, createElement('button', { onClick: () => { setActiveTab('home'); setSearch(""); }, className: `sidebar-item ${activeTab === 'home' ? 'active' : ''}` }, createElement(HomeIcon), 'launch menu'), createElement('button', { onClick: () => setActiveTab('games'), className: `sidebar-item ${activeTab === 'games' ? 'active' : ''}` }, createElement(GameIcon), 'games'), createElement('button', { onClick: () => setActiveTab('anime'), className: `sidebar-item ${activeTab === 'anime' ? 'active' : ''}` }, createElement(AnimeIcon), 'anime'), createElement('button', { onClick: () => setActiveTab('manga'), className: `sidebar-item ${activeTab === 'manga' ? 'active' : ''}` }, createElement(MangaIcon), 'manga'), createElement('button', { onClick: () => setActiveTab('art'), className: `sidebar-item ${activeTab === 'art' ? 'active' : ''}` }, createElement(ArtIcon), 'make stuff'), createElement('button', { onClick: () => setActiveTab('utilities'), className: `sidebar-item ${activeTab === 'utilities' ? 'active' : ''}` }, createElement(ToolIcon), 'tools n stuff')), createElement('button', { onClick: () => setSettingsOpen(true), className: 'sidebar-item mt-auto border border-white/5 bg-white/5' }, 'Config Settings')),
                 activeTab !== 'home' && createElement(Fragment, null, createElement('div', { className: 'header-trigger' }), createElement('header', { className: `header-bar glass px-12 py-8 border-b border-white/5 flex items-center justify-between ${forceHeader ? 'forced' : ''}` }, createElement('h1', { className: 'text-2xl font-black italic text-white uppercase tracking-tighter' }, activeTab), createElement('div', { className: 'flex gap-5' }, activeTab === 'games' && createElement('input', { className: 'w-96 px-8 py-4 rounded-3xl bg-white/5 border border-white/5 text-white text-sm outline-none', placeholder: 'search...', value: search, onChange: e => setSearch(e.target.value) }), createElement('button', { onClick: () => setSettingsOpen(true), className: 'p-4 glass rounded-3xl hover:bg-white/10' }, '⚙️')))),
-                createElement('main', { className: `${activeTab === 'home' ? '' : 'max-w-[150rem] mx-auto w-full py-24 px-12 h-screen'}` }, createElement(AnimatePresence, { mode: 'wait' }, activeTab === 'home' ? createElement(HomeView, { key: 'home', onNavigate: setActiveTab, onSearch: setSearch }) : activeTab === 'games' ? createElement(motion.div, { key: 'games', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 }, transition: { duration: 0.7 } }, !filteredData ? createElement('div', { className: 'whoopies-box' }, createElement('svg', { className: 'whoopies-guy', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h2V9H7v2zm8 0h2V9h-2v2zm-3 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' })), createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-3xl font-black italic uppercase text-white' }, "oops! nothing here,"), createElement('p', { className: 'text-slate-600 font-medium text-lg mt-2' }, "try another search?"))) : createElement(React.Fragment, null, !search && createElement('section', { className: 'space-y-16 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Daily Spotlight'), createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-10' }, createElement('div', { className: 'lg:col-span-8' }, filteredData.hero && createElement(GameCard, { variant: 'hero', gameEntry: filteredData.hero, onClick: () => setActiveGame(filteredData.hero) })), createElement('div', { className: 'lg:col-span-5 flex flex-col gap-10' }, filteredData.restFeatured.slice(0, 2).map(g => createElement(GameCard, { key: g.name, variant: 'wide', gameEntry: g, onClick: () => setActiveGame(g) }))), createElement('div', { className: 'lg:col-span-13 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10' }, filteredData.restFeatured.slice(2, 8).map(g => createElement(GameCard, { key: g.name, gameEntry: g, onClick: () => setActiveGame(g) }))))), createElement('section', { className: 'space-y-10 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Hot Right Now'), createElement('div', { className: 'flex gap-10 overflow-x-auto pb-12 visible-scroll' }, filteredData.hot.map(g => createElement(GameCard, { key: g.name, variant: 'carousel', gameEntry: g, onClick: () => setActiveGame(g) })))), createElement('section', { className: 'space-y-24' }, filteredData.alpha.map(block => createElement('div', { key: block.char, className: 'vault-section mb-28' }, createElement('div', { className: 'letter-header flex items-center gap-10 mb-16' }, createElement('div', { className: 'letter-circle' }, block.char), createElement('div', { className: 'flex-1 h-px bg-white/5' })), createElement('div', { className: 'vault-grid' }, block.games.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => setActiveGame(g) })))))))) : activeTab === 'anime' ? createElement(motion.div, { key: 'anime', className: 'h-full flex flex-col gap-12' }, createElement('div', { className: 'flex justify-between items-center' }, createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Anime'), createElement('button', { onClick: () => document.getElementById('anime-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')), createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, createElement('iframe', { id: 'anime-frame', src: 'https://hianime.to', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' }))) : activeTab === 'manga' ? createElement(motion.div, { key: 'manga', className: 'h-full flex flex-col gap-12' }, createElement('div', { className: 'flex justify-between items-center' }, createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Manga'), createElement('button', { onClick: () => document.getElementById('manga-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')), createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, createElement('iframe', { id: 'manga-frame', src: 'https://weebcentral.com', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' }))) : activeTab === 'art' ? createElement(ArtView, { key: 'art' }) : createElement(motion.div, { key: 'utils', className: 'max-w-6xl mx-auto space-y-28' }, createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-7xl font-black italic text-white uppercase tracking-tighter' }, 'Utilities')), createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-16' }, createElement(InteractiveTilt, null, createElement('div', { onClick: () => setShowIDE(true), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'IDE Workspace'))), createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html', className: 'hidden', onChange: e => e.target.files[0] && setActiveGame({ name: e.target.files[0].name, versions: { Local: { name: e.target.files[0].name, url: URL.createObjectURL(e.target.files[0]), isLocal: true } } }) }), createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'Loader'))))))),
+                createElement('main', { className: `${activeTab === 'home' ? '' : 'max-w-[150rem] mx-auto w-full py-24 px-12 h-screen'}` }, createElement(AnimatePresence, { mode: 'wait' }, activeTab === 'home' ? createElement(HomeView, { key: 'home', onNavigate: setActiveTab, onSearch: setSearch }) : activeTab === 'games' ? createElement(motion.div, { key: 'games', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 }, transition: { duration: 0.7 } }, 
+                    createElement('div', { className: 'flex gap-4 mb-12' },
+                        ['all', 'eaglercraft', 'pokemon'].map(tab => createElement('button', {
+                            key: tab,
+                            onClick: () => setGameSubTab(tab),
+                            className: `sub-tab ${gameSubTab === tab ? 'active' : ''}`
+                        }, tab === 'all' ? 'All Games' : tab))
+                    ),
+                    gameSubTab === 'eaglercraft' ? 
+                        createElement('div', { className: 'vault-grid' }, EAGLERCRAFT_COLLECTION.filter(g => g.name.toLowerCase().includes(search.toLowerCase())).map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) }))) :
+                    gameSubTab === 'pokemon' ?
+                        createElement('div', { className: 'vault-grid' }, POKEMON_COLLECTION.filter(g => g.name.toLowerCase().includes(search.toLowerCase())).map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) }))) :
+                    !filteredData ? createElement('div', { className: 'whoopies-box' }, createElement('svg', { className: 'whoopies-guy', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h2V9H7v2zm8 0h2V9h-2v2zm-3 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' })), createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-3xl font-black italic uppercase text-white' }, "oops! nothing here,"), createElement('p', { className: 'text-slate-600 font-medium text-lg mt-2' }, "try another search?"))) : createElement(React.Fragment, null, !search && createElement('section', { className: 'space-y-16 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Daily Spotlight'), createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-10' }, createElement('div', { className: 'lg:col-span-8' }, filteredData.hero && createElement(GameCard, { variant: 'hero', gameEntry: filteredData.hero, onClick: () => addNode(filteredData.hero) })), createElement('div', { className: 'lg:col-span-5 flex flex-col gap-10' }, filteredData.restFeatured.slice(0, 2).map(g => createElement(GameCard, { key: g.name, variant: 'wide', gameEntry: g, onClick: () => addNode(g) }))), createElement('div', { className: 'lg:col-span-13 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10' }, filteredData.restFeatured.slice(2, 8).map(g => createElement(GameCard, { key: g.name, gameEntry: g, onClick: () => addNode(g) }))))), createElement('section', { className: 'space-y-10 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Hot Right Now'), createElement('div', { className: 'flex gap-10 overflow-x-auto pb-12 visible-scroll' }, filteredData.hot.map(g => createElement(GameCard, { key: g.name, variant: 'carousel', gameEntry: g, onClick: () => addNode(g) })))), createElement('section', { className: 'space-y-24' }, filteredData.alpha.map(block => createElement('div', { key: block.char, className: 'vault-section mb-28' }, createElement('div', { className: 'letter-header flex items-center gap-10 mb-16' }, createElement('div', { className: 'letter-circle' }, block.char), createElement('div', { className: 'flex-1 h-px bg-white/5' })), createElement('div', { className: 'vault-grid' }, block.games.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) })))))))) : activeTab === 'anime' ? createElement(motion.div, { key: 'anime', className: 'h-full flex flex-col gap-12' }, createElement('div', { className: 'flex justify-between items-center' }, createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Anime'), createElement('button', { onClick: () => document.getElementById('anime-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')), createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, createElement('iframe', { id: 'anime-frame', src: 'https://hianime.to', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' }))) : activeTab === 'manga' ? createElement(motion.div, { key: 'manga', className: 'h-full flex flex-col gap-12' }, createElement('div', { className: 'flex justify-between items-center' }, createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Manga'), createElement('button', { onClick: () => document.getElementById('manga-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')), createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, createElement('iframe', { id: 'manga-frame', src: 'https://weebcentral.com', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' }))) : activeTab === 'art' ? createElement(ArtView, { key: 'art' }) : createElement(motion.div, { key: 'utils', className: 'max-w-6xl mx-auto space-y-28' }, createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-7xl font-black italic text-white uppercase tracking-tighter' }, 'Utilities')), createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-16' }, createElement(InteractiveTilt, null, createElement('div', { onClick: () => setShowIDE(true), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'IDE Workspace'))), createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html', className: 'hidden', onChange: e => {
+                                    if (e.target.files[0]) {
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => setSaveModalData(ev.target.result);
+                                        reader.readAsText(e.target.files[0]);
+                                    }
+                                } }), createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'Loader'))),
+                                localCreations.tools.map(tool => createElement(InteractiveTilt, { key: tool.id }, createElement('div', { 
+                                    onClick: () => {
+                                        const blob = new Blob([tool.content], { type: 'text/html' });
+                                        addNode({ name: tool.name, versions: { Local: { name: tool.name, url: URL.createObjectURL(blob), isLocal: true } } });
+                                    },
+                                    className: 'group utility-card glass rounded-[4rem] cursor-pointer relative' 
+                                }, 
+                                    createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, tool.name),
+                                    createElement('button', { 
+                                        onClick: (e) => { 
+                                            e.stopPropagation(); 
+                                            if (window.confirm(`Are you sure you want to delete ${tool.name}?`)) {
+                                                setLocalCreations(prev => ({ ...prev, tools: prev.tools.filter(t => t.id !== tool.id) })); 
+                                            }
+                                        },
+                                        className: 'absolute top-6 right-6 w-10 h-10 rounded-full bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'
+                                    }, '✕')
+                                )))
+                            )
+                        ))),
                 activeTab === 'home' && createElement('div', { className: 'dock-wrapper' }, createElement(InteractiveTilt, { scale: 1.12, rotate: 6 }, createElement(motion.div, { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 }, className: 'dock shadow-2xl backdrop-blur-3xl' }, createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('games') }, createElement(GameIcon), createElement('div', { className: 'tooltip' }, 'games')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('anime') }, createElement(AnimeIcon), createElement('div', { className: 'tooltip' }, 'anime')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('manga') }, createElement(MangaIcon), createElement('div', { className: 'tooltip' }, 'manga')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('art') }, createElement(ArtIcon), createElement('div', { className: 'tooltip' }, 'art')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('utilities') }, createElement(ToolIcon), createElement('div', { className: 'tooltip' }, 'tools'))))),
-                showIDE && createElement(IDE, { onClose: () => setShowIDE(false), onDeploy: code => setActiveGame({ name: 'Development Node', versions: { IDE: { name: 'Development Node', url: URL.createObjectURL(new Blob([code], { type: "text/html" })), isIDE: true } } }) }),
-                activeGame && createElement(GamePlayer, { gameEntry: activeGame, onClose: () => setActiveGame(null), onNavigate: (tab) => { setActiveTab(tab); setActiveGame(null); } }),
-                settingsOpen && createElement(SettingsModal, { onClose: () => setSettingsOpen(false), currentTheme, onThemeChange: setCurrentTheme, currentCloak: cloak, onCloakChange: setCloak })
+                showIDE && createElement(IDE, { 
+                    onClose: () => setShowIDE(false), 
+                    onDeploy: code => addNode({ name: 'Development Node', versions: { IDE: { name: 'Development Node', url: URL.createObjectURL(new Blob([code], { type: "text/html" })), isIDE: true } } }),
+                    onSave: code => setSaveModalData(code)
+                }),
+                saveModalData && createElement(SaveModal, {
+                    content: saveModalData,
+                    onClose: () => setSaveModalData(null),
+                    onRun: (data) => {
+                        const blob = new Blob([data.content], { type: 'text/html' });
+                        addNode({ name: data.name, versions: { Local: { name: data.name, url: URL.createObjectURL(blob), isLocal: true } } });
+                        setSaveModalData(null);
+                    },
+                    onSave: (data) => {
+                        const id = Date.now();
+                        const finalData = { ...data, name: data.name || 'Unnamed Project', id };
+                        if (data.type === 'game') {
+                            setLocalCreations(prev => ({ ...prev, games: [...prev.games, finalData] }));
+                        } else {
+                            setLocalCreations(prev => ({ ...prev, tools: [...prev.tools, finalData] }));
+                        }
+                        setSaveModalData(null);
+                    }
+                }),
+                activeNodes.map((node, i) => createElement(GamePlayer, { 
+                    key: node.id,
+                    index: i,
+                    node: node, 
+                    onMinimize: () => minimizeNode(node.id), 
+                    onRestore: () => restoreNode(node.id),
+                    onKill: () => killNode(node.id),
+                    onNavigate: (tab) => { setActiveTab(tab); minimizeNode(node.id); } 
+                })),
+                settingsOpen && createElement(SettingsModal, { 
+                    onClose: () => setSettingsOpen(false), 
+                    currentTheme, 
+                    onThemeChange: setCurrentTheme, 
+                    currentCloak: cloak, 
+                    onCloakChange: setCloak,
+                    activeNodes: activeNodes,
+                    onKillNode: (id) => setActiveNodes(prev => prev.filter(n => n.id !== id)),
+                    localCreations: localCreations,
+                    onDeleteCreation: (type, id) => {
+                        setLocalCreations(prev => ({
+                            ...prev,
+                            [type === 'game' ? 'games' : 'tools']: prev[type === 'game' ? 'games' : 'tools'].filter(item => item.id !== id)
+                        }));
+                    },
+                    onWipeAll: () => {
+                        setLocalCreations({ games: [], tools: [] });
+                        setSettingsOpen(false);
+                    }
+                })
             );
         };
         const root = ReactDOM.createRoot(document.getElementById('root')); root.render(createElement(App));
