@@ -1436,7 +1436,7 @@
                     setIsLoading(true);
                     let finalUrl = activeVersion.url;
                     if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = activeVersion.url.replace("{HTML_URL}", HTML_BASE);
-                    const isSingleHtml = finalUrl.endsWith(".html") && !activeVersion.isUnity && !activeVersion.isLocal && !activeVersion.isIDE;
+                    const isSingleHtml = (finalUrl.endsWith(".html") || activeVersion.isLocal || activeVersion.isIDE) && !activeVersion.isUnity;
                     if (isSingleHtml) {
                         try {
                             const res = await fetch(finalUrl); var html = await res.text();
@@ -1445,11 +1445,21 @@
                             // Add base tag to handle relative paths for multi-part games
                             if (!doc.querySelector('base')) {
                                 const base = doc.createElement('base');
-                                base.href = finalUrl;
+                                let baseHref = finalUrl;
+                                // If it's a local game, try to find a base URL in the script
+                                if (activeVersion.isLocal || activeVersion.isIDE) {
+                                    const baseMatch = html.match(/baseUrl\s*=\s*["'](https?:\/\/[^"']+)["']/);
+                                    if (baseMatch) baseHref = baseMatch[1];
+                                }
+                                base.href = baseHref;
                                 doc.head.insertBefore(base, doc.head.firstChild);
                             }
                             
                             doc.head.innerHTML += `
+                            <style>
+                                html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+                                #unity-container, #unity-canvas, canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block; }
+                            </style>
                             <script>
                                 (function() {
                                     const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1485,8 +1495,48 @@
                                 });
                             <\/script>`;
 
-                            if (html.includes("createUnityInstance")) {
-                                doc.head.innerHTML += `<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"><\/script><script>const realConsole = window.console; window.runnerWindow = window; window.runnerWindow.proxyConsole = { log: (...args) => realConsole.log(...args), error: (...args) => realConsole.error(...args), warn: (...args) => realConsole.warn(...args) }; const origAppendChild = Node.prototype.appendChild; Node.prototype.appendChild = function (node) { if (node.tagName === 'SCRIPT' && node.src) { if (node.src.endsWith('.loader.js')) { const prevSrc = node.src; node.remove(); changeUnityLoader(prevSrc).then(loaderUrl => { const script = document.createElement('script'); script.src = loaderUrl; script.onload = () => { createUnityInstance(canvas, config, (progress) => { progressBarFull.style.width = (100 * progress) + '%'; }).then((unityInstance) => { unityGameInstance = unityInstance; window.unityGameInstance = unityGameInstance; loadingBar.style.display = 'none'; }).catch((message) => { console.error(message); }); }; document.body.appendChild(script); }); } else { return origAppendChild.call(this, node); } } else { return origAppendChild.call(this, node); } };<\/script>`;
+                            if (html.includes("createUnityInstance") || html.includes("UnityLoader")) {
+                                doc.head.innerHTML += `<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"><\/script><script>
+                                    const realConsole = window.console; window.runnerWindow = window; 
+                                    window.runnerWindow.proxyConsole = { log: (...args) => realConsole.log(...args), error: (...args) => realConsole.error(...args), warn: (...args) => realConsole.warn(...args) }; 
+                                    const origAppendChild = Node.prototype.appendChild; 
+                                    Node.prototype.appendChild = function (node) { 
+                                        if (node.tagName === 'SCRIPT' && node.src && (node.src.includes('.loader.js') || node.src.includes('UnityLoader.js'))) { 
+                                            const prevSrc = node.src; const originalOnload = node.onload; node.remove(); 
+                                            const applyFix = () => {
+                                                changeUnityLoader(prevSrc).then(loaderUrl => { 
+                                                    const script = document.createElement('script'); script.src = loaderUrl; 
+                                                    script.onload = () => { 
+                                                        if (originalOnload) originalOnload(); 
+                                                        else if (typeof createUnityInstance === 'function') { 
+                                                            const cfg = window.config || (typeof config !== 'undefined' ? config : null); 
+                                                            const cvs = window.canvas || (typeof canvas !== 'undefined' ? canvas : document.querySelector('canvas') || document.querySelector('#unity-canvas')); 
+                                                            if (cfg && cvs) { 
+                                                                createUnityInstance(cvs, cfg, (progress) => { 
+                                                                    const pbf = document.querySelector('#progress_fill') || document.querySelector('.gameloader-progressbar-progress') || (window.progressBarFull); 
+                                                                    if (pbf) pbf.style.width = (100 * progress) + '%'; 
+                                                                    const pt = document.querySelector('.gameloader-progress-info');
+                                                                    if (pt) pt.innerText = "Downloading file: " + Math.round(progress*100) + "%";
+                                                                }).then((unityInstance) => { 
+                                                                    window.unityGameInstance = unityInstance; 
+                                                                    const lb = document.querySelector('#loadingBlock') || document.querySelector('.gameloader') || (window.loadingBar); 
+                                                                    if (lb) lb.style.display = 'none'; 
+                                                                    const uc = document.querySelector('#unity-container');
+                                                                    if (uc) uc.style.display = 'block';
+                                                                }).catch((message) => { console.error(message); }); 
+                                                            } 
+                                                        } 
+                                                    }; 
+                                                    origAppendChild.call(document.body, script); 
+                                                });
+                                            };
+                                            if (typeof changeUnityLoader === 'function') applyFix();
+                                            else { const interval = setInterval(() => { if (typeof changeUnityLoader === 'function') { clearInterval(interval); applyFix(); } }, 50); }
+                                            return node; 
+                                        } 
+                                        return origAppendChild.apply(this, arguments); 
+                                    };
+                                <\/script>`;
                             }
                             html = doc.documentElement.outerHTML;
                             if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
