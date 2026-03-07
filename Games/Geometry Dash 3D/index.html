@@ -1,19 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Geometry Dash 3D Loader</title>
-    <base href="./">
+    <meta charset="UTF-8">
+    <title>Geometry Dash 3D - Redirect</title>
+    <script>
+        /**
+         * AUTO-FIX REDIRECT
+         * This script detects if the URL is "doubled up" (2games.io/2games.io)
+         * and redirects the user to the actual game files.
+         */
+        (function() {
+            const currentUrl = window.location.href;
+            
+            // Check if the URL has the accidental double domain pattern
+            if (currentUrl.includes('/2games.io/2games.io/')) {
+                // Strip the redundant part and redirect to the root-relative path
+                const fixedUrl = currentUrl.replace('/2games.io/2games.io/', '/2games.io/');
+                window.location.replace(fixedUrl);
+            } else {
+                // If it's not doubled, but just needs to find the game file:
+                // Replace 'game_file.html' with the actual .html file of Geometry Dash
+                // Example: 'gd3d.html' or 'unity_index.html'
+                const actualGameFile = "game.html"; 
+                
+                // Only redirect if we aren't already looking at the game file
+                if (!currentUrl.endsWith(actualGameFile)) {
+                    window.location.replace(actualGameFile);
+                }
+            }
+        })();
+    </script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        iframe { width: 100%; height: 100%; border: none; }
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
     </style>
 </head>
 <body>
-    <script>
-        // This script detects if it's being doubled up and redirects to the local file
-        const actualGameFile = "game.html"; // <-- RENAME THIS to your game's main .html file
-        
-        window.location.replace(actualGameFile);
-    </script>
+    <p>Loading Geometry Dash 3D...</p>
 </body>
 </html>
