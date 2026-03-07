@@ -1443,22 +1443,18 @@
                             const parser = new DOMParser(); var doc = parser.parseFromString(html, "text/html");
                             
                             // Add base tag to handle relative paths for multi-part games
-                            if (!doc.querySelector('base')) {
+                            if (!doc.querySelector('base') && !finalUrl.startsWith('blob:')) {
                                 const base = doc.createElement('base');
-                                let baseHref = finalUrl;
-                                // If it's a local game, try to find a base URL in the script
-                                if (activeVersion.isLocal || activeVersion.isIDE) {
-                                    const baseMatch = html.match(/baseUrl\s*=\s*["'](https?:\/\/[^"']+)["']/);
-                                    if (baseMatch) baseHref = baseMatch[1];
-                                }
-                                base.href = baseHref;
+                                base.href = finalUrl;
                                 doc.head.insertBefore(base, doc.head.firstChild);
                             }
                             
                             doc.head.innerHTML += `
                             <style>
-                                html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-                                #unity-container, #unity-canvas, canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block; }
+                                html { background: #000; }
+                                body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+                                #unity-container, #unity-canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block !important; }
+                                .nexus-fullscreen-canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block !important; position: fixed !important; top: 0; left: 0; z-index: 1; }
                             </style>
                             <script>
                                 (function() {
@@ -1512,6 +1508,7 @@
                                                             const cfg = window.config || (typeof config !== 'undefined' ? config : null); 
                                                             const cvs = window.canvas || (typeof canvas !== 'undefined' ? canvas : document.querySelector('canvas') || document.querySelector('#unity-canvas')); 
                                                             if (cfg && cvs) { 
+                                                                cvs.classList.add('nexus-fullscreen-canvas');
                                                                 createUnityInstance(cvs, cfg, (progress) => { 
                                                                     const pbf = document.querySelector('#progress_fill') || document.querySelector('.gameloader-progressbar-progress') || (window.progressBarFull); 
                                                                     if (pbf) pbf.style.width = (100 * progress) + '%'; 
@@ -1522,7 +1519,7 @@
                                                                     const lb = document.querySelector('#loadingBlock') || document.querySelector('.gameloader') || (window.loadingBar); 
                                                                     if (lb) lb.style.display = 'none'; 
                                                                     const uc = document.querySelector('#unity-container');
-                                                                    if (uc) uc.style.display = 'block';
+                                                                    if (uc) { uc.style.display = 'block'; uc.classList.add('nexus-fullscreen-canvas'); }
                                                                 }).catch((message) => { console.error(message); }); 
                                                             } 
                                                         } 
