@@ -1442,13 +1442,27 @@
                     if (!hasBeenResumed && isMinimized) return;
                     setIsLoading(true);
                     let finalUrl = activeVersion.url;
-                    if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = activeVersion.url.replace("{HTML_URL}", HTML_BASE);
+                    const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
+                    if (isFNAF) {
+                        finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                    }
+                    if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
                     const isSingleHtml = (finalUrl.endsWith(".html") || activeVersion.isLocal || activeVersion.isIDE) && !activeVersion.isUnity;
                     if (isSingleHtml) {
                         try {
                             const res = await fetch(finalUrl); var html = await res.text();
                             const parser = new DOMParser(); var doc = parser.parseFromString(html, "text/html");
                             
+                            if (isFNAF) {
+                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
+                                html = html.replace(/var buildUrl = "Build";/g, `var buildUrl = "${baseUrl}Build";`);
+                                html = html.replace(/streamingAssetsUrl: "StreamingAssets"/g, `streamingAssetsUrl: "${baseUrl}StreamingAssets"`);
+                                html = html.replace(/basePath: 'Build\/'/g, `basePath: '${baseUrl}Build/'`);
+                                html = html.replace(/href="TemplateData\//g, `href="${baseUrl}TemplateData/`);
+                                html = html.replace(/src="TemplateData\//g, `src="${baseUrl}TemplateData/`);
+                                doc = parser.parseFromString(html, "text/html");
+                            }
+
                             // Add base tag to handle relative paths for multi-part games
                             if (!doc.querySelector('base') && !finalUrl.startsWith('blob:')) {
                                 const base = doc.createElement('base');
@@ -1523,7 +1537,7 @@
                                 });
                             <\/script>`;
 
-                            if (html.includes("createUnityInstance") || html.includes("UnityLoader")) {
+                            if (!isFNAF && (html.includes("createUnityInstance") || html.includes("UnityLoader"))) {
                                 doc.head.innerHTML += `<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"><\/script><script>
                                     const realConsole = window.console; window.runnerWindow = window; 
                                     window.runnerWindow.proxyConsole = { log: (...args) => realConsole.log(...args), error: (...args) => realConsole.error(...args), warn: (...args) => realConsole.warn(...args) }; 
@@ -1754,8 +1768,31 @@
                         if (nexusRes.status === 'fulfilled') nexusRes.value.forEach(g => add(g.name, g, 'Nexus'));
                         if (abminnRes.status === 'fulfilled') parse(abminnRes.value).forEach(n => add(n, { name: n, url: `${ABMINN_BASE}${n}/index.html`, cover: `${ABMINN_IMAGES}${n}.png` }, 'Abminn'));
                         if (zotronixRes.status === 'fulfilled') parse(zotronixRes.value).forEach(n => add(n, { name: n, url: `${ZOTRONIX_BASE}${n}/index.html`, cover: `${ZOTRONIX_IMAGES}${n}.png` }, 'Zotronix'));
-                        setZones(Array.from(registry.values()));
-                    } catch (e) { fetch(ZONES_URL).then(r => r.json()).then(res => setZones(res.map(g => ({ name: g.name, versions: { Nexus: g } })))).catch(() => {}); }
+                        
+                        const finalZones = Array.from(registry.values());
+                        finalZones.forEach(z => {
+                            if (z.name.toLowerCase().includes('five nights at last breath')) {
+                                Object.keys(z.versions).forEach(src => {
+                                    if (z.versions[src].url.includes('750.html')) {
+                                        z.versions[src].url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                                    }
+                                });
+                            }
+                        });
+                        setZones(finalZones);
+                    } catch (e) { 
+                        fetch(ZONES_URL).then(r => r.json()).then(res => {
+                            const fallbackZones = res.map(g => ({ name: g.name, versions: { Nexus: g } }));
+                            fallbackZones.forEach(z => {
+                                if (z.name.toLowerCase().includes('five nights at last breath')) {
+                                    if (z.versions.Nexus.url.includes('750.html')) {
+                                        z.versions.Nexus.url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                                    }
+                                }
+                            });
+                            setZones(fallbackZones);
+                        }).catch(() => {}); 
+                    }
                 }; load();
             }, []);
             useEffect(() => { document.title = cloak || 'Nexus'; document.body.className = THEMES.find(t => t.id === currentTheme)?.class || ''; }, [currentTheme, cloak]);
