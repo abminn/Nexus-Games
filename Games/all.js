@@ -4,6 +4,7 @@ const allGames = [
   "Geometry Dash 3D",
   "PICOHOT",
   "Red Handed",
+  "Hero To Zero",
 ];
 
 const adminGames = [];
