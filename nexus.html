@@ -1429,16 +1429,6 @@
             }, [isMinimized]);
 
             useEffect(() => {
-                const handleFsChange = () => {
-                    if (!document.fullscreenElement) {
-                        setShowTopBar(true);
-                    }
-                };
-                document.addEventListener('fullscreenchange', handleFsChange);
-                return () => document.removeEventListener('fullscreenchange', handleFsChange);
-            }, []);
-
-            useEffect(() => {
                 if (gameEntry.name.toLowerCase().includes('bee swarm')) {
                     setShowBeeSwarmPopup(true);
                 }
@@ -1537,11 +1527,6 @@
                                 });
                                 // Focus fix for typing
                                 window.addEventListener('mousedown', () => window.focus());
-                                window.addEventListener('keydown', (e) => {
-                                    if (e.key === 'Escape') {
-                                        window.parent.postMessage({ type: 'NEXUS_PAUSE' }, '*');
-                                    }
-                                });
                             <\/script>`;
 
                             if (!isFNAF && (html.includes("createUnityInstance") || html.includes("UnityLoader"))) {
@@ -1623,8 +1608,8 @@
                 }
             }, [isMinimized]);
 
-            const handleFullscreen = () => { if (containerRef.current?.requestFullscreen) { containerRef.current.requestFullscreen(); setShowTopBar(false); } };
-            const handleExitFullscreen = () => { if (document.fullscreenElement) document.exitFullscreen(); setShowTopBar(true); setMenuOpen(false); };
+            const handleFullscreen = () => { setShowTopBar(false); };
+            const handleExitFullscreen = () => { setShowTopBar(true); setMenuOpen(false); };
             const handleRefresh = () => { setRefreshKey(prev => prev + 1); setMenuOpen(false); };
             const handleDownload = async () => { try { const res = await fetch(playerUrl); const html = await res.text(); const blob = new Blob([html], { type: "text/html" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${gameEntry.name.replace(/\s+/g, '_')}_Nexus.html`; a.click(); URL.revokeObjectURL(url); } catch (e) { alert("Download failed"); } };
 
@@ -1650,7 +1635,7 @@
                     },
                         isLoading && createElement('div', { className: 'absolute inset-0 flex items-center justify-center' }, createElement('div', { className: 'w-12 h-12 border-2 themed-border border-t-white rounded-full animate-spin' })),
                         createElement('button', { ref: buttonRef, onPointerDown, onPointerMove, onPointerUp, style: { touchAction: 'none', userSelect: 'none' }, className: 'absolute top-6 right-6 z-[130] w-16 h-16 flex items-center justify-center rounded-2xl bg-white/40 hover:bg-white/60 opacity-100 backdrop-blur-3xl border-2 border-white/50 cursor-grab active:cursor-grabbing shadow-[0_0_50px_rgba(0,0,0,1)]' }, createElement('svg', { className: 'w-8 h-8 fill-white pointer-events-none', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' }))),
-                        menuOpen && createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'absolute inset-0 z-[140] themed-overlay backdrop-blur-3xl flex items-center justify-center p-6' }, createElement(InteractiveTilt, { scale: 1.02, rotate: 4 }, createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-sm flex flex-col gap-8' }, createElement('div', { className: 'text-center' }, createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Paused'), createElement('p', { className: 'themed-text-muted text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Pause Menu')), createElement('div', { className: 'flex flex-col gap-3' }, createElement('button', { onClick: () => setMenuOpen(false), className: 'themed-btn py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Return to Game'), createElement('button', { onClick: handleRefresh, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Refresh Game'), document.fullscreenElement && createElement('button', { onClick: handleExitFullscreen, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Exit Fullscreen'), createElement('button', { onClick: onMinimize, className: 'bg-red-500/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20' }, 'Go Bye Bye')), createElement('div', { className: 'h-px themed-border w-full' }), createElement('div', { className: 'grid grid-cols-2 gap-3' }, ['home', 'games', 'anime', 'manga', 'art', 'utilities'].map(tab => createElement('button', { key: tab, onClick: () => { onNavigate(tab); onMinimize(); }, className: 'py-3 rounded-xl themed-btn-secondary opacity-50 hover:opacity-100 text-[9px] font-black uppercase tracking-widest transition-all' }, tab)))))),
+                        menuOpen && createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'absolute inset-0 z-[140] themed-overlay backdrop-blur-3xl flex items-center justify-center p-6' }, createElement(InteractiveTilt, { scale: 1.02, rotate: 4 }, createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-sm flex flex-col gap-8' }, createElement('div', { className: 'text-center' }, createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Paused'), createElement('p', { className: 'themed-text-muted text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Pause Menu')), createElement('div', { className: 'flex flex-col gap-3' }, createElement('button', { onClick: () => setMenuOpen(false), className: 'themed-btn py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Return to Game'), createElement('button', { onClick: handleRefresh, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Refresh Game'), !showTopBar && createElement('button', { onClick: handleExitFullscreen, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Exit Fullscreen'), createElement('button', { onClick: onMinimize, className: 'bg-red-500/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20' }, 'Go Bye Bye')), createElement('div', { className: 'h-px themed-border w-full' }), createElement('div', { className: 'grid grid-cols-2 gap-3' }, ['home', 'games', 'anime', 'manga', 'art', 'utilities'].map(tab => createElement('button', { key: tab, onClick: () => { onNavigate(tab); onMinimize(); }, className: 'py-3 rounded-xl themed-btn-secondary opacity-50 hover:opacity-100 text-[9px] font-black uppercase tracking-widest transition-all' }, tab)))))),
                         (hasBeenResumed || !isMinimized) && playerUrl && createElement('iframe', { ref: iframeRef, src: playerUrl, className: `w-full h-full border-none`, allow: "fullscreen; autoplay; gamepad; microphone; camera; midi; encrypted-media", referrerPolicy: "no-referrer", tabIndex: "0" }),
                         showBeeSwarmPopup && createElement(motion.div, { 
                             initial: { opacity: 0 }, animate: { opacity: 1 },
@@ -2004,7 +1989,7 @@
                                         )
                                     ), 
                                     createElement('div', { className: 'flex-1 glass rounded-[3rem] overflow-hidden relative border border-white/5' }, 
-                                        createElement('iframe', { id: 'anime-frame', src: 'https://zoroto.se', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
+                                        createElement('iframe', { id: 'anime-frame', src: 'https://www.zoroto.se/anime/?genre%5B%5D=action&genre%5B%5D=adventure&genre%5B%5D=fantasy&status=&type=&order=', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
                                     )
                                 )
                         )
