@@ -572,7 +572,7 @@
             )
         );
 
-        const SettingsModal = ({ onClose, currentTheme, onThemeChange, currentCloak, onCloakChange, activeNodes, onKillNode, localCreations, onDeleteCreation, onWipeAll, allGames }) => {
+        const SettingsModal = ({ onClose, currentTheme, onThemeChange, currentCloak, onCloakChange, activeNodes, onKillNode, localCreations, onDeleteCreation, onWipeAll, allGames, onResetWarnings }) => {
             const [confirm, setConfirm] = useState(null);
             const [copyStatus, setCopyStatus] = useState('Copy List');
 
@@ -616,6 +616,13 @@
                                             className: `p-4 rounded-xl border text-[12px] font-black uppercase transition-all ${currentTheme === theme.id ? 'themed-btn' : 'themed-btn-secondary opacity-50 hover:opacity-100'}` 
                                         }, theme.name))
                                     )
+                                ),
+                                createElement('div', { className: 'space-y-4' },
+                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Content Control'),
+                                    createElement('button', { 
+                                        onClick: () => { onResetWarnings(); onClose(); },
+                                        className: 'w-full themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest'
+                                    }, 'Reset Content Warnings')
                                 ),
                                 createElement('div', { className: 'space-y-4' },
                                     createElement('div', { className: 'flex justify-between items-center' },
@@ -1719,6 +1726,17 @@
             const [forceHeader, setForceHeader] = useState(false);
             const [selectedFilters, setSelectedFilters] = useState(Storage.load('selectedFilters', []));
             const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+            const isScrollingRef = useRef(false);
+
+            const scrollToTab = (tabId, behavior = 'smooth') => {
+                isScrollingRef.current = true;
+                setActiveTab(tabId);
+                const el = document.getElementById(`section-${tabId}`);
+                if (el) {
+                    el.scrollIntoView({ behavior });
+                }
+                setTimeout(() => { isScrollingRef.current = false; }, 1000);
+            };
 
             useEffect(() => {
                 Storage.save('activeTab', activeTab);
@@ -1797,6 +1815,42 @@
             }, []);
             useEffect(() => { document.title = cloak || 'Nexus'; document.body.className = THEMES.find(t => t.id === currentTheme)?.class || ''; }, [currentTheme, cloak]);
             useEffect(() => { setForceSidebar(false); setForceHeader(false); if (activeTab === 'home') { setForceSidebar(true); const t = setTimeout(() => setForceSidebar(false), 1500); return () => clearTimeout(t); } else { setForceHeader(true); const t = setTimeout(() => setForceHeader(false), 1500); return () => clearTimeout(t); } }, [activeTab]);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    if (isScrollingRef.current) return;
+                    const tabs = ['home', 'games', 'anime', 'manga', 'art', 'utilities'];
+                    let current = activeTab;
+
+                    for (const tab of tabs) {
+                        const el = document.getElementById(`section-${tab}`);
+                        if (el) {
+                            const rect = el.getBoundingClientRect();
+                            // If the section's top is in the top half of the screen 
+                            // and its bottom is below the top of the screen
+                            if (rect.top < window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.2) {
+                                current = tab;
+                            }
+                        }
+                    }
+
+                    if (current !== activeTab) {
+                        setActiveTab(current);
+                    }
+                };
+
+                window.addEventListener('scroll', handleScroll, { passive: true });
+                // Initial check
+                handleScroll();
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, [activeTab]);
+
+            useEffect(() => {
+                const savedTab = Storage.load('activeTab', 'home');
+                if (savedTab !== 'home') {
+                    setTimeout(() => scrollToTab(savedTab, 'auto'), 500);
+                }
+            }, []);
             const filteredData = useMemo(() => {
                 const combinedZones = [...zones];
                 
@@ -1881,93 +1935,119 @@
             }, [zones, search, localCreations, selectedFilters]);
             return createElement('div', { className: 'min-h-screen flex flex-col' },
                 createElement('div', { className: 'sidebar-trigger' }),
-                createElement('aside', { className: `sidebar flex flex-col p-9 gap-12 ${forceSidebar ? 'forced' : ''}` }, createElement('div', { className: 'flex items-center gap-5' }, createElement('div', { className: 'w-11 h-11 themed-btn rounded-2xl flex items-center justify-center text-2xl' }, 'N'), createElement('span', { className: 'font-black italic text-2xl text-white tracking-tighter uppercase' }, 'NEXUS')), createElement('nav', { className: 'flex-1 flex flex-col gap-3' }, createElement('button', { onClick: () => { setActiveTab('home'); setSearch(""); }, className: `sidebar-item ${activeTab === 'home' ? 'active' : ''}` }, createElement(HomeIcon), 'launch menu'), createElement('button', { onClick: () => setActiveTab('games'), className: `sidebar-item ${activeTab === 'games' ? 'active' : ''}` }, createElement(GameIcon), 'games'), createElement('button', { onClick: () => setActiveTab('anime'), className: `sidebar-item ${activeTab === 'anime' ? 'active' : ''}` }, createElement(AnimeIcon), 'anime'), createElement('button', { onClick: () => setActiveTab('manga'), className: `sidebar-item ${activeTab === 'manga' ? 'active' : ''}` }, createElement(MangaIcon), 'manga'), createElement('button', { onClick: () => setActiveTab('art'), className: `sidebar-item ${activeTab === 'art' ? 'active' : ''}` }, createElement(ArtIcon), 'make stuff'), createElement('button', { onClick: () => setActiveTab('utilities'), className: `sidebar-item ${activeTab === 'utilities' ? 'active' : ''}` }, createElement(ToolIcon), 'tools n stuff')), createElement('button', { onClick: () => setSettingsOpen(true), className: 'sidebar-item mt-auto themed-glass' }, 'Config Settings')),
-                activeTab !== 'home' && createElement(Fragment, null, createElement('div', { className: 'header-trigger' }), createElement('header', { className: `header-bar glass px-12 py-8 border-b themed-border flex items-center justify-between ${forceHeader ? 'forced' : ''}` }, createElement('h1', { className: 'text-2xl font-black italic text-white uppercase tracking-tighter' }, activeTab), createElement('div', { className: 'flex gap-5' }, activeTab === 'games' && createElement('input', { className: 'w-96 px-8 py-4 rounded-3xl themed-input text-sm outline-none', placeholder: 'search...', value: search, onChange: e => setSearch(e.target.value) }), createElement('button', { onClick: () => setSettingsOpen(true), className: 'p-4 glass rounded-3xl hover:bg-white/10' }, '⚙️')))),
-                createElement('main', { className: `${activeTab === 'home' ? '' : 'max-w-[150rem] mx-auto w-full py-24 px-12 h-screen'}` }, createElement(AnimatePresence, { mode: 'wait' }, activeTab === 'home' ? createElement(HomeView, { key: 'home', onNavigate: setActiveTab, onSearch: setSearch }) : activeTab === 'games' ? createElement(motion.div, { key: 'games', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 }, transition: { duration: 0.7 } }, 
-                    createElement('div', { className: 'relative mb-12 flex items-center gap-4' },
-                        createElement('button', {
-                            onClick: () => setFilterMenuOpen(!filterMenuOpen),
-                            className: 'glass px-8 py-4 rounded-3xl flex items-center gap-3 text-sm font-bold uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-all'
-                        }, 
-                            createElement('span', null, selectedFilters.length > 0 ? `${selectedFilters.length} Filters Active` : 'Filter Games'),
-                            createElement('span', { className: `transition-transform ${filterMenuOpen ? 'rotate-180' : ''}` }, '▼')
-                        ),
-                        selectedFilters.length > 0 && createElement('button', {
-                            onClick: () => setSelectedFilters([]),
-                            className: 'text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500'
-                        }, 'Clear All'),
-                        filterMenuOpen && createElement('div', { className: 'absolute top-full left-0 mt-4 z-[150] glass p-6 rounded-[2rem] w-80 grid grid-cols-1 gap-2 max-h-96 overflow-y-auto visible-scroll shadow-2xl' },
-                            CATEGORIES.map(cat => {
-                                const isActive = selectedFilters.includes(cat.id);
-                                return createElement('button', {
-                                    key: cat.id,
-                                    onClick: () => {
-                                        setSelectedFilters(prev => isActive ? prev.filter(id => id !== cat.id) : [...prev, cat.id]);
-                                    },
-                                    className: `flex items-center justify-between px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${isActive ? 'themed-btn' : 'hover:themed-glass themed-text-muted'}`
+                createElement('aside', { className: `sidebar flex flex-col p-9 gap-12 ${forceSidebar ? 'forced' : ''}` }, createElement('div', { className: 'flex items-center gap-5' }, createElement('div', { className: 'w-11 h-11 themed-btn rounded-2xl flex items-center justify-center text-2xl' }, 'N'), createElement('span', { className: 'font-black italic text-2xl text-white tracking-tighter uppercase' }, 'NEXUS')), createElement('nav', { className: 'flex-1 flex flex-col gap-3' }, createElement('button', { onClick: () => { scrollToTab('home'); setSearch(""); }, className: `sidebar-item ${activeTab === 'home' ? 'active' : ''}` }, createElement(HomeIcon), 'launch menu'), createElement('button', { onClick: () => scrollToTab('games'), className: `sidebar-item ${activeTab === 'games' ? 'active' : ''}` }, createElement(GameIcon), 'games'), createElement('button', { onClick: () => scrollToTab('anime'), className: `sidebar-item ${activeTab === 'anime' ? 'active' : ''}` }, createElement(AnimeIcon), 'anime'), createElement('button', { onClick: () => scrollToTab('manga'), className: `sidebar-item ${activeTab === 'manga' ? 'active' : ''}` }, createElement(MangaIcon), 'manga'), createElement('button', { onClick: () => scrollToTab('art'), className: `sidebar-item ${activeTab === 'art' ? 'active' : ''}` }, createElement(ArtIcon), 'make stuff'), createElement('button', { onClick: () => scrollToTab('utilities'), className: `sidebar-item ${activeTab === 'utilities' ? 'active' : ''}` }, createElement(ToolIcon), 'tools n stuff')), createElement('button', { onClick: () => setSettingsOpen(true), className: 'sidebar-item mt-auto themed-glass' }, 'Config Settings')),
+                createElement(Fragment, null, createElement('div', { className: 'header-trigger' }), createElement('header', { className: `header-bar glass px-12 py-6 border-b themed-border flex items-center justify-between ${forceHeader ? 'forced' : ''}` }, createElement('h1', { className: 'text-2xl font-black italic text-white uppercase tracking-tighter' }, activeTab), createElement('div', { className: 'flex gap-5' }, activeTab === 'games' && createElement('input', { className: 'w-96 px-8 py-4 rounded-3xl themed-input text-sm outline-none', placeholder: 'search...', value: search, onChange: e => setSearch(e.target.value) }), createElement('button', { onClick: () => setSettingsOpen(true), className: 'p-4 glass rounded-3xl hover:bg-white/10' }, '⚙️')))),
+                createElement('main', { className: 'w-full' }, 
+                    createElement('section', { id: 'section-home', className: 'min-h-screen' }, 
+                        createElement(HomeView, { key: 'home', onNavigate: scrollToTab, onSearch: setSearch })
+                    ),
+                    createElement('section', { id: 'section-games', className: 'min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col' },
+                        createElement(motion.div, { key: 'games', className: 'flex-1 flex flex-col', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, transition: { duration: 0.7 } }, 
+                            createElement('div', { className: 'relative mb-12 flex items-center gap-4' },
+                                createElement('button', {
+                                    onClick: () => setFilterMenuOpen(!filterMenuOpen),
+                                    className: 'glass px-8 py-4 rounded-3xl flex items-center gap-3 text-sm font-bold uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-all'
                                 }, 
-                                    cat.name,
-                                    isActive && createElement('span', null, '✓')
-                                );
-                            })
+                                    createElement('span', null, selectedFilters.length > 0 ? `${selectedFilters.length} Filters Active` : 'Filter Games'),
+                                    createElement('span', { className: `transition-transform ${filterMenuOpen ? 'rotate-180' : ''}` }, '▼')
+                                ),
+                                selectedFilters.length > 0 && createElement('button', {
+                                    onClick: () => setSelectedFilters([]),
+                                    className: 'text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500'
+                                }, 'Clear All'),
+                                filterMenuOpen && createElement('div', { className: 'absolute top-full left-0 mt-4 z-[150] glass p-6 rounded-[2rem] w-80 grid grid-cols-1 gap-2 max-h-96 overflow-y-auto visible-scroll shadow-2xl' },
+                                    CATEGORIES.map(cat => {
+                                        const isActive = selectedFilters.includes(cat.id);
+                                        return createElement('button', {
+                                            key: cat.id,
+                                            onClick: () => {
+                                                setSelectedFilters(prev => isActive ? prev.filter(id => id !== cat.id) : [...prev, cat.id]);
+                                            },
+                                            className: `flex items-center justify-between px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${isActive ? 'themed-btn' : 'hover:themed-glass themed-text-muted'}`
+                                        }, 
+                                            cat.name,
+                                            isActive && createElement('span', null, '✓')
+                                        );
+                                    })
+                                )
+                            ),
+                            !filteredData ? createElement('div', { className: 'whoopies-box' }, createElement('svg', { className: 'whoopies-guy', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h2V9H7v2zm8 0h2V9h-2v2zm-3 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' })), createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-3xl font-black italic uppercase text-white' }, "oops! nothing here,"), createElement('p', { className: 'themed-text-muted font-medium text-lg mt-2' }, "try another search?"))) : 
+                            (selectedFilters.length > 0 || search) ? 
+                                createElement('div', { className: 'vault-grid' }, 
+                                    filteredData.all.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) }))
+                                ) :
+                                createElement(React.Fragment, null, !search && createElement('section', { className: 'space-y-16 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Daily Spotlight'), createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-10' }, createElement('div', { className: 'lg:col-span-8' }, filteredData.hero && createElement(GameCard, { variant: 'hero', gameEntry: filteredData.hero, onClick: () => addNode(filteredData.hero) })), createElement('div', { className: 'lg:col-span-5 flex flex-col gap-10' }, filteredData.restFeatured.slice(0, 2).map(g => createElement(GameCard, { key: g.name, variant: 'wide', gameEntry: g, onClick: () => addNode(g) }))), createElement('div', { className: 'lg:col-span-13 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10' }, filteredData.restFeatured.slice(2, 8).map(g => createElement(GameCard, { key: g.name, gameEntry: g, onClick: () => addNode(g) }))))), createElement('section', { className: 'space-y-10 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Hot Right Now'), createElement('div', { className: 'flex gap-10 overflow-x-auto pb-12 visible-scroll' }, filteredData.hot.map(g => createElement(GameCard, { key: g.name, variant: 'carousel', gameEntry: g, onClick: () => addNode(g) })))), createElement('section', { className: 'space-y-24' }, filteredData.alpha.map(block => createElement('div', { key: block.char, className: 'vault-section mb-28' }, createElement('div', { className: 'letter-header flex items-center gap-10 mb-16' }, createElement('div', { className: 'letter-circle' }, block.char), createElement('div', { className: 'flex-1 h-px themed-border' })), createElement('div', { className: 'vault-grid' }, block.games.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) })))))))
                         )
                     ),
-                    !filteredData ? createElement('div', { className: 'whoopies-box' }, createElement('svg', { className: 'whoopies-guy', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h2V9H7v2zm8 0h2V9h-2v2zm-3 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' })), createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-3xl font-black italic uppercase text-white' }, "oops! nothing here,"), createElement('p', { className: 'themed-text-muted font-medium text-lg mt-2' }, "try another search?"))) : 
-                    (selectedFilters.length > 0 || search) ? 
-                        createElement('div', { className: 'vault-grid' }, 
-                            filteredData.all.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) }))
-                        ) :
-                        createElement(React.Fragment, null, !search && createElement('section', { className: 'space-y-16 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Daily Spotlight'), createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-10' }, createElement('div', { className: 'lg:col-span-8' }, filteredData.hero && createElement(GameCard, { variant: 'hero', gameEntry: filteredData.hero, onClick: () => addNode(filteredData.hero) })), createElement('div', { className: 'lg:col-span-5 flex flex-col gap-10' }, filteredData.restFeatured.slice(0, 2).map(g => createElement(GameCard, { key: g.name, variant: 'wide', gameEntry: g, onClick: () => addNode(g) }))), createElement('div', { className: 'lg:col-span-13 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10' }, filteredData.restFeatured.slice(2, 8).map(g => createElement(GameCard, { key: g.name, gameEntry: g, onClick: () => addNode(g) }))))), createElement('section', { className: 'space-y-10 mb-40' }, createElement('h2', { className: 'section-header text-4xl' }, 'Hot Right Now'), createElement('div', { className: 'flex gap-10 overflow-x-auto pb-12 visible-scroll' }, filteredData.hot.map(g => createElement(GameCard, { key: g.name, variant: 'carousel', gameEntry: g, onClick: () => addNode(g) })))), createElement('section', { className: 'space-y-24' }, filteredData.alpha.map(block => createElement('div', { key: block.char, className: 'vault-section mb-28' }, createElement('div', { className: 'letter-header flex items-center gap-10 mb-16' }, createElement('div', { className: 'letter-circle' }, block.char), createElement('div', { className: 'flex-1 h-px themed-border' })), createElement('div', { className: 'vault-grid' }, block.games.map(g => createElement(GameCard, { key: g.name, variant: 'vault', gameEntry: g, onClick: () => addNode(g) })))))))) : activeTab === 'anime' ? createElement(motion.div, { key: 'anime', className: 'h-full flex flex-col gap-12' }, 
-                    !warningsAccepted.anime ? 
-                        createElement('div', { className: 'flex-1 flex items-center justify-center' },
-                            createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
-                                createElement('div', { className: 'glass p-16 rounded-[3.5rem] w-full max-w-xl flex flex-col gap-8 text-center' },
-                                    createElement('div', { className: 'space-y-4' },
-                                        createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Content Warning'),
-                                        createElement('p', { className: 'themed-text-muted text-[11px] font-bold uppercase tracking-widest leading-relaxed' }, 'This section contains external content that may include NSFW material. We recommend searching specifically for the titles you wish to view.')
-                                    ),
-                                    createElement('button', { 
-                                        onClick: () => setWarningsAccepted(prev => ({ ...prev, anime: true })),
-                                        className: 'themed-btn py-5 rounded-3xl text-[10px] font-black uppercase tracking-widest' 
-                                    }, 'I Understand, Proceed')
+                    createElement('section', { id: 'section-anime', className: 'h-screen max-w-[160rem] mx-auto w-full pt-16 pb-8 px-8 flex flex-col' },
+                        createElement(motion.div, { key: 'anime', className: 'flex-1 flex flex-col gap-6 min-h-0' }, 
+                            !warningsAccepted.anime ? 
+                                createElement('div', { className: 'flex-1 flex items-center justify-center' },
+                                    createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
+                                        createElement('div', { className: 'glass p-16 rounded-[3.5rem] w-full max-w-xl flex flex-col gap-8 text-center' },
+                                            createElement('div', { className: 'space-y-4' },
+                                                createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Content Warning'),
+                                                createElement('p', { className: 'themed-text-muted text-[11px] font-bold uppercase tracking-widest leading-relaxed' }, 'This section contains external content that may include NSFW material. We recommend searching specifically for the titles you wish to view.')
+                                            ),
+                                            createElement('button', { 
+                                                onClick: () => setWarningsAccepted(prev => ({ ...prev, anime: true })),
+                                                className: 'themed-btn py-5 rounded-3xl text-[10px] font-black uppercase tracking-widest' 
+                                            }, 'OK')
+                                        )
+                                    )
+                                ) :
+                                createElement(Fragment, null,
+                                    createElement('div', { className: 'flex justify-between items-end' }, 
+                                        createElement('h2', { className: 'text-6xl font-black italic text-white uppercase tracking-tighter leading-none' }, 'Anime'), 
+                                        createElement('div', { className: 'flex gap-4' },
+                                            createElement('button', { onClick: () => document.getElementById('anime-frame').requestFullscreen(), className: 'px-10 py-3 themed-btn rounded-2xl text-[9px] font-black uppercase tracking-widest' }, 'Fullscreen')
+                                        )
+                                    ), 
+                                    createElement('div', { className: 'flex-1 glass rounded-[3rem] overflow-hidden relative border border-white/5' }, 
+                                        createElement('iframe', { id: 'anime-frame', src: 'https://zoroto.se', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
+                                    )
                                 )
-                            )
-                        ) :
-                        createElement(Fragment, null,
-                            createElement('div', { className: 'flex justify-between items-center' }, 
-                                createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Anime'), 
-                                createElement('button', { onClick: () => document.getElementById('anime-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')
-                            ), 
-                            createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, 
-                                createElement('iframe', { id: 'anime-frame', src: 'https://hianime.to', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
-                            )
                         )
-                ) : activeTab === 'manga' ? createElement(motion.div, { key: 'manga', className: 'h-full flex flex-col gap-12' }, 
-                    !warningsAccepted.manga ? 
-                        createElement('div', { className: 'flex-1 flex items-center justify-center' },
-                            createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
-                                createElement('div', { className: 'glass p-16 rounded-[3.5rem] w-full max-w-xl flex flex-col gap-8 text-center' },
-                                    createElement('div', { className: 'space-y-4' },
-                                        createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Content Warning'),
-                                        createElement('p', { className: 'themed-text-muted text-[11px] font-bold uppercase tracking-widest leading-relaxed' }, 'This section contains external content that may include NSFW material. We recommend searching specifically for the titles you wish to view.')
-                                    ),
-                                    createElement('button', { 
-                                        onClick: () => setWarningsAccepted(prev => ({ ...prev, manga: true })),
-                                        className: 'themed-btn py-5 rounded-3xl text-[10px] font-black uppercase tracking-widest' 
-                                    }, 'I Understand, Proceed')
+                    ),
+                    createElement('section', { id: 'section-manga', className: 'h-screen max-w-[160rem] mx-auto w-full pt-16 pb-8 px-8 flex flex-col' },
+                        createElement(motion.div, { key: 'manga', className: 'flex-1 flex flex-col gap-6 min-h-0' }, 
+                            !warningsAccepted.manga ? 
+                                createElement('div', { className: 'flex-1 flex items-center justify-center' },
+                                    createElement(InteractiveTilt, { scale: 1.02, rotate: 4 },
+                                        createElement('div', { className: 'glass p-16 rounded-[3.5rem] w-full max-w-xl flex flex-col gap-8 text-center' },
+                                            createElement('div', { className: 'space-y-4' },
+                                                createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Content Warning'),
+                                                createElement('p', { className: 'themed-text-muted text-[11px] font-bold uppercase tracking-widest leading-relaxed' }, 'This section contains external content that may include NSFW material. We recommend searching specifically for the titles you wish to view.')
+                                            ),
+                                            createElement('button', { 
+                                                onClick: () => setWarningsAccepted(prev => ({ ...prev, manga: true })),
+                                                className: 'themed-btn py-5 rounded-3xl text-[10px] font-black uppercase tracking-widest' 
+                                            }, 'OK')
+                                        )
+                                    )
+                                ) :
+                                createElement(Fragment, null,
+                                    createElement('div', { className: 'flex justify-between items-end' }, 
+                                        createElement('h2', { className: 'text-6xl font-black italic text-white uppercase tracking-tighter leading-none' }, 'Manga'), 
+                                        createElement('div', { className: 'flex gap-4' },
+                                            createElement('button', { onClick: () => document.getElementById('manga-frame').requestFullscreen(), className: 'px-10 py-3 themed-btn rounded-2xl text-[9px] font-black uppercase tracking-widest' }, 'Fullscreen')
+                                        )
+                                    ), 
+                                    createElement('div', { className: 'flex-1 glass rounded-[3rem] overflow-hidden relative border border-white/5' }, 
+                                        createElement('iframe', { id: 'manga-frame', src: 'https://weebcentral.com', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
+                                    )
                                 )
-                            )
-                        ) :
-                        createElement(Fragment, null,
-                            createElement('div', { className: 'flex justify-between items-center' }, 
-                                createElement('h2', { className: 'text-5xl font-black italic text-white uppercase tracking-tighter' }, 'Manga'), 
-                                createElement('button', { onClick: () => document.getElementById('manga-frame').requestFullscreen(), className: 'px-14 py-4 themed-btn rounded-3xl' }, 'Enter Fullscale')
-                            ), 
-                            createElement('div', { className: 'flex-1 glass rounded-[4rem] overflow-hidden' }, 
-                                createElement('iframe', { id: 'manga-frame', src: 'https://weebcentral.com', className: 'w-full h-full border-none', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
-                            )
                         )
-                ) : activeTab === 'art' ? createElement(ArtView, { key: 'art' }) : createElement(motion.div, { key: 'utils', className: 'max-w-6xl mx-auto space-y-28' }, createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-7xl font-black italic text-white uppercase tracking-tighter' }, 'Utilities')), createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-16' }, createElement(InteractiveTilt, null, createElement('div', { onClick: () => setShowIDE(true), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'IDE Workspace'))), createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html', className: 'hidden', onChange: e => {
+                    ),
+                    createElement('section', { id: 'section-art', className: 'min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col' },
+                        createElement(ArtView, { key: 'art' })
+                    ),
+                    createElement('section', { id: 'section-utilities', className: 'min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col' },
+                        createElement(motion.div, { key: 'utils', className: 'max-w-6xl mx-auto space-y-28' }, 
+                            createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-7xl font-black italic text-white uppercase tracking-tighter' }, 'Utilities')), 
+                            createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-16' }, 
+                                createElement(InteractiveTilt, null, createElement('div', { onClick: () => setShowIDE(true), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'IDE Workspace'))), 
+                                createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html', className: 'hidden', onChange: e => {
                                     if (e.target.files[0]) {
                                         const reader = new FileReader();
                                         reader.onload = (ev) => setSaveModalData(ev.target.result);
@@ -1993,8 +2073,10 @@
                                     }, '✕')
                                 )))
                             )
-                        ))),
-                activeTab === 'home' && createElement('div', { className: 'dock-wrapper' }, createElement(InteractiveTilt, { scale: 1.12, rotate: 6 }, createElement(motion.div, { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 }, className: 'dock shadow-2xl backdrop-blur-3xl' }, createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('games') }, createElement(GameIcon), createElement('div', { className: 'tooltip' }, 'games')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('anime') }, createElement(AnimeIcon), createElement('div', { className: 'tooltip' }, 'anime')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('manga') }, createElement(MangaIcon), createElement('div', { className: 'tooltip' }, 'manga')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('art') }, createElement(ArtIcon), createElement('div', { className: 'tooltip' }, 'art')), createElement('div', { className: 'dock-btn', onClick: () => setActiveTab('utilities') }, createElement(ToolIcon), createElement('div', { className: 'tooltip' }, 'tools'))))),
+                        )
+                    )
+                ),
+                activeTab === 'home' && createElement('div', { className: 'dock-wrapper' }, createElement(InteractiveTilt, { scale: 1.12, rotate: 6 }, createElement(motion.div, { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 }, className: 'dock shadow-2xl backdrop-blur-3xl' }, createElement('div', { className: 'dock-btn', onClick: () => scrollToTab('games') }, createElement(GameIcon), createElement('div', { className: 'tooltip' }, 'games')), createElement('div', { className: 'dock-btn', onClick: () => scrollToTab('anime') }, createElement(AnimeIcon), createElement('div', { className: 'tooltip' }, 'anime')), createElement('div', { className: 'dock-btn', onClick: () => scrollToTab('manga') }, createElement(MangaIcon), createElement('div', { className: 'tooltip' }, 'manga')), createElement('div', { className: 'dock-btn', onClick: () => scrollToTab('art') }, createElement(ArtIcon), createElement('div', { className: 'tooltip' }, 'art')), createElement('div', { className: 'dock-btn', onClick: () => scrollToTab('utilities') }, createElement(ToolIcon), createElement('div', { className: 'tooltip' }, 'tools'))))),
                 showIDE && createElement(IDE, { 
                     onClose: () => setShowIDE(false), 
                     onDeploy: code => addNode({ name: 'Development Node', versions: { IDE: { name: 'Development Node', url: URL.createObjectURL(new Blob([code], { type: "text/html" })), isIDE: true } } }),
@@ -2047,7 +2129,8 @@
                         setLocalCreations({ games: [], tools: [] });
                         setSettingsOpen(false);
                     },
-                    allGames: filteredData?.all || []
+                    allGames: filteredData?.all || [],
+                    onResetWarnings: () => setWarningsAccepted({ anime: false, manga: false })
                 })
             );
         };
