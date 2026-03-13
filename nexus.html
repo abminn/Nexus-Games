@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Nexus</title>
 	<script src="https://cdn.tailwindcss.com"></script>
-	<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/gn-math/gn-math.github.io@main/favicon.png">
+	<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/gn-math/gn-math.github.io@latest/favicon.png">
 
 	<!-- CodeMirror Core -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -303,18 +303,18 @@
         import ReactDOM from 'react-dom/client';
         import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 
-        const ZONES_URL = "https://cdn.jsdelivr.net/gh/gn-math/assets@main/zones.json";
-        const COVER_BASE = "https://cdn.jsdelivr.net/gh/gn-math/covers@main";
-        const HTML_BASE = "https://cdn.jsdelivr.net/gh/gn-math/html@main";
+        const ZONES_URL = "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json";
+        const COVER_BASE = "https://cdn.jsdelivr.net/gh/gn-math/covers@latest";
+        const HTML_BASE = "https://cdn.jsdelivr.net/gh/gn-math/html@latest";
 
         // External Repositories Config
-        const ZOTRONIX_LIST = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/all.js";
-        const ZOTRONIX_BASE = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Games/";
-        const ZOTRONIX_IMAGES = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@main/Images/";
+        const ZOTRONIX_LIST = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@latest/Games/all.js";
+        const ZOTRONIX_BASE = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@latest/Games/";
+        const ZOTRONIX_IMAGES = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@latest/Images/";
 
-        const ABMINN_LIST = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Games/all.js";
-        const ABMINN_BASE = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Games/";
-        const ABMINN_IMAGES = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@main/Images/";
+        const ABMINN_LIST = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@latest/Games/all.js";
+        const ABMINN_BASE = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@latest/Games/";
+        const ABMINN_IMAGES = "https://cdn.jsdelivr.net/gh/abminn/Nexus-Games@latest/Images/";
 
         const HOT_TITLES = ["Pokemon Collection", "Eaglercraft Collection", "ULTRAKILL", "Pizza Tower", "R.E.PO", "People Playground", "Sprunki", "WebFishing", "Blade Ball", "OvO", "1v1.lol", "Tunnel Rush", "Buckshot Roulette"];
         const FEATURED_TITLES = ["Eaglercraft Collection", "Geometry Dash Lite", "Retro Bowl", "Friday Night Funkin", "Happy Wheels", "Slope", "Papa's Freezeria", "Cookie Clicker", "Plants vs Zombies", "Retro Bowl College", "Subway Surfers", "Moto X3M", "Pokemon Collection"];
@@ -1409,7 +1409,7 @@
             const sizeClasses = { hero: 'aspect-square w-full h-full', wide: 'aspect-video w-full', normal: 'aspect-[3/4] w-full', carousel: 'aspect-[3/4] w-[220px] flex-shrink-0', vault: 'aspect-[3/4] w-full' };
             const coverSrc = (prioritizedGame.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
+                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@latest/local_game_cover.png');
             return createElement(InteractiveTilt, { className: sizeClasses[variant] },
                 createElement(motion.div, { whileTap: { scale: 0.98 }, onClick, className: 'group glass rounded-[2.5rem] overflow-hidden cursor-pointer w-full h-full relative' },
                     createElement('img', { src: coverSrc, className: 'w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110', loading: 'lazy' }),
@@ -1459,7 +1459,7 @@
                         let finalUrl = activeVersion.url;
                         const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
                         if (isFNAF) {
-                            finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                            finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
                         }
                         if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
                         
@@ -1495,8 +1495,13 @@
                                     const folderCounts = {};
                                     indices.forEach(p => {
                                         const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
-                                        folderCounts[p] = allFiles.filter(f => f.startsWith(folder) && f !== p).length;
+                                        // Only count files in the EXACT same folder to avoid picking top-level shells
+                                        folderCounts[p] = allFiles.filter(f => {
+                                            const fFolder = f.includes('/') ? f.substring(0, f.lastIndexOf('/') + 1) : '';
+                                            return fFolder === folder && f !== p;
+                                        }).length;
                                     });
+                                    // Prefer the one with most files in its own directory
                                     bestPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
                                 } else if (filteredHtml.length > 0) {
                                     bestPath = filteredHtml.reduce((a, b) => a.split('/').length <= b.split('/').length ? a : b);
@@ -1632,7 +1637,7 @@
                             }
 
                             if (isFNAF) {
-                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
+                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/";
                                 doc.documentElement.innerHTML = doc.documentElement.innerHTML
                                     .replace(/var buildUrl = "Build";/g, `var buildUrl = "${baseUrl}Build";`)
                                     .replace(/streamingAssetsUrl: "StreamingAssets"/g, `streamingAssetsUrl: "${baseUrl}StreamingAssets"`)
@@ -1842,30 +1847,32 @@
                                         if (node.tagName === 'SCRIPT' && node.src && (node.src.includes('.loader.js') || node.src.includes('UnityLoader.js'))) { 
                                             const prevSrc = node.src; const originalOnload = node.onload; node.remove(); 
                                             const applyFix = () => {
-                                                changeUnityLoader(prevSrc).then(loaderUrl => { 
-                                                    const script = document.createElement('script'); script.src = loaderUrl; 
-                                                    script.onload = () => { 
-                                                        if (originalOnload) originalOnload(); 
-                                                        else if (typeof createUnityInstance === 'function') { 
-                                                            const cfg = window.config || (typeof config !== 'undefined' ? config : null); 
-                                                            const cvs = window.canvas || (typeof canvas !== 'undefined' ? canvas : document.querySelector('canvas') || document.querySelector('#unity-canvas')); 
-                                                            if (cfg && cvs) { 
-                                                                cvs.classList.add('nexus-fullscreen-canvas');
-                                                                createUnityInstance(cvs, cfg, (progress) => { 
-                                                                    const pbf = document.querySelector('#progress_fill') || document.querySelector('.gameloader-progressbar-progress') || (window.progressBarFull); 
-                                                                    if (pbf) pbf.style.width = (100 * progress) + '%'; 
-                                                                }).then((unityInstance) => { 
-                                                                    window.unityGameInstance = unityInstance; 
-                                                                    const lb = document.querySelector('#loadingBlock') || document.querySelector('.gameloader') || (window.loadingBar); 
-                                                                    if (lb) lb.style.display = 'none'; 
-                                                                    const uc = document.querySelector('#unity-container');
-                                                                    if (uc) { uc.style.display = 'block'; uc.classList.add('nexus-fullscreen-canvas'); }
-                                                                }).catch((message) => { console.error(message); }); 
+                                                if (typeof changeUnityLoader === 'function') {
+                                                    changeUnityLoader(prevSrc).then(loaderUrl => { 
+                                                        const script = document.createElement('script'); script.src = loaderUrl; 
+                                                        script.onload = () => { 
+                                                            if (originalOnload) originalOnload(); 
+                                                            else if (typeof createUnityInstance === 'function') { 
+                                                                const cfg = window.config || (typeof config !== 'undefined' ? config : null); 
+                                                                const cvs = window.canvas || (typeof canvas !== 'undefined' ? canvas : document.querySelector('canvas') || document.querySelector('#unity-canvas')); 
+                                                                if (cfg && cvs) { 
+                                                                    cvs.classList.add('nexus-fullscreen-canvas');
+                                                                    createUnityInstance(cvs, cfg, (progress) => { 
+                                                                        const pbf = document.querySelector('#progress_fill') || document.querySelector('.gameloader-progressbar-progress') || (window.progressBarFull); 
+                                                                        if (pbf) pbf.style.width = (100 * progress) + '%'; 
+                                                                    }).then((unityInstance) => { 
+                                                                        window.unityGameInstance = unityInstance; 
+                                                                        const lb = document.querySelector('#loadingBlock') || document.querySelector('.gameloader') || (window.loadingBar); 
+                                                                        if (lb) lb.style.display = 'none'; 
+                                                                        const uc = document.querySelector('#unity-container');
+                                                                        if (uc) { uc.style.display = 'block'; uc.classList.add('nexus-fullscreen-canvas'); }
+                                                                    }).catch((message) => { console.error(message); }); 
+                                                                } 
                                                             } 
-                                                        } 
-                                                    }; 
-                                                    origAppendChild.call(document.body, script); 
-                                                });
+                                                        }; 
+                                                        origAppendChild.call(document.body, script); 
+                                                    });
+                                                }
                                             };
                                             if (typeof changeUnityLoader === 'function') applyFix();
                                             else { const interval = setInterval(() => { if (typeof changeUnityLoader === 'function') { clearInterval(interval); applyFix(); } }, 50); }
@@ -1877,8 +1884,8 @@
                                 doc.head.appendChild(unityFixScript);
                             }
                             html = (doc.doctype ? new XMLSerializer().serializeToString(doc.doctype) : '<!DOCTYPE html>') + doc.documentElement.outerHTML;
-                            if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
-                            if (html.includes("var config")) html = html.replaceAll("var ", "window.");
+                            if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@latest/ytgame.js", "Zotronix/Ignis-Games@latest/Games/Crossy%20Road/ytgame.js");
+                            if (html.includes("var config")) html = html.replaceAll("var config", "window.config");
                             const blob = new Blob([html], { type: "text/html" }); 
                             setPlayerUrl(URL.createObjectURL(blob));
                         } catch (e) { 
@@ -1894,7 +1901,11 @@
                             iframeRef.current.contentWindow.postMessage({ type: 'NEXUS_MUTE', muted: true }, '*');
                         } catch (e) {}
                     }
-                    if (playerUrl?.startsWith('blob:')) URL.revokeObjectURL(playerUrl); 
+                    if (playerUrl?.startsWith('blob:')) {
+                        setTimeout(() => {
+                            try { URL.revokeObjectURL(playerUrl); } catch(e) {}
+                        }, 10000);
+                    }
                 };
             }, [activeVersion, hasBeenResumed, refreshKey]);
 
@@ -2083,7 +2094,7 @@
                             if (z.name.toLowerCase().includes('five nights at last breath')) {
                                 Object.keys(z.versions).forEach(src => {
                                     if (z.versions[src].url.includes('750.html')) {
-                                        z.versions[src].url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                                        z.versions[src].url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
                                     }
                                 });
                             }
@@ -2095,7 +2106,7 @@
                             fallbackZones.forEach(z => {
                                 if (z.name.toLowerCase().includes('five nights at last breath')) {
                                     if (z.versions.Nexus.url.includes('750.html')) {
-                                        z.versions.Nexus.url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                                        z.versions.Nexus.url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
                                     }
                                 }
                             });
@@ -2155,7 +2166,7 @@
                             Local: {
                                 name: lg.name,
                                 url: url,
-                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png',
+                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@latest/local_game_cover.png',
                                 isLocal: true
                             }
                         }
@@ -2363,8 +2374,13 @@
                                                     const folderCounts = {};
                                                     indices.forEach(p => {
                                                         const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
-                                                        folderCounts[p] = Object.keys(files).filter(f => f.startsWith(folder) && f !== p).length;
+                                                        // Only count files in the EXACT same folder to avoid picking top-level shells
+                                                        folderCounts[p] = Object.keys(files).filter(f => {
+                                                            const fFolder = f.includes('/') ? f.substring(0, f.lastIndexOf('/') + 1) : '';
+                                                            return fFolder === folder && f !== p;
+                                                        }).length;
                                                     });
+                                                    // Prefer the one with most files in its own directory
                                                     indexPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
                                                 } else if (filteredHtml.length > 0) {
                                                     // Pick shortest path .html
