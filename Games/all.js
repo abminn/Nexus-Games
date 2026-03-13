@@ -5,7 +5,9 @@ const allGames = [
   "PICOHOT",
   "Red Handed",
   "Hero To Zero",
-  "Demi Daggers"
+  "Demi Daggers",
+  "snow!",
+  
 ];
 
 const adminGames = [];
