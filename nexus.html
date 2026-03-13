@@ -1409,7 +1409,7 @@
             const sizeClasses = { hero: 'aspect-square w-full h-full', wide: 'aspect-video w-full', normal: 'aspect-[3/4] w-full', carousel: 'aspect-[3/4] w-[220px] flex-shrink-0', vault: 'aspect-[3/4] w-full' };
             const coverSrc = (prioritizedGame.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@latest/local_game_cover.png');
+                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
             return createElement(InteractiveTilt, { className: sizeClasses[variant] },
                 createElement(motion.div, { whileTap: { scale: 0.98 }, onClick, className: 'group glass rounded-[2.5rem] overflow-hidden cursor-pointer w-full h-full relative' },
                     createElement('img', { src: coverSrc, className: 'w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110', loading: 'lazy' }),
@@ -1459,7 +1459,7 @@
                         let finalUrl = activeVersion.url;
                         const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
                         if (isFNAF) {
-                            finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
+                            finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
                         }
                         if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
                         
@@ -1477,10 +1477,27 @@
                         const deepSearchGitHub = async (url) => {
                             const ghMatch = url.match(/cdn\.jsdelivr\.net\/gh\/([^/]+)\/([^/@]+)(?:@([^/]+))?\/(.*)/);
                             if (!ghMatch) return null;
-                            const [_, user, repo, branch = 'main', basePath] = ghMatch;
+                            let [_, user, repo, branch = 'main', basePath] = ghMatch;
+                            
+                            // Resolve 'latest' to the actual default branch for GitHub API calls
+                            let effectiveBranch = branch;
+                            if (branch === 'latest') {
+                                try {
+                                    const repoRes = await fetch(`https://api.github.com/repos/${user}/${repo}`);
+                                    if (repoRes.ok) {
+                                        const repoData = await repoRes.json();
+                                        effectiveBranch = repoData.default_branch || 'main';
+                                    } else {
+                                        effectiveBranch = 'main';
+                                    }
+                                } catch (e) {
+                                    effectiveBranch = 'main';
+                                }
+                            }
+
                             const cleanBasePath = basePath.replace(/\/index\.html$/, '').replace(/\/$/, '');
                             try {
-                                const treeRes = await fetch(`https://api.github.com/repos/${user}/${repo}/git/trees/${branch}?recursive=1`);
+                                const treeRes = await fetch(`https://api.github.com/repos/${user}/${repo}/git/trees/${effectiveBranch}?recursive=1`);
                                 if (!treeRes.ok) return null;
                                 const treeData = await treeRes.json();
                                 const allFiles = treeData.tree.map(node => node.path);
@@ -1637,7 +1654,7 @@
                             }
 
                             if (isFNAF) {
-                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/";
+                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
                                 doc.documentElement.innerHTML = doc.documentElement.innerHTML
                                     .replace(/var buildUrl = "Build";/g, `var buildUrl = "${baseUrl}Build";`)
                                     .replace(/streamingAssetsUrl: "StreamingAssets"/g, `streamingAssetsUrl: "${baseUrl}StreamingAssets"`)
@@ -1884,7 +1901,7 @@
                                 doc.head.appendChild(unityFixScript);
                             }
                             html = (doc.doctype ? new XMLSerializer().serializeToString(doc.doctype) : '<!DOCTYPE html>') + doc.documentElement.outerHTML;
-                            if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@latest/ytgame.js", "Zotronix/Ignis-Games@latest/Games/Crossy%20Road/ytgame.js");
+                            if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
                             if (html.includes("var config")) html = html.replaceAll("var config", "window.config");
                             const blob = new Blob([html], { type: "text/html" }); 
                             setPlayerUrl(URL.createObjectURL(blob));
@@ -2094,7 +2111,7 @@
                             if (z.name.toLowerCase().includes('five nights at last breath')) {
                                 Object.keys(z.versions).forEach(src => {
                                     if (z.versions[src].url.includes('750.html')) {
-                                        z.versions[src].url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
+                                        z.versions[src].url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
                                     }
                                 });
                             }
@@ -2106,7 +2123,7 @@
                             fallbackZones.forEach(z => {
                                 if (z.name.toLowerCase().includes('five nights at last breath')) {
                                     if (z.versions.Nexus.url.includes('750.html')) {
-                                        z.versions.Nexus.url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@latest/last-breath-epstein/index.html";
+                                        z.versions.Nexus.url = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
                                     }
                                 }
                             });
@@ -2166,7 +2183,7 @@
                             Local: {
                                 name: lg.name,
                                 url: url,
-                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@latest/local_game_cover.png',
+                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png',
                                 isLocal: true
                             }
                         }
