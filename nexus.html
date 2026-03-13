@@ -34,6 +34,9 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
 
+	<!-- ZIP Support -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 	<script type="importmap">
 		{
       "imports": {
@@ -1234,7 +1237,11 @@
         };
 
         const SaveModal = ({ content, onSave, onRun, onClose }) => {
-            const [name, setName] = useState('');
+            const isZipContent = typeof content === 'object' && content.isZip;
+            const initialName = isZipContent ? content.name : '';
+            const actualContent = isZipContent ? content.content : content;
+
+            const [name, setName] = useState(initialName);
             const [type, setType] = useState('game');
             const [cover, setCover] = useState('');
             const imageUploadRef = useRef(null);
@@ -1247,6 +1254,17 @@
                     reader.readAsDataURL(file);
                 }
             };
+
+            const getFinalData = (extra = {}) => ({
+                name: name || 'Unsaved Creation',
+                type,
+                cover,
+                content: actualContent,
+                isZip: isZipContent,
+                zipFiles: isZipContent ? content.zipFiles : null,
+                indexPath: isZipContent ? content.indexPath : null,
+                ...extra
+            });
 
             return createElement(motion.div, { 
                 initial: { opacity: 0 }, animate: { opacity: 1 }, 
@@ -1300,12 +1318,12 @@
                             createElement('div', { className: 'flex gap-3' },
                                 createElement('button', { onClick: onClose, className: 'flex-1 py-5 rounded-3xl themed-btn-secondary text-[10px] font-black uppercase tracking-widest' }, 'Cancel'),
                                 createElement('button', { 
-                                    onClick: () => onRun({ name: name || 'Unsaved Creation', content }),
+                                    onClick: () => onRun(getFinalData()),
                                     className: 'flex-1 py-5 rounded-3xl themed-btn-secondary text-[10px] font-black uppercase tracking-widest' 
                                 }, 'Run Once')
                             ),
                             createElement('button', { 
-                                onClick: () => onSave({ name, type, cover, content }),
+                                onClick: () => onSave(getFinalData()),
                                 className: 'w-full py-5 rounded-3xl themed-btn text-[10px] font-black uppercase tracking-widest' 
                             }, 'Save to Nexus')
                         )
@@ -1435,39 +1453,337 @@
             }, [gameEntry.name]);
 
             useEffect(() => {
-                const resolveAndLoad = async () => {
-                    if (!hasBeenResumed && isMinimized) return;
-                    setIsLoading(true);
-                    let finalUrl = activeVersion.url;
-                    const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
-                    if (isFNAF) {
-                        finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
-                    }
-                    if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
-                    const isSingleHtml = (finalUrl.endsWith(".html") || activeVersion.isLocal || activeVersion.isIDE) && !activeVersion.isUnity;
-                    if (isSingleHtml) {
-                        try {
-                            const res = await fetch(finalUrl); var html = await res.text();
-                            const parser = new DOMParser(); var doc = parser.parseFromString(html, "text/html");
-                            
-                            if (isFNAF) {
-                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
-                                html = html.replace(/var buildUrl = "Build";/g, `var buildUrl = "${baseUrl}Build";`);
-                                html = html.replace(/streamingAssetsUrl: "StreamingAssets"/g, `streamingAssetsUrl: "${baseUrl}StreamingAssets"`);
-                                html = html.replace(/basePath: 'Build\/'/g, `basePath: '${baseUrl}Build/'`);
-                                html = html.replace(/href="TemplateData\//g, `href="${baseUrl}TemplateData/`);
-                                html = html.replace(/src="TemplateData\//g, `src="${baseUrl}TemplateData/`);
-                                doc = parser.parseFromString(html, "text/html");
+                    const resolveAndLoad = async () => {
+                        if (!hasBeenResumed && isMinimized) return;
+                        setIsLoading(true);
+                        let finalUrl = activeVersion.url;
+                        const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
+                        if (isFNAF) {
+                            finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
+                        }
+                        if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
+                        
+                        const tryFetch = async (url) => {
+                            try {
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                    const text = await res.text();
+                                    if (text.toLowerCase().includes('<html') || text.toLowerCase().includes('<!doctype')) return text;
+                                }
+                            } catch (e) {}
+                            return null;
+                        };
+
+                        const deepSearchGitHub = async (url) => {
+                            const ghMatch = url.match(/cdn\.jsdelivr\.net\/gh\/([^/]+)\/([^/@]+)(?:@([^/]+))?\/(.*)/);
+                            if (!ghMatch) return null;
+                            const [_, user, repo, branch = 'main', basePath] = ghMatch;
+                            const cleanBasePath = basePath.replace(/\/index\.html$/, '').replace(/\/$/, '');
+                            try {
+                                const treeRes = await fetch(`https://api.github.com/repos/${user}/${repo}/git/trees/${branch}?recursive=1`);
+                                if (!treeRes.ok) return null;
+                                const treeData = await treeRes.json();
+                                const allFiles = treeData.tree.map(node => node.path);
+                                
+                                const relevantFiles = allFiles.filter(p => p.startsWith(cleanBasePath) && p.toLowerCase().endsWith('.html'));
+                                const ignoreFolders = ['__macosx', 'node_modules', '.git', 'v8-compile-cache'];
+                                const filteredHtml = relevantFiles.filter(p => !ignoreFolders.some(f => p.toLowerCase().includes(f)));
+
+                                const indices = filteredHtml.filter(p => p.toLowerCase().endsWith('index.html'));
+                                let bestPath = '';
+                                if (indices.length > 0) {
+                                    const folderCounts = {};
+                                    indices.forEach(p => {
+                                        const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
+                                        folderCounts[p] = allFiles.filter(f => f.startsWith(folder) && f !== p).length;
+                                    });
+                                    bestPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
+                                } else if (filteredHtml.length > 0) {
+                                    bestPath = filteredHtml.reduce((a, b) => a.split('/').length <= b.split('/').length ? a : b);
+                                }
+
+                                if (bestPath && bestPath !== basePath && bestPath !== basePath + '/index.html') {
+                                    return `https://cdn.jsdelivr.net/gh/${user}/${repo}@${branch}/${bestPath}`;
+                                }
+                            } catch (e) {}
+                            return null;
+                        };
+
+                        let html = null;
+                        let resolvedUrl = finalUrl;
+
+                        if (activeVersion.isLocal || activeVersion.isIDE) {
+                            const res = await fetch(finalUrl);
+                            html = await res.text();
+                        } else {
+                            // Try deep search first for GitHub repos to find the real game
+                            const deeperUrl = await deepSearchGitHub(finalUrl);
+                            if (deeperUrl) {
+                                resolvedUrl = deeperUrl;
+                                html = await tryFetch(resolvedUrl);
                             }
 
-                            // Add base tag to handle relative paths for multi-part games
-                            if (!doc.querySelector('base') && !finalUrl.startsWith('blob:')) {
+                            if (!html) {
+                                html = await tryFetch(finalUrl);
+                                if (!html && !finalUrl.split('?')[0].endsWith('.html')) {
+                                    const base = finalUrl.endsWith('/') ? finalUrl : finalUrl + '/';
+                                    const commonPaths = [
+                                        'index.html', 
+                                        'game/index.html', 
+                                        'html/index.html', 
+                                        'public/index.html', 
+                                        'dist/index.html',
+                                        'build/index.html',
+                                        'web/index.html',
+                                        'game.html'
+                                    ];
+                                    for (const path of commonPaths) {
+                                        const foundHtml = await tryFetch(base + path);
+                                        if (foundHtml) {
+                                            html = foundHtml;
+                                            resolvedUrl = base + path;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (html === null) {
+                            setIsLoading(false);
+                            return;
+                        }
+
+                        try {
+                            const parser = new DOMParser(); 
+                            let doc = parser.parseFromString(html, "text/html");
+                            
+                            const zipFiles = activeVersion.zipFiles || {};
+                            const zipIndexPath = activeVersion.indexPath || '';
+                            const zipBaseDir = zipIndexPath.includes('/') ? zipIndexPath.substring(0, zipIndexPath.lastIndexOf('/') + 1) : '';
+
+                            // 1. ZIP Asset Resolution (Static Elements)
+                            if (activeVersion.isZip) {
+                                const resolvePath = (relPath) => {
+                                    if (!relPath || relPath.includes('://') || relPath.startsWith('data:') || relPath.startsWith('blob:')) return relPath;
+                                    try {
+                                        const absolutePath = new URL(relPath, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
+                                        return zipFiles[absolutePath] || relPath;
+                                    } catch(e) { return relPath; }
+                                };
+
+                                // Patch all elements with src/href/data
+                                const elements = doc.querySelectorAll('[src], [href], [data]');
+                                for (const el of elements) {
+                                    const attr = el.hasAttribute('src') ? 'src' : (el.hasAttribute('href') ? 'href' : 'data');
+                                    const val = el.getAttribute(attr);
+                                    if (val) el.setAttribute(attr, resolvePath(val));
+                                }
+                                
+                                // Patch CSS in style tags
+                                const styles = doc.querySelectorAll('style');
+                                for (const style of styles) {
+                                    style.textContent = style.textContent.replace(/url\(['"]?([^'")]*)['"]?\)/g, (match, url) => {
+                                        return `url("${resolvePath(url)}")`;
+                                    });
+                                }
+                            }
+
+                            // 2. External Script Patching (Interception)
+                            const patchContent = (content) => {
+                                if (!content) return content;
+                                return content
+                                    .replace(/\b(window\.|top\.|parent\.|self\.)?location\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\b/g, 'window._nLoc.$2')
+                                    .replace(/(?<![\w.])location\b(?!\s*:)/g, 'window._nLoc')
+                                    .replace(/\b(window\.)?(top|parent)\s*(!==|!=|===|==)\s*(window\.)?self\b/g, '(window.self$3window.self)')
+                                    .replace(/\b(window\.)?self\s*(!==|!=|===|==)\s*(window\.)?(top|parent)\b/g, '(window.self$2window.self)')
+                                    .replace(/\bdocument\.referrer\b/g, '""')
+                                    .replace(/\bdocument\.domain\b/g, '"itch.io"')
+                                    .replace(/\bdocument\.URL\b/g, '"https://itch.io/"')
+                                    .replace(/\bdocument\.baseURI\b/g, '"https://itch.io/"')
+                                    .replace(/\bwindow\.frameElement\b/g, 'null')
+                                    .replace(/\bwindow\.origin\b/g, '"https://itch.io"');
+                            };
+
+                            // Patch inline scripts
+                            const inlineScripts = doc.querySelectorAll('script:not([src])');
+                            for (const script of inlineScripts) {
+                                script.textContent = patchContent(script.textContent);
+                            }
+
+                            // Patch external scripts
+                            const scripts = doc.querySelectorAll('script[src]');
+                            for (const script of scripts) {
+                                const src = script.getAttribute('src');
+                                if (src && !src.startsWith('blob:') && !src.includes('google') && !src.includes('analytics')) {
+                                    const isItch = src.includes('itch.io') || !src.includes('://') || src.startsWith('blob:');
+                                    if (isItch) {
+                                        try {
+                                            const scriptUrl = src.startsWith('blob:') ? src : new URL(src, resolvedUrl).href;
+                                            const scriptRes = await fetch(scriptUrl);
+                                            if (scriptRes.ok) {
+                                                let scriptContent = await scriptRes.text();
+                                                const scriptBlob = new Blob([patchContent(scriptContent)], { type: 'text/javascript' });
+                                                script.src = URL.createObjectURL(scriptBlob);
+                                            }
+                                        } catch (e) {}
+                                    }
+                                }
+                            }
+
+                            if (isFNAF) {
+                                const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
+                                doc.documentElement.innerHTML = doc.documentElement.innerHTML
+                                    .replace(/var buildUrl = "Build";/g, `var buildUrl = "${baseUrl}Build";`)
+                                    .replace(/streamingAssetsUrl: "StreamingAssets"/g, `streamingAssetsUrl: "${baseUrl}StreamingAssets"`)
+                                    .replace(/basePath: 'Build\/'/g, `basePath: '${baseUrl}Build/'`)
+                                    .replace(/href="TemplateData\//g, `href="${baseUrl}TemplateData/`)
+                                    .replace(/src="TemplateData\//g, `src="${baseUrl}TemplateData/`);
+                            }
+
+                            // Add base tag
+                            if (!doc.querySelector('base')) {
                                 const base = doc.createElement('base');
-                                base.href = finalUrl;
+                                base.href = activeVersion.isZip ? 'https://itch.io/' : resolvedUrl;
                                 doc.head.insertBefore(base, doc.head.firstChild);
                             }
+
+                            const bypassScript = doc.createElement('script');
+                            bypassScript.textContent = String.raw`
+                                (function() {
+                                    const originalLocation = window.location;
+                                    const zipFiles = ${JSON.stringify(zipFiles)};
+                                    const zipIndexPath = ${JSON.stringify(zipIndexPath)};
+                                    const zipBaseDir = ${JSON.stringify(zipBaseDir)};
+                                    const originalBase = originalLocation.origin === 'null' ? '' : originalLocation.origin + originalLocation.pathname.substring(0, originalLocation.pathname.lastIndexOf('/') + 1);
+                                    
+                                    const locProxy = new Proxy(originalLocation, {
+                                        get: (target, prop) => {
+                                            if (prop === 'hostname' || prop === 'host') return 'itch.io';
+                                            if (prop === 'origin') return 'https://itch.io';
+                                            if (prop === 'href') return 'https://itch.io/';
+                                            if (prop === 'protocol') return 'https:';
+                                            if (prop === 'port') return '';
+                                            if (prop === 'pathname') return '/';
+                                            if (prop === 'ancestorOrigins') return {
+                                                length: 1, item: () => 'https://itch.io', contains: (o) => o.includes('itch.io'), 0: 'https://itch.io'
+                                            };
+                                            if (prop === Symbol.toPrimitive || prop === 'toString') return () => 'https://itch.io/';
+                                            let val = target[prop];
+                                            if (typeof val === 'function') return val.bind(target);
+                                            return val;
+                                        },
+                                        set: (target, prop, val) => {
+                                            if (prop === 'href' && val.includes('itch.io')) return true;
+                                            try { target[prop] = val; } catch (e) {}
+                                            return true;
+                                        }
+                                    });
+
+                                    Object.defineProperty(window, '_nLoc', {
+                                        get: () => locProxy,
+                                        set: (v) => { try { window.location.href = v; } catch(e) {} },
+                                        configurable: true
+                                    });
+
+                                    const resolveZipPath = (url) => {
+                                        if (!zipFiles || Object.keys(zipFiles).length === 0) return null;
+                                        try {
+                                            let path = url;
+                                            if (url.startsWith('https://itch.io/')) path = url.replace('https://itch.io/', '');
+                                            else if (originalBase && url.startsWith(originalBase)) path = url.replace(originalBase, '');
+                                            else if (url.startsWith('blob:')) return null;
+                                            
+                                            const absolutePath = new URL(path, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
+                                            return zipFiles[absolutePath] || null;
+                                        } catch (e) { return null; }
+                                    };
+
+                                    const originalFetch = window.fetch;
+                                    window.fetch = function(input, init) {
+                                        let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input && input.url));
+                                        const zipUrl = resolveZipPath(url);
+                                        if (zipUrl) return originalFetch(zipUrl, init);
+                                        if (typeof input === 'string' && input.startsWith('https://itch.io/') && originalBase) {
+                                            return originalFetch(input.replace('https://itch.io/', originalBase), init);
+                                        }
+                                        return originalFetch(input, init);
+                                    };
+
+                                    const originalXHR = window.XMLHttpRequest.prototype.open;
+                                    window.XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                                        const zipUrl = resolveZipPath(url);
+                                        if (zipUrl) url = zipUrl;
+                                        else if (typeof url === 'string' && url.startsWith('https://itch.io/') && originalBase) {
+                                            url = url.replace('https://itch.io/', originalBase);
+                                        }
+                                        return originalXHR.call(this, method, url, ...args);
+                                    };
+
+                                    const origCreateElement = document.createElement;
+                                    document.createElement = function(tag) {
+                                        const el = origCreateElement.apply(this, arguments);
+                                        if (tag.toLowerCase() === 'script') {
+                                            const originalSetAttribute = el.setAttribute;
+                                            el.setAttribute = function(name, value) {
+                                                if (name.toLowerCase() === 'src' && value && !value.startsWith('blob:') && !value.includes('google')) {
+                                                    const zipUrl = resolveZipPath(value);
+                                                    if (zipUrl) {
+                                                        originalSetAttribute.call(el, 'src', zipUrl);
+                                                        return;
+                                                    }
+                                                    const absoluteUrl = new URL(value, originalBase || location.href).href;
+                                                    fetch(absoluteUrl).then(res => res.text()).then(content => {
+                                                        const blob = new Blob([patchContent(content)], { type: 'text/javascript' });
+                                                        originalSetAttribute.call(el, 'src', URL.createObjectURL(blob));
+                                                    }).catch(() => originalSetAttribute.call(el, 'src', value));
+                                                    return;
+                                                }
+                                                return originalSetAttribute.apply(this, arguments);
+                                            };
+                                            Object.defineProperty(el, 'src', {
+                                                set: function(url) { el.setAttribute('src', url); },
+                                                get: function() { return el.getAttribute('src'); }
+                                            });
+                                        }
+                                        return el;
+                                    };
+
+                                    const patchContent = ${patchContent.toString()};
+
+                                    try {
+                                        const originalTop = window.top;
+                                        const originalParent = window.parent;
+                                        Object.defineProperty(window, 'top', { get: () => { try { if (originalTop.location.href) return originalTop; } catch(e) {} return window; }, configurable: true });
+                                        Object.defineProperty(window, 'parent', { get: () => { try { if (originalParent.location.href) return originalParent; } catch(e) {} return window; }, configurable: true });
+                                    } catch (e) {}
+
+                                    try {
+                                        Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
+                                        Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
+                                        Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
+                                        Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
+                                        Object.defineProperty(document, 'location', { get: () => window._nLoc, set: (v) => { window.location.href = v; }, configurable: true });
+                                    } catch (e) {}
+
+                                    try {
+                                        Object.defineProperty(window, 'origin', { get: () => 'https://itch.io', configurable: true });
+                                        Object.defineProperty(window, 'frameElement', { get: () => null, configurable: true });
+                                    } catch (e) {}
+
+                                    try {
+                                        const proto = Location.prototype;
+                                        const origAssign = proto.assign;
+                                        const origReplace = proto.replace;
+                                        proto.assign = function(url) { if (url.includes('itch.io')) return; return origAssign.apply(this, arguments); };
+                                        proto.replace = function(url) { if (url.includes('itch.io')) return; return origReplace.apply(this, arguments); };
+                                    } catch (e) {}
+                                })();
+                            `;
+                            doc.head.insertBefore(bypassScript, doc.head.firstChild);
                             
-                            doc.head.innerHTML += `
+                            doc.head.innerHTML += String.raw`
+                            <meta name="referrer" content="no-referrer">
                             <style>
                                 html { background: #000; }
                                 body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
@@ -1479,7 +1795,6 @@
                                     const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
                                     window._nexusAudioContexts = [];
                                     window._nexusAudioElements = [];
-                                    
                                     if (OrigAudioContext) {
                                         const ProxiedAudioContext = function() {
                                             const ctx = new OrigAudioContext(...arguments);
@@ -1488,14 +1803,12 @@
                                         };
                                         window.AudioContext = window.webkitAudioContext = ProxiedAudioContext;
                                     }
-
                                     const OrigAudio = window.Audio;
                                     window.Audio = function() {
                                         const a = new OrigAudio(...arguments);
                                         window._nexusAudioElements.push(a);
                                         return a;
                                     };
-
                                     const origCreateElement = document.createElement;
                                     document.createElement = function(tagName) {
                                         const el = origCreateElement.apply(this, arguments);
@@ -1507,30 +1820,21 @@
                                 })();
                                 window.addEventListener('message', (e) => {
                                     if (e.data.type === 'NEXUS_MUTE') {
-                                        document.querySelectorAll('audio, video').forEach(m => {
-                                            m.muted = e.data.muted;
-                                            if (e.data.muted) m.pause();
-                                        });
-                                        if (window._nexusAudioElements) {
-                                            window._nexusAudioElements.forEach(m => {
-                                                m.muted = e.data.muted;
-                                                if (e.data.muted) m.pause();
-                                            });
-                                        }
-                                        if (window._nexusAudioContexts) {
-                                            window._nexusAudioContexts.forEach(ctx => {
-                                                if (e.data.muted) ctx.suspend();
-                                                else ctx.resume();
-                                            });
-                                        }
+                                        document.querySelectorAll('audio, video').forEach(m => { m.muted = e.data.muted; if (e.data.muted) m.pause(); });
+                                        if (window._nexusAudioElements) window._nexusAudioElements.forEach(m => { m.muted = e.data.muted; if (e.data.muted) m.pause(); });
+                                        if (window._nexusAudioContexts) window._nexusAudioContexts.forEach(ctx => { if (e.data.muted) ctx.suspend(); else ctx.resume(); });
                                     }
                                 });
-                                // Focus fix for typing
                                 window.addEventListener('mousedown', () => window.focus());
                             <\/script>`;
 
                             if (!isFNAF && (html.includes("createUnityInstance") || html.includes("UnityLoader"))) {
-                                doc.head.innerHTML += `<script src="https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js"><\/script><script>
+                                const fixesScript = doc.createElement('script');
+                                fixesScript.src = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games/Games/fixes.js";
+                                doc.head.appendChild(fixesScript);
+
+                                const unityFixScript = doc.createElement('script');
+                                unityFixScript.textContent = String.raw`
                                     const realConsole = window.console; window.runnerWindow = window; 
                                     window.runnerWindow.proxyConsole = { log: (...args) => realConsole.log(...args), error: (...args) => realConsole.error(...args), warn: (...args) => realConsole.warn(...args) }; 
                                     const origAppendChild = Node.prototype.appendChild; 
@@ -1550,8 +1854,6 @@
                                                                 createUnityInstance(cvs, cfg, (progress) => { 
                                                                     const pbf = document.querySelector('#progress_fill') || document.querySelector('.gameloader-progressbar-progress') || (window.progressBarFull); 
                                                                     if (pbf) pbf.style.width = (100 * progress) + '%'; 
-                                                                    const pt = document.querySelector('.gameloader-progress-info');
-                                                                    if (pt) pt.innerText = "Downloading file: " + Math.round(progress*100) + "%";
                                                                 }).then((unityInstance) => { 
                                                                     window.unityGameInstance = unityInstance; 
                                                                     const lb = document.querySelector('#loadingBlock') || document.querySelector('.gameloader') || (window.loadingBar); 
@@ -1571,16 +1873,20 @@
                                         } 
                                         return origAppendChild.apply(this, arguments); 
                                     };
-                                <\/script>`;
+                                `;
+                                doc.head.appendChild(unityFixScript);
                             }
-                            html = doc.documentElement.outerHTML;
+                            html = (doc.doctype ? new XMLSerializer().serializeToString(doc.doctype) : '<!DOCTYPE html>') + doc.documentElement.outerHTML;
                             if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
-							if (html.includes("var config")) html = html.replaceAll("var ", "window.");
-                            const blob = new Blob([html], { type: "text/html" }); setPlayerUrl(URL.createObjectURL(blob));
-                        } catch (e) { setPlayerUrl(finalUrl); }
-                    } else { setPlayerUrl(finalUrl); }
-                    setIsLoading(false);
-                }; 
+                            if (html.includes("var config")) html = html.replaceAll("var ", "window.");
+                            const blob = new Blob([html], { type: "text/html" }); 
+                            setPlayerUrl(URL.createObjectURL(blob));
+                        } catch (e) { 
+                            console.error('Nexus: Patching failed', e);
+                            setPlayerUrl(resolvedUrl); 
+                        }
+                        setIsLoading(false);
+                    };
                 resolveAndLoad();
                 return () => { 
                     if (iframeRef.current && iframeRef.current.contentWindow) {
@@ -2032,11 +2338,59 @@
                             createElement('div', { className: 'text-center' }, createElement('h2', { className: 'text-7xl font-black italic text-white uppercase tracking-tighter' }, 'Utilities')), 
                             createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-16' }, 
                                 createElement(InteractiveTilt, null, createElement('div', { onClick: () => setShowIDE(true), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'IDE Workspace'))), 
-                                createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html', className: 'hidden', onChange: e => {
+                                createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html,.zip', className: 'hidden', onChange: async e => {
                                     if (e.target.files[0]) {
-                                        const reader = new FileReader();
-                                        reader.onload = (ev) => setSaveModalData(ev.target.result);
-                                        reader.readAsText(e.target.files[0]);
+                                        const file = e.target.files[0];
+                                        if (file.name.endsWith('.zip')) {
+                                            try {
+                                                const zip = await JSZip.loadAsync(file);
+                                                const files = {};
+                                                const fileEntries = Object.entries(zip.files).filter(([path, entry]) => !entry.dir);
+                                                
+                                                for (const [path, zipEntry] of fileEntries) {
+                                                    const blob = await zipEntry.async('blob');
+                                                    files[path] = URL.createObjectURL(blob);
+                                                }
+
+                                                const htmlFiles = Object.keys(files).filter(p => p.toLowerCase().endsWith('.html'));
+                                                const ignoreFolders = ['__macosx', 'node_modules', '.git', 'v8-compile-cache'];
+                                                const filteredHtml = htmlFiles.filter(p => !ignoreFolders.some(folder => p.toLowerCase().includes(folder)));
+
+                                                let indexPath = '';
+                                                const indices = filteredHtml.filter(p => p.toLowerCase().endsWith('index.html'));
+                                                if (indices.length > 0) {
+                                                    // Heuristic: pick the index.html in the folder with the most neighbor files
+                                                    const folderCounts = {};
+                                                    indices.forEach(p => {
+                                                        const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
+                                                        folderCounts[p] = Object.keys(files).filter(f => f.startsWith(folder) && f !== p).length;
+                                                    });
+                                                    indexPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
+                                                } else if (filteredHtml.length > 0) {
+                                                    // Pick shortest path .html
+                                                    indexPath = filteredHtml.reduce((a, b) => a.split('/').length <= b.split('/').length ? a : b);
+                                                }
+                                                
+                                                if (indexPath) {
+                                                    setSaveModalData({ 
+                                                        content: files[indexPath], 
+                                                        name: file.name.replace('.zip', ''), 
+                                                        isZip: true, 
+                                                        zipFiles: files, 
+                                                        indexPath: indexPath 
+                                                    });
+                                                } else {
+                                                    alert('No index.html or .html file found in ZIP. Please ensure your game has an entry point.');
+                                                }
+                                            } catch (err) {
+                                                console.error('ZIP Load Error:', err);
+                                                alert('Failed to load ZIP file.');
+                                            }
+                                        } else {
+                                            const reader = new FileReader();
+                                            reader.onload = (ev) => setSaveModalData(ev.target.result);
+                                            reader.readAsText(file);
+                                        }
                                     }
                                 } }), createElement('h3', { className: 'text-4xl font-black italic text-white uppercase tracking-tighter' }, 'Loader'))),
                                 localCreations.tools.map(tool => createElement(InteractiveTilt, { key: tool.id }, createElement('div', { 
@@ -2071,13 +2425,35 @@
                     content: saveModalData,
                     onClose: () => setSaveModalData(null),
                     onRun: (data) => {
-                        const blob = new Blob([data.content], { type: 'text/html' });
-                        addNode({ name: data.name, versions: { Local: { name: data.name, url: URL.createObjectURL(blob), isLocal: true } } });
+                        let url = data.content;
+                        if (!data.isZip) {
+                            const blob = new Blob([data.content], { type: 'text/html' });
+                            url = URL.createObjectURL(blob);
+                        }
+                        addNode({ 
+                            name: data.name, 
+                            versions: { 
+                                Local: { 
+                                    name: data.name, 
+                                    url: url, 
+                                    isLocal: true,
+                                    isZip: data.isZip,
+                                    zipFiles: data.zipFiles,
+                                    indexPath: data.indexPath
+                                } 
+                            } 
+                        });
                         setSaveModalData(null);
                     },
                     onSave: (data) => {
                         const id = Date.now();
-                        const finalData = { ...data, name: data.name || 'Unnamed Project', id };
+                        let url = data.content;
+                        if (!data.isZip) {
+                            const blob = new Blob([data.content], { type: 'text/html' });
+                            url = URL.createObjectURL(blob);
+                        }
+                        const finalData = { ...data, name: data.name || 'Unnamed Project', id, content: url };
+                        
                         if (data.type === 'game') {
                             setLocalCreations(prev => ({ ...prev, games: [...prev.games, finalData] }));
                         } else {
