@@ -8,7 +8,6 @@ const allGames = [
   "Demi Daggers",
   "snow!",
   "irori",
-  
 ];
 
 const adminGames = [];
