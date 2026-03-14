@@ -7,6 +7,7 @@ const allGames = [
   "Hero To Zero",
   "Demi Daggers",
   "snow!",
+  "irori",
   
 ];
 
