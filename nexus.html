@@ -2031,12 +2031,33 @@
             );
         };
 
-        const HomeView = ({ onNavigate, onSearch }) => {
+        const HomeView = ({ onNavigate, onSearch, recentlyPlayed, addNode }) => {
             const [query, setQuery] = useState(""); const [glows, setGlows] = useState({ a: false, z: false });
             useEffect(() => { const i = setInterval(() => { setGlows({ a: Math.random() > 0.5, z: Math.random() > 0.5 }); }, 3000); return () => clearInterval(i); }, []);
             return createElement(motion.div, { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 }, transition: { duration: 0.8 }, className: 'home-container px-6' },
                 createElement(InteractiveTilt, { rotate: 8, scale: 1.06 }, createElement('h1', { className: 'home-title select-none' }, 'nexus'), createElement('p', { className: 'home-subtitle select-none' }, 'imagine if we were all autistic goldfish')),
                 createElement(InteractiveTilt, { className: 'search-container', scale: 1.02, rotate: 6 }, createElement('div', { className: 'search-bar group' }, createElement('svg', { className: 'w-6 h-6 themed-text-muted transition-colors group-focus-within:themed-text-bright', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, createElement('path', { d: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' })), createElement('input', { type: 'text', placeholder: 'i do the search thingies.', value: query, onChange: e => setQuery(e.target.value), onKeyDown: e => { if (e.key === 'Enter') { onSearch(query); onNavigate('games'); } } }))),
+                recentlyPlayed && recentlyPlayed.length > 0 && createElement('div', { className: 'mt-16 w-full max-w-4xl' },
+                    createElement('h3', { className: 'text-[10px] font-black uppercase tracking-[0.4em] themed-text-muted mb-8 text-center' }, 'Jump Back In'),
+                    createElement('div', { className: 'flex flex-wrap justify-center gap-6' },
+                        recentlyPlayed.map(game => {
+                            const prioritizedGame = game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0];
+                            const coverSrc = (prioritizedGame?.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
+                                ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
+                                : (prioritizedGame?.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
+                            return createElement('div', { 
+                                key: game.name, 
+                                onClick: () => addNode(game),
+                                className: 'group relative w-24 aspect-square glass rounded-2xl cursor-pointer overflow-hidden hover:scale-110 transition-all border border-white/5'
+                            }, 
+                                createElement('img', { src: coverSrc, className: 'w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity' }),
+                                createElement('div', { className: 'absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2' },
+                                    createElement('span', { className: 'text-[7px] font-black uppercase tracking-tighter text-white truncate w-full' }, game.name)
+                                )
+                            );
+                        })
+                    )
+                ),
                 createElement('div', { className: 'stat-row select-none' }, createElement('span', { className: 'flex items-center gap-3 transition-all' }, createElement('div', { className: `stat-dot ${glows.a ? 'glow' : ''}` }), 'abmin'), createElement('span', { className: 'opacity-20' }, '·'), createElement('span', { className: 'flex items-center gap-3 transition-all' }, createElement('div', { className: `stat-dot ${glows.z ? 'glow' : ''}` }), 'zotronix')),
                 createElement('div', { className: 'flex flex-col items-center opacity-40 gap-3 mt-16' }, createElement('p', { className: 'text-[11px] font-black uppercase tracking-[0.6em] themed-text-muted' }, 'have fun!'), createElement('div', { className: 'flex gap-10 text-[12px] font-bold uppercase italic tracking-widest' }, createElement('a', { href: '#', className: 'hover:themed-text-bright transition-all hover:scale-105' }, 'by'), createElement('span', { className: 'opacity-10' }, '|'), createElement('a', { href: '#', className: 'hover:themed-text-bright transition-all hover:scale-105' }, 'jjh')))
             );
@@ -2071,6 +2092,7 @@
             const [search, setSearch] = useState(""); 
             const [activeTab, setActiveTab] = useState(Storage.load('activeTab', 'home')); 
             const [activeNodes, setActiveNodes] = useState(Storage.load('activeNodes', []));
+            const [recentlyPlayed, setRecentlyPlayed] = useState(Storage.load('recentlyPlayed', []));
             const [currentTheme, setCurrentTheme] = useState(Storage.load('theme', 'dark')); 
             const [cloak, setCloak] = useState(Storage.load('cloak', 'Nexus')); 
             const [settingsOpen, setSettingsOpen] = useState(false); 
@@ -2079,10 +2101,12 @@
             const [saveModalData, setSaveModalData] = useState(null);
             const [warningsAccepted, setWarningsAccepted] = useState(Storage.load('warningsAccepted', { anime: false, manga: false }));
             const fileRef = useRef(null); 
+            const searchRef = useRef(null);
             const [forceSidebar, setForceSidebar] = useState(false); 
             const [forceHeader, setForceHeader] = useState(false);
             const [selectedFilters, setSelectedFilters] = useState(Storage.load('selectedFilters', []));
             const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+            const [showScrollTop, setShowScrollTop] = useState(false);
             const isScrollingRef = useRef(false);
 
             const scrollToTab = (tabId, behavior = 'smooth') => {
@@ -2103,9 +2127,14 @@
                 Storage.save('activeNodes', activeNodes);
                 Storage.saveRaw('localCreations', localCreations);
                 Storage.save('warningsAccepted', warningsAccepted);
-            }, [activeTab, currentTheme, cloak, selectedFilters, activeNodes, localCreations, warningsAccepted]);
+                Storage.save('recentlyPlayed', recentlyPlayed);
+            }, [activeTab, currentTheme, cloak, selectedFilters, activeNodes, localCreations, warningsAccepted, recentlyPlayed]);
 
             const addNode = (gameEntry) => {
+                setRecentlyPlayed(prev => {
+                    const filtered = prev.filter(g => g.name !== gameEntry.name);
+                    return [gameEntry, ...filtered].slice(0, 6);
+                });
                 const existingIndex = activeNodes.findIndex(n => n.gameEntry.name === gameEntry.name);
                 if (existingIndex !== -1) {
                     const newNodes = activeNodes.map((n, i) => ({
@@ -2170,12 +2199,29 @@
                     }
                 }; load().finally(() => setIsInitialLoading(false));
             }, []);
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === 'Escape') {
+                        setActiveNodes(prev => prev.map(n => ({ ...n, isMinimized: true })));
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [activeTab]);
+
+            useEffect(() => {
+                if (activeTab === 'games') {
+                    // searchRef.current?.focus(); // Removed as per user request
+                }
+            }, [activeTab]);
+
             useEffect(() => { document.title = cloak || 'Nexus'; document.body.className = THEMES.find(t => t.id === currentTheme)?.class || ''; }, [currentTheme, cloak]);
             useEffect(() => { setForceSidebar(false); setForceHeader(false); if (activeTab === 'home') { setForceSidebar(true); const t = setTimeout(() => setForceSidebar(false), 1500); return () => clearTimeout(t); } else { setForceHeader(true); const t = setTimeout(() => setForceHeader(false), 1500); return () => clearTimeout(t); } }, [activeTab]);
 
             useEffect(() => {
                 const handleScroll = () => {
                     if (isScrollingRef.current) return;
+                    setShowScrollTop(window.scrollY > 500);
                     const tabs = ['home', 'games', 'anime', 'manga', 'art', 'utilities'];
                     let current = activeTab;
 
@@ -2309,25 +2355,27 @@
                 ),
                 createElement('div', { className: 'sidebar-trigger' }),
                 createElement('aside', { className: `sidebar flex flex-col p-9 gap-12 ${forceSidebar ? 'forced' : ''}` }, createElement('div', { className: 'flex items-center gap-5' }, createElement('div', { className: 'w-11 h-11 themed-btn rounded-2xl flex items-center justify-center text-2xl' }, 'N'), createElement('span', { className: 'font-black italic text-2xl text-white tracking-tighter uppercase' }, 'NEXUS')), createElement('nav', { className: 'flex-1 flex flex-col gap-3' }, createElement('button', { onClick: () => { scrollToTab('home'); setSearch(""); }, className: `sidebar-item ${activeTab === 'home' ? 'active' : ''}` }, createElement(HomeIcon), 'launch menu'), createElement('button', { onClick: () => scrollToTab('games'), className: `sidebar-item ${activeTab === 'games' ? 'active' : ''}` }, createElement(GameIcon), 'games'), createElement('button', { onClick: () => scrollToTab('anime'), className: `sidebar-item ${activeTab === 'anime' ? 'active' : ''}` }, createElement(AnimeIcon), 'anime'), createElement('button', { onClick: () => scrollToTab('manga'), className: `sidebar-item ${activeTab === 'manga' ? 'active' : ''}` }, createElement(MangaIcon), 'manga'), createElement('button', { onClick: () => scrollToTab('art'), className: `sidebar-item ${activeTab === 'art' ? 'active' : ''}` }, createElement(ArtIcon), 'make stuff'), createElement('button', { onClick: () => scrollToTab('utilities'), className: `sidebar-item ${activeTab === 'utilities' ? 'active' : ''}` }, createElement(ToolIcon), 'tools n stuff')), createElement('button', { onClick: () => setSettingsOpen(true), className: 'sidebar-item mt-auto themed-glass' }, 'Config Settings')),
-                createElement(Fragment, null, createElement('div', { className: 'header-trigger' }), createElement('header', { className: `header-bar glass px-12 py-6 border-b themed-border flex items-center justify-between ${forceHeader ? 'forced' : ''}` }, createElement('h1', { className: 'text-2xl font-black italic text-white uppercase tracking-tighter' }, activeTab), createElement('div', { className: 'flex gap-5' }, activeTab === 'games' && createElement('input', { className: 'w-96 px-8 py-4 rounded-3xl themed-input text-sm outline-none', placeholder: 'search...', value: search, onChange: e => setSearch(e.target.value) }), createElement('button', { onClick: () => setSettingsOpen(true), className: 'p-4 glass rounded-3xl hover:bg-white/10' }, '⚙️')))),
+                createElement(Fragment, null, createElement('div', { className: 'header-trigger' }), createElement('header', { className: `header-bar glass px-12 py-6 border-b themed-border flex items-center justify-between ${forceHeader ? 'forced' : ''}` }, createElement('h1', { className: 'text-2xl font-black italic text-white uppercase tracking-tighter' }, activeTab), createElement('div', { className: 'flex gap-5' }, activeTab === 'games' && createElement('input', { ref: searchRef, className: 'w-96 px-8 py-4 rounded-3xl themed-input text-sm outline-none', placeholder: 'search...', value: search, onChange: e => setSearch(e.target.value) }), createElement('button', { onClick: () => setSettingsOpen(true), className: 'p-4 glass rounded-3xl hover:bg-white/10' }, '⚙️')))),
                 createElement('main', { className: 'w-full' }, 
                     createElement('section', { id: 'section-home', className: 'min-h-screen' }, 
-                        createElement(HomeView, { key: 'home', onNavigate: scrollToTab, onSearch: setSearch })
+                        createElement(HomeView, { key: 'home', onNavigate: scrollToTab, onSearch: setSearch, recentlyPlayed: recentlyPlayed, addNode: addNode })
                     ),
                     createElement('section', { id: 'section-games', className: 'min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col' },
                         createElement(motion.div, { key: 'games', className: 'flex-1 flex flex-col', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, transition: { duration: 0.7 } }, 
-                            createElement('div', { className: 'relative mb-12 flex items-center gap-4' },
-                                createElement('button', {
-                                    onClick: () => setFilterMenuOpen(!filterMenuOpen),
-                                    className: 'glass px-8 py-4 rounded-3xl flex items-center gap-3 text-sm font-bold uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-all'
-                                }, 
-                                    createElement('span', null, selectedFilters.length > 0 ? `${selectedFilters.length} Filters Active` : 'Filter Games'),
-                                    createElement('span', { className: `transition-transform ${filterMenuOpen ? 'rotate-180' : ''}` }, '▼')
+                            createElement('div', { className: 'relative mb-12' },
+                                createElement('div', { className: 'flex items-center gap-4' },
+                                    createElement('button', {
+                                        onClick: () => setFilterMenuOpen(!filterMenuOpen),
+                                        className: 'glass px-8 py-4 rounded-3xl flex items-center gap-3 text-sm font-bold uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-all'
+                                    }, 
+                                        createElement('span', null, selectedFilters.length > 0 ? `${selectedFilters.length} Filters Active` : 'Filter Games'),
+                                        createElement('span', { className: `transition-transform ${filterMenuOpen ? 'rotate-180' : ''}` }, '▼')
+                                    ),
+                                    selectedFilters.length > 0 && createElement('button', {
+                                        onClick: () => setSelectedFilters([]),
+                                        className: 'text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500'
+                                    }, 'Clear All')
                                 ),
-                                selectedFilters.length > 0 && createElement('button', {
-                                    onClick: () => setSelectedFilters([]),
-                                    className: 'text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500'
-                                }, 'Clear All'),
                                 filterMenuOpen && createElement('div', { className: 'absolute top-full left-0 mt-4 z-[150] glass p-6 rounded-[2rem] w-80 grid grid-cols-1 gap-2 max-h-96 overflow-y-auto visible-scroll shadow-2xl' },
                                     CATEGORIES.map(cat => {
                                         const isActive = selectedFilters.includes(cat.id);
@@ -2377,7 +2425,7 @@
                                         )
                                     ), 
                                     createElement('div', { className: 'flex-1 glass rounded-[3rem] overflow-hidden relative border border-white/5' }, 
-                                        createElement('iframe', { id: 'anime-frame', src: 'https://www.zoroto.se/anime/?genre%5B%5D=action&genre%5B%5D=adventure&genre%5B%5D=fantasy&status=&type=&order=', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
+                                        createElement('iframe', { id: 'anime-frame', src: 'https://kuudere.ru', className: 'w-full h-full border-none bg-black', sandbox: 'allow-forms allow-scripts allow-same-origin allow-presentation', allow: 'fullscreen; autoplay; encrypted-media' })
                                     )
                                 )
                         )
@@ -2579,7 +2627,16 @@
                     },
                     allGames: filteredData?.all || [],
                     onResetWarnings: () => setWarningsAccepted({ anime: false, manga: false })
-                })
+                }),
+                createElement(AnimatePresence, null,
+                    showScrollTop && createElement(motion.button, {
+                        initial: { opacity: 0, y: 20 },
+                        animate: { opacity: 1, y: 0 },
+                        exit: { opacity: 0, y: 20 },
+                        onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+                        className: 'fixed bottom-10 right-10 z-[500] w-14 h-14 glass rounded-full flex items-center justify-center text-xl shadow-2xl hover:scale-110 transition-all border border-white/10'
+                    }, '↑')
+                )
             );
         };
         const root = ReactDOM.createRoot(document.getElementById('root')); root.render(createElement(App));
