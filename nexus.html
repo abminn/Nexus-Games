@@ -2084,59 +2084,42 @@
             );
         };
 
-        const HomeView = ({ onNavigate, onSearch, recentlyPlayed, addWindow, onDeleteRecent, onClearRecent, activeWindows, onKillWindow, onKillAllWindows }) => {
+        const HomeView = ({ onNavigate, onSearch, recentlyPlayed, addWindow, onDeleteRecent, onClearRecent, activeWindows, onKillGame, onKillAllWindows }) => {
             const [query, setQuery] = useState(""); const [glows, setGlows] = useState({ a: false, z: false });
             useEffect(() => { const i = setInterval(() => { setGlows({ a: Math.random() > 0.5, z: Math.random() > 0.5 }); }, 3000); return () => clearInterval(i); }, []);
+            
+            const combinedItems = useMemo(() => {
+                const items = [...recentlyPlayed];
+                activeWindows.forEach(win => {
+                    if (!items.find(g => g.name === win.gameEntry.name)) {
+                        items.push(win.gameEntry);
+                    }
+                });
+                return items;
+            }, [recentlyPlayed, activeWindows]);
+
             return createElement(motion.div, { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 }, transition: { duration: 0.8 }, className: 'home-container px-6' },
                 createElement(InteractiveTilt, { rotate: 8, scale: 1.06 }, createElement('h1', { className: 'home-title select-none' }, 'nexus'), createElement('p', { className: 'home-subtitle select-none' }, 'imagine if we were all autistic goldfish')),
                 createElement(InteractiveTilt, { className: 'search-container', scale: 1.02, rotate: 6 }, createElement('div', { className: 'search-bar group' }, createElement('svg', { className: 'w-6 h-6 themed-text-muted transition-colors group-focus-within:themed-text-bright', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, createElement('path', { d: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' })), createElement('input', { type: 'text', placeholder: 'i do the search thingies.', value: query, onChange: e => setQuery(e.target.value), onKeyDown: e => { if (e.key === 'Enter') { onSearch(query); onNavigate('games'); } } }))),
                 
-                /* Active Windows Section */
-                activeWindows && activeWindows.length > 0 && createElement('div', { className: 'mt-16 w-full max-w-4xl' },
-                    createElement('div', { className: 'flex items-center justify-between mb-8' },
-                        createElement('h3', { className: 'text-[10px] font-black uppercase tracking-[0.4em] themed-text-muted' }, 'Active Windows'),
-                        createElement('button', { 
-                            onClick: onKillAllWindows,
-                            className: 'text-[9px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-colors'
-                        }, 'Kill All')
-                    ),
-                    createElement('div', { className: 'flex flex-wrap justify-center gap-6' },
-                        activeWindows.map(win => {
-                            const game = win.gameEntry;
-                            const prioritizedGame = game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0];
-                            const coverSrc = (prioritizedGame?.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
-                                ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                                : (prioritizedGame?.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
-                            return createElement('div', { 
-                                key: win.id, 
-                                className: 'group relative w-24 aspect-square glass rounded-2xl cursor-pointer overflow-hidden hover:scale-110 transition-all border border-white/5'
-                            }, 
-                                createElement('div', { onClick: () => addWindow(game), className: 'w-full h-full' },
-                                    createElement('img', { src: coverSrc, className: 'w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity' }),
-                                    createElement('div', { className: 'absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2' },
-                                        createElement('span', { className: 'text-[7px] font-black uppercase tracking-tighter text-white truncate w-full' }, game.name)
-                                    )
-                                ),
-                                createElement('button', {
-                                    onClick: (e) => { e.stopPropagation(); onKillWindow(win.id); },
-                                    className: 'absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10'
-                                }, '✕')
-                            );
-                        })
-                    )
-                ),
-
-                /* Recently Played Section */
-                recentlyPlayed && recentlyPlayed.length > 0 && createElement('div', { className: 'mt-16 w-full max-w-4xl' },
+                /* Fused Windows & Recent Section */
+                combinedItems.length > 0 && createElement('div', { className: 'mt-16 w-full max-w-4xl' },
                     createElement('div', { className: 'flex items-center justify-between mb-8' },
                         createElement('h3', { className: 'text-[10px] font-black uppercase tracking-[0.4em] themed-text-muted' }, 'Jump Back In'),
-                        createElement('button', { 
-                            onClick: onClearRecent,
-                            className: 'text-[9px] font-black uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-colors'
-                        }, 'Clear All')
+                        createElement('div', { className: 'flex gap-4' },
+                            createElement('button', { 
+                                onClick: onClearRecent,
+                                className: 'text-[9px] font-black uppercase tracking-widest themed-text-muted hover:themed-text-bright transition-colors'
+                            }, 'Clear All'),
+                            activeWindows.length > 0 && createElement('button', { 
+                                onClick: onKillAllWindows,
+                                className: 'text-[9px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-colors'
+                            }, 'Kill All')
+                        )
                     ),
                     createElement('div', { className: 'flex flex-wrap justify-center gap-6' },
-                        recentlyPlayed.map(game => {
+                        combinedItems.map(game => {
+                            const isActive = activeWindows.some(win => win.gameEntry.name === game.name);
                             const prioritizedGame = game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0];
                             const coverSrc = (prioritizedGame?.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
@@ -2153,7 +2136,11 @@
                                 ),
                                 createElement('button', {
                                     onClick: (e) => { e.stopPropagation(); onDeleteRecent(game); },
-                                    className: 'absolute top-1 right-1 w-5 h-5 bg-black/40 hover:bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-10'
+                                    className: 'absolute top-1 left-1 w-5 h-5 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-10'
+                                }, '−'),
+                                isActive && createElement('button', {
+                                    onClick: (e) => { e.stopPropagation(); onKillGame(game.name); },
+                                    className: 'absolute top-1 right-1 w-5 h-5 bg-red-500/60 hover:bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-10'
                                 }, '✕')
                             );
                         })
@@ -2498,11 +2485,11 @@
                                     setConfirm(null);
                                 }
                             }),
-                            onKillWindow: (id) => setConfirm({
-                                title: 'Kill Window',
-                                message: 'Are you sure you want to kill this active window? Any unsaved progress will be lost.',
+                            onKillGame: (gameName) => setConfirm({
+                                title: 'Kill Game',
+                                message: `Are you sure you want to kill all active windows for ${gameName}? Any unsaved progress will be lost.`,
                                 onConfirm: () => {
-                                    killWindow(id);
+                                    setActiveWindows(prev => prev.filter(win => win.gameEntry.name !== gameName));
                                     setConfirm(null);
                                 }
                             }),
