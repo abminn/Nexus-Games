@@ -644,6 +644,7 @@
         const SettingsModal = ({ onClose, currentTheme, onThemeChange, currentCloak, onCloakChange, activeWindows, onKillWindow, localCreations, onDeleteCreation, onWipeAll, allGames, onResetWarnings }) => {
             const [confirm, setConfirm] = useState(null);
             const [copyStatus, setCopyStatus] = useState('Copy List');
+            const [view, setView] = useState('main');
 
             const gameListText = useMemo(() => {
                 return allGames.map(g => g.name).sort().join('\n');
@@ -655,6 +656,38 @@
                 setTimeout(() => setCopyStatus('Copy List'), 2000);
             };
 
+            const currentThemeIndex = THEMES.findIndex(t => t.id === currentTheme);
+            const nextTheme = () => {
+                const nextIdx = (currentThemeIndex + 1) % THEMES.length;
+                onThemeChange(THEMES[nextIdx].id);
+            };
+            const prevTheme = () => {
+                const prevIdx = (currentThemeIndex - 1 + THEMES.length) % THEMES.length;
+                onThemeChange(THEMES[prevIdx].id);
+            };
+
+            if (view === 'colors') {
+                return createElement(Fragment, null,
+                    createElement('div', { className: 'fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/60', onClick: () => setView('themes') },
+                        createElement(motion.div, { 
+                            initial: { opacity: 0, scale: 0.9 }, animate: { opacity: 1, scale: 1 },
+                            className: 'flex items-center gap-12', onClick: e => e.stopPropagation() 
+                        },
+                            createElement('button', { onClick: prevTheme, className: 'p-8 glass rounded-full hover:bg-white/10 transition-all text-3xl themed-text-muted hover:themed-text-bright' }, '←'),
+                            createElement('div', { className: 'text-center space-y-6 min-w-[400px]' },
+                                createElement('h2', { className: 'text-6xl font-black text-white italic tracking-tighter uppercase' }, THEMES[currentThemeIndex].name),
+                                createElement('p', { className: 'text-[12px] font-bold themed-text-muted uppercase tracking-[0.6em]' }, 'Theme Browser')
+                            ),
+                            createElement('button', { onClick: nextTheme, className: 'p-8 glass rounded-full hover:bg-white/10 transition-all text-3xl themed-text-muted hover:themed-text-bright' }, '→')
+                        ),
+                        createElement('button', { 
+                            onClick: () => setView('themes'),
+                            className: 'absolute bottom-16 themed-btn px-16 py-5 rounded-3xl text-sm font-black uppercase tracking-[0.2em]'
+                        }, 'Back to Themes')
+                    )
+                );
+            }
+
             return createElement(Fragment, null,
                 createElement('div', { className: 'fixed inset-0 z-[200] flex items-center justify-center p-4 themed-overlay', onClick: onClose },
                     createElement(InteractiveTilt, { scale: 1.01, rotate: 4 },
@@ -663,101 +696,129 @@
                             className: 'glass w-full max-w-2xl p-10 rounded-[2.5rem] flex flex-col gap-8 max-h-[90vh] overflow-hidden', onClick: e => e.stopPropagation() 
                         },
                             createElement('div', { className: 'flex justify-between items-center' },
-                                createElement('h2', { className: 'text-3xl font-black text-white italic tracking-tighter uppercase' }, 'Settings'),
+                                createElement('div', { className: 'flex items-center gap-4' },
+                                    view !== 'main' && createElement('button', { onClick: () => setView('main'), className: 'themed-text-muted hover:text-white transition-colors text-xl' }, '←'),
+                                    createElement('h2', { className: 'text-3xl font-black text-white italic tracking-tighter uppercase' }, view === 'main' ? 'Settings' : view)
+                                ),
                                 createElement('button', { onClick: onClose, className: 'themed-text-muted hover:text-white transition-colors' }, '✕')
                             ),
                             createElement('div', { className: 'overflow-y-auto pr-2 visible-scroll space-y-10' },
-                                createElement('div', { className: 'space-y-4' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Tab Rename - Used for GoGuardian'),
-                                    createElement('input', { 
-                                        type: 'text', value: currentCloak, 
-                                        onChange: (e) => onCloakChange(e.target.value), 
-                                        placeholder: 'Tab Title...', 
-                                        className: 'w-full themed-input rounded-2xl px-6 py-4 text-sm transition-all outline-none' 
-                                    })
-                                ),
-                                createElement('div', { className: 'space-y-4' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Visual Themes'),
-                                    createElement('div', { className: 'grid grid-cols-2 gap-3' },
-                                        THEMES.map(theme => createElement('button', { 
-                                            key: theme.id, 
-                                            onClick: () => onThemeChange(theme.id), 
-                                            className: `p-4 rounded-xl border text-[12px] font-black uppercase transition-all ${currentTheme === theme.id ? 'themed-btn' : 'themed-btn-secondary opacity-50 hover:opacity-100'}` 
-                                        }, theme.name))
-                                    )
-                                ),
-                                createElement('div', { className: 'space-y-4' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Content Control'),
-                                    createElement('button', { 
-                                        onClick: () => { onResetWarnings(); onClose(); },
-                                        className: 'w-full themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest'
-                                    }, 'Reset Content Warnings')
-                                ),
-                                createElement('div', { className: 'space-y-4' },
-                                    createElement('div', { className: 'flex justify-between items-center' },
-                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Game Registry'),
-                                        createElement('button', { onClick: handleCopy, className: 'text-[9px] font-black uppercase accent-text hover:opacity-70' }, copyStatus)
+                                view === 'main' && createElement(Fragment, null,
+                                    createElement('div', { className: 'space-y-4' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Tab Rename - Used for GoGuardian'),
+                                        createElement('input', { 
+                                            type: 'text', value: currentCloak, 
+                                            onChange: (e) => onCloakChange(e.target.value), 
+                                            placeholder: 'Tab Title...', 
+                                            className: 'w-full themed-input rounded-2xl px-6 py-4 text-sm transition-all outline-none' 
+                                        })
                                     ),
-                                    createElement('div', { className: 'glass p-6 rounded-2xl max-h-48 overflow-y-auto visible-scroll' },
-                                        createElement('pre', { className: 'text-[10px] font-mono themed-text-muted leading-relaxed' }, gameListText)
+                                    createElement('div', { className: 'space-y-4' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Visuals'),
+                                        createElement('button', { 
+                                            onClick: () => setView('themes'),
+                                            className: 'w-full themed-btn-secondary py-6 rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center justify-between px-8'
+                                        }, 
+                                            createElement('span', null, 'Themes'),
+                                            createElement('span', { className: 'opacity-40' }, '→')
+                                        )
+                                    ),
+                                    createElement('div', { className: 'space-y-4' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Content Control'),
+                                        createElement('button', { 
+                                            onClick: () => { onResetWarnings(); onClose(); },
+                                            className: 'w-full themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest'
+                                        }, 'Reset Content Warnings')
+                                    ),
+                                    createElement('div', { className: 'space-y-4' },
+                                        createElement('div', { className: 'flex justify-between items-center' },
+                                            createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest' }, 'Game Registry'),
+                                            createElement('button', { onClick: handleCopy, className: 'text-[9px] font-black uppercase accent-text hover:opacity-70' }, copyStatus)
+                                        ),
+                                        createElement('div', { className: 'glass p-6 rounded-2xl max-h-48 overflow-y-auto visible-scroll' },
+                                            createElement('pre', { className: 'text-[10px] font-mono themed-text-muted leading-relaxed' }, gameListText)
+                                        )
+                                    ),
+                                    activeWindows.length > 0 && createElement('div', { className: 'space-y-4' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Active Windows (Clear Saves)'),
+                                        createElement('div', { className: 'space-y-2' },
+                                            activeWindows.map(win => createElement('div', { key: win.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
+                                                createElement('div', null,
+                                                    createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, win.gameEntry.name),
+                                                    createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, win.isMinimized ? 'Frozen' : 'Running')
+                                                ),
+                                                createElement('button', { 
+                                                    onClick: () => setConfirm({ 
+                                                        title: 'Kill Window', 
+                                                        message: `Are you sure you want to kill ${win.gameEntry.name}?`, 
+                                                        onConfirm: () => { onKillWindow(win.id); setConfirm(null); } 
+                                                    }), 
+                                                    className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
+                                                }, 'Kill')
+                                            ))
+                                        ),
+                                        createElement('button', { 
+                                            onClick: () => setConfirm({ 
+                                                title: 'Kill All Windows', 
+                                                message: 'Are you sure you want to kill ALL active windows?', 
+                                                onConfirm: () => { activeWindows.forEach(n => onKillWindow(n.id)); setConfirm(null); } 
+                                            }),
+                                            className: 'w-full bg-red-500/20 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/30 transition-all border border-red-500/20'
+                                        }, 'Kill All Windows')
+                                    ),
+                                    (localCreations.games.length > 0 || localCreations.tools.length > 0) && createElement('div', { className: 'space-y-4' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-sky-500' }, 'Custom Creations'),
+                                        createElement('div', { className: 'space-y-2' },
+                                            [...localCreations.games.map(g => ({ ...g, type: 'game' })), ...localCreations.tools.map(t => ({ ...t, type: 'tool' }))].map(item => createElement('div', { key: item.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
+                                                createElement('div', null,
+                                                    createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, item.name),
+                                                    createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, item.type)
+                                                ),
+                                                createElement('button', { 
+                                                    onClick: () => setConfirm({ 
+                                                        title: 'Delete Creation', 
+                                                        message: `Are you sure you want to delete ${item.name}?`, 
+                                                        onConfirm: () => { onDeleteCreation(item.type, item.id); setConfirm(null); } 
+                                                    }), 
+                                                    className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
+                                                }, 'Delete')
+                                            ))
+                                        )
+                                    ),
+                                    createElement('div', { className: 'space-y-4 pt-4 border-t border-white/5' },
+                                        createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Danger Zone'),
+                                        createElement('button', { 
+                                            onClick: () => setConfirm({ 
+                                                title: 'Wipe All Creations', 
+                                                message: 'DANGER: This will permanently delete ALL your custom saved games and tools. Are you absolutely sure?', 
+                                                onConfirm: () => { onWipeAll(); setConfirm(null); } 
+                                            }),
+                                            className: 'w-full bg-red-600/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600/20 transition-all border border-red-600/20'
+                                        }, 'Wipe All Custom Creations')
                                     )
                                 ),
-                                activeWindows.length > 0 && createElement('div', { className: 'space-y-4' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Active Windows (Clear Saves)'),
-                                    createElement('div', { className: 'space-y-2' },
-                                        activeWindows.map(win => createElement('div', { key: win.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
-                                            createElement('div', null,
-                                                createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, win.gameEntry.name),
-                                                createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, win.isMinimized ? 'Frozen' : 'Running')
-                                            ),
-                                            createElement('button', { 
-                                                onClick: () => setConfirm({ 
-                                                    title: 'Kill Window', 
-                                                    message: `Are you sure you want to kill ${win.gameEntry.name}?`, 
-                                                    onConfirm: () => { onKillWindow(win.id); setConfirm(null); } 
-                                                }), 
-                                                className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
-                                            }, 'Kill')
-                                        ))
+                                view === 'themes' && createElement('div', { className: 'space-y-6' },
+                                    createElement('button', { 
+                                        onClick: () => setView('colors'),
+                                        className: 'w-full themed-btn-secondary py-8 rounded-3xl text-[14px] font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2'
+                                    }, 
+                                        createElement('span', null, 'Colors'),
+                                        createElement('span', { className: 'text-[9px] opacity-40' }, 'Browse Themes')
                                     ),
                                     createElement('button', { 
-                                        onClick: () => setConfirm({ 
-                                            title: 'Kill All Windows', 
-                                            message: 'Are you sure you want to kill ALL active windows?', 
-                                            onConfirm: () => { activeWindows.forEach(n => onKillWindow(n.id)); setConfirm(null); } 
-                                        }),
-                                        className: 'w-full bg-red-500/20 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/30 transition-all border border-red-500/20'
-                                    }, 'Kill All Windows')
-                                ),
-                                (localCreations.games.length > 0 || localCreations.tools.length > 0) && createElement('div', { className: 'space-y-4' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-sky-500' }, 'Custom Creations'),
-                                    createElement('div', { className: 'space-y-2' },
-                                        [...localCreations.games.map(g => ({ ...g, type: 'game' })), ...localCreations.tools.map(t => ({ ...t, type: 'tool' }))].map(item => createElement('div', { key: item.id, className: 'flex items-center justify-between glass p-4 rounded-2xl' },
-                                            createElement('div', null,
-                                                createElement('p', { className: 'text-white font-bold text-[10px] uppercase tracking-widest' }, item.name),
-                                                createElement('p', { className: 'text-white/30 text-[8px] uppercase font-bold tracking-widest mt-0.5' }, item.type)
-                                            ),
-                                            createElement('button', { 
-                                                onClick: () => setConfirm({ 
-                                                    title: 'Delete Creation', 
-                                                    message: `Are you sure you want to delete ${item.name}?`, 
-                                                    onConfirm: () => { onDeleteCreation(item.type, item.id); setConfirm(null); } 
-                                                }), 
-                                                className: 'bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all' 
-                                            }, 'Delete')
-                                        ))
+                                        onClick: () => setView('styles'),
+                                        className: 'w-full themed-btn-secondary py-8 rounded-3xl text-[14px] font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2'
+                                    }, 
+                                        createElement('span', null, 'Styles'),
+                                        createElement('span', { className: 'text-[9px] opacity-40' }, 'Coming Soon')
                                     )
                                 ),
-                                createElement('div', { className: 'space-y-4 pt-4 border-t border-white/5' },
-                                    createElement('h3', { className: 'text-[11px] font-bold accent-text uppercase tracking-widest text-red-500' }, 'Danger Zone'),
-                                    createElement('button', { 
-                                        onClick: () => setConfirm({ 
-                                            title: 'Wipe All Creations', 
-                                            message: 'DANGER: This will permanently delete ALL your custom saved games and tools. Are you absolutely sure?', 
-                                            onConfirm: () => { onWipeAll(); setConfirm(null); } 
-                                        }),
-                                        className: 'w-full bg-red-600/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600/20 transition-all border border-red-600/20'
-                                    }, 'Wipe All Custom Creations')
+                                view === 'styles' && createElement('div', { className: 'glass p-12 rounded-[2rem] border border-white/5 flex flex-col items-center justify-center gap-4' },
+                                    createElement('div', { className: 'w-16 h-16 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center' },
+                                        createElement('span', { className: 'text-2xl opacity-20' }, '✨')
+                                    ),
+                                    createElement('p', { className: 'text-[11px] font-black themed-text-muted uppercase tracking-[0.4em]' }, 'More Styles'),
+                                    createElement('p', { className: 'text-[9px] font-bold themed-text-muted uppercase tracking-widest italic opacity-50' }, 'Under Development')
                                 )
                             ),
                             createElement('button', { onClick: onClose, className: 'themed-btn w-full py-5 rounded-3xl uppercase text-sm tracking-[0.2em]' }, 'Save Settings')
@@ -2084,7 +2145,7 @@
             );
         };
 
-        const HomeView = ({ onNavigate, onSearch, recentlyPlayed, addWindow, onDeleteRecent, onClearRecent, activeWindows, onKillGame, onKillAllWindows }) => {
+        const HomeView = ({ onNavigate, onSearch, recentlyPlayed, addWindow, onDeleteRecent, onClearRecent, activeWindows, onKillGame, onKillAllWindows, onOpenSettings }) => {
             const [query, setQuery] = useState(""); const [glows, setGlows] = useState({ a: false, z: false });
             useEffect(() => { const i = setInterval(() => { setGlows({ a: Math.random() > 0.5, z: Math.random() > 0.5 }); }, 3000); return () => clearInterval(i); }, []);
             
@@ -2098,7 +2159,16 @@
                 return items;
             }, [recentlyPlayed, activeWindows]);
 
-            return createElement(motion.div, { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 }, transition: { duration: 0.8 }, className: 'home-container px-6' },
+            return createElement(motion.div, { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 }, transition: { duration: 0.8 }, className: 'home-container px-6 relative' },
+                createElement('button', { 
+                    onClick: onOpenSettings,
+                    className: 'absolute top-8 right-8 p-4 glass rounded-[2rem] hover:bg-white/10 transition-all z-20 group'
+                }, 
+                    createElement('svg', { className: 'w-6 h-6 themed-text-muted group-hover:themed-text-bright transition-colors', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' },
+                        createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }),
+                        createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z' })
+                    )
+                ),
                 createElement(InteractiveTilt, { rotate: 8, scale: 1.06 }, createElement('h1', { className: 'home-title select-none' }, 'nexus'), createElement('p', { className: 'home-subtitle select-none' }, 'imagine if we were all autistic goldfish')),
                 createElement(InteractiveTilt, { className: 'search-container', scale: 1.02, rotate: 6 }, createElement('div', { className: 'search-bar group' }, createElement('svg', { className: 'w-6 h-6 themed-text-muted transition-colors group-focus-within:themed-text-bright', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, createElement('path', { d: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' })), createElement('input', { type: 'text', placeholder: 'i do the search thingies.', value: query, onChange: e => setQuery(e.target.value), onKeyDown: e => { if (e.key === 'Enter') { onSearch(query); onNavigate('games'); } } }))),
                 
@@ -2469,6 +2539,7 @@
                             recentlyPlayed: recentlyPlayed, 
                             addWindow: addWindow,
                             activeWindows: activeWindows,
+                            onOpenSettings: () => setSettingsOpen(true),
                             onDeleteRecent: (game) => setConfirm({
                                 title: 'Remove from Recent',
                                 message: `Are you sure you want to remove ${game.name} from your recently played list?`,
