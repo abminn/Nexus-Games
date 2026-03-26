@@ -1593,6 +1593,20 @@
                         if (!hasBeenResumed && isMinimized) return;
                         setIsLoading(true);
                         let finalUrl = activeVersion.url;
+                        
+                        // Fix GitHub raw links to use jsdelivr for correct MIME types and better performance
+                        if (finalUrl.includes('raw.githubusercontent.com')) {
+                            finalUrl = finalUrl.replace('raw.githubusercontent.com', 'cdn.jsdelivr.net/gh').replace('/master/', '@master/').replace('/main/', '@main/');
+                        }
+                        
+                        // Also convert GitHub Pages to jsdelivr in case github.io is blocked
+                        if (finalUrl.includes('.github.io/')) {
+                            const match = finalUrl.match(/^https?:\/\/([^.]+)\.github\.io\/([^/]+)\/?(.*)/);
+                            if (match) {
+                                finalUrl = `https://cdn.jsdelivr.net/gh/${match[1]}/${match[2]}@latest/${match[3]}`;
+                            }
+                        }
+
                         const isFNAF = gameEntry.name.toLowerCase().includes('five nights at last breath');
                         if (isFNAF) {
                             finalUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/index.html";
@@ -1615,11 +1629,24 @@
                             if (!ghMatch) return null;
                             let [_, user, repo, branch = 'main', basePath] = ghMatch;
                             
+                            const fetchWithTimeout = async (url, timeout = 3000) => {
+                                const controller = new AbortController();
+                                const id = setTimeout(() => controller.abort(), timeout);
+                                try {
+                                    const res = await fetch(url, { signal: controller.signal });
+                                    clearTimeout(id);
+                                    return res;
+                                } catch (e) {
+                                    clearTimeout(id);
+                                    throw e;
+                                }
+                            };
+
                             // Resolve 'latest' to the actual default branch for GitHub API calls
                             let effectiveBranch = branch;
                             if (branch === 'latest') {
                                 try {
-                                    const repoRes = await fetch(`https://api.github.com/repos/${user}/${repo}`);
+                                    const repoRes = await fetchWithTimeout(`https://api.github.com/repos/${user}/${repo}`);
                                     if (repoRes.ok) {
                                         const repoData = await repoRes.json();
                                         effectiveBranch = repoData.default_branch || 'main';
@@ -1633,7 +1660,7 @@
 
                             const cleanBasePath = basePath.replace(/\/index\.html$/, '').replace(/\/$/, '');
                             try {
-                                const treeRes = await fetch(`https://api.github.com/repos/${user}/${repo}/git/trees/${effectiveBranch}?recursive=1`);
+                                const treeRes = await fetchWithTimeout(`https://api.github.com/repos/${user}/${repo}/git/trees/${effectiveBranch}?recursive=1`);
                                 if (!treeRes.ok) return null;
                                 const treeData = await treeRes.json();
                                 const allFiles = treeData.tree.map(node => node.path);
@@ -1695,13 +1722,17 @@
                                         'web/index.html',
                                         'game.html'
                                     ];
-                                    for (const path of commonPaths) {
-                                        const foundHtml = await tryFetch(base + path);
-                                        if (foundHtml) {
-                                            html = foundHtml;
-                                            resolvedUrl = base + path;
-                                            break;
-                                        }
+                                    
+                                    // Parallel probing for common paths
+                                    const probeResults = await Promise.all(commonPaths.map(async (path) => {
+                                        const content = await tryFetch(base + path);
+                                        return content ? { html: content, url: base + path } : null;
+                                    }));
+                                    
+                                    const firstSuccess = probeResults.find(r => r !== null);
+                                    if (firstSuccess) {
+                                        html = firstSuccess.html;
+                                        resolvedUrl = firstSuccess.url;
                                     }
                                 }
                             }
@@ -1769,9 +1800,9 @@
                                 script.textContent = patchContent(script.textContent);
                             }
 
-                            // Patch external scripts
-                            const scripts = doc.querySelectorAll('script[src]');
-                            for (const script of scripts) {
+                            // Patch external scripts in parallel
+                            const scripts = Array.from(doc.querySelectorAll('script[src]'));
+                            await Promise.all(scripts.map(async (script) => {
                                 const src = script.getAttribute('src');
                                 if (src && !src.startsWith('blob:') && !src.includes('google') && !src.includes('analytics')) {
                                     const isItch = src.includes('itch.io') || !src.includes('://') || src.startsWith('blob:');
@@ -1787,7 +1818,7 @@
                                         } catch (e) {}
                                     }
                                 }
-                            }
+                            }));
 
                             if (isFNAF) {
                                 const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
