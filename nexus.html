@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Nexus</title>
 	<script src="https://cdn.tailwindcss.com"></script>
-	<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/gn-math/gn-math.github.io@latest/favicon.png">
+	<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/freebuisness/freebuisness.github.io@latest/favicon.png">
 
 	<!-- CodeMirror Core -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -303,9 +303,9 @@
         import ReactDOM from 'react-dom/client';
         import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 
-        const ZONES_URL = "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json";
-        const COVER_BASE = "https://cdn.jsdelivr.net/gh/gn-math/covers@latest";
-        const HTML_BASE = "https://cdn.jsdelivr.net/gh/gn-math/html@latest";
+        const ZONES_URL = "https://cdn.jsdelivr.net/gh/freebuisness/assets@latest/zones.json";
+        const COVER_BASE = "https://cdn.jsdelivr.net/gh/freebuisness/covers@latest";
+        const HTML_BASE = "https://cdn.jsdelivr.net/gh/freebuisness/html@latest";
 
         // External Repositories Config
         const ZOTRONIX_LIST = "https://cdn.jsdelivr.net/gh/Zotronix/Ignis-Games@latest/Games/all.js";
@@ -1544,7 +1544,7 @@
             const sizeClasses = { hero: 'aspect-square w-full h-full', wide: 'aspect-video w-full', normal: 'aspect-[3/4] w-full', carousel: 'aspect-[3/4] w-[220px] flex-shrink-0', vault: 'aspect-[3/4] w-full' };
             const coverSrc = (prioritizedGame.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
+                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png');
             return createElement(InteractiveTilt, { className: sizeClasses[variant] },
                 createElement(motion.div, { whileTap: { scale: 0.98 }, onClick, className: 'group glass rounded-[2.5rem] overflow-hidden cursor-pointer w-full h-full relative' },
                     createElement('img', { src: coverSrc, className: 'w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110', loading: 'lazy' }),
@@ -1558,7 +1558,12 @@
         const GamePlayer = ({ window: win, onMinimize, onRestore, onKill, onNavigate, index, isEmbedded }) => {
             const { gameEntry, isMinimized } = win;
             const availableSources = Object.keys(gameEntry.versions);
-            const [currentSource, setCurrentSource] = useState(availableSources.includes('Zotronix') ? 'Zotronix' : availableSources[0]);
+            const [currentSource, setCurrentSource] = useState(() => {
+                if (gameEntry.name.toLowerCase().includes('geometry dash') && availableSources.includes('Nexus')) {
+                    return 'Nexus';
+                }
+                return availableSources.includes('Zotronix') ? 'Zotronix' : availableSources[0];
+            });
             const [isLoading, setIsLoading] = useState(true);
             const [loadingTip] = useState(() => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]);
             const [playerUrl, setPlayerUrl] = useState('');
@@ -2232,7 +2237,7 @@
                             const prioritizedGame = game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0];
                             const coverSrc = (prioritizedGame?.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                                : (prioritizedGame?.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png');
+                                : (prioritizedGame?.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png');
                             return createElement('div', { 
                                 key: game.name, 
                                 className: 'group relative w-24 aspect-square glass rounded-2xl cursor-pointer overflow-hidden hover:scale-110 transition-all border border-white/5'
@@ -2440,7 +2445,7 @@
                                             createElement('span', { className: 'text-[10px] font-mono opacity-20' }, (idx + 1).toString().padStart(2, '0')),
                                             createElement('div', { className: 'w-12 h-12 rounded-xl overflow-hidden' },
                                                 createElement('img', { 
-                                                    src: (game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0])?.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png',
+                                                    src: (game.versions['Zotronix'] || game.versions['Abminn'] || game.versions['Nexus'] || Object.values(game.versions)[0])?.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png',
                                                     className: 'w-full h-full object-cover'
                                                 })
                                             ),
@@ -2680,7 +2685,7 @@
                             Local: {
                                 name: lg.name,
                                 url: url,
-                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/gn-math/assets@main/local_game_cover.png',
+                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png',
                                 isLocal: true
                             }
                         }
