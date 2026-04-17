@@ -329,7 +329,8 @@
             "Nexus is built for speed, but some games are just heavy.",
             "Don't forget to save your drawings in the Art section!",
             "The IDE lets you build and run your own HTML projects.",
-            "Join the community and share your high scores!"
+            "Join the community and share your high scores!",
+            "theres a fucking fullscreen button please use it."
         ];
 
         const THEMES = [
@@ -597,7 +598,7 @@
         );
 
         const AnimeFullscreenMenu = ({ onRefresh, onExit }) => {
-            const [dragPos, setDragPos] = useState({ x: window.innerWidth - 100, y: 50 });
+            const [dragPos, setDragPos] = useState({ x: 50, y: 50 });
             const [isDragging, setIsDragging] = useState(false);
             const [isOpen, setIsOpen] = useState(false);
             const menuRef = useRef(null);
@@ -620,7 +621,7 @@
             return createElement('div', {
                 ref: menuRef,
                 style: { left: dragPos.x, top: dragPos.y },
-                className: 'fixed z-[2100] flex flex-col items-end gap-4'
+                className: 'fixed z-[2100] flex flex-col items-start gap-4'
             },
                 createElement('button', {
                     onPointerDown: handlePointerDown,
@@ -1542,15 +1543,463 @@
             const isHot = HOT_TITLES.includes(gameEntry.name);
             const isFeatured = FEATURED_TITLES.includes(gameEntry.name);
             const sizeClasses = { hero: 'aspect-square w-full h-full', wide: 'aspect-video w-full', normal: 'aspect-[3/4] w-full', carousel: 'aspect-[3/4] w-[220px] flex-shrink-0', vault: 'aspect-[3/4] w-full' };
+            
+            const getPlaceholder = (name) => {
+                const shapes = ['circle', 'square', 'triangle'];
+                const seed = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                return `https://cdn.jsdelivr.net/gh/abminn/Nexus-Games/Images/${shapes[seed % 3]}.png`;
+            };
+
             const coverSrc = (prioritizedGame.cover && typeof prioritizedGame.cover === 'string' && prioritizedGame.cover.includes("{COVER_URL}"))
                 ? prioritizedGame.cover.replace("{COVER_URL}", COVER_BASE)
-                : (prioritizedGame.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png');
+                : (prioritizedGame.cover || getPlaceholder(gameEntry.name));
+            
             return createElement(InteractiveTilt, { className: sizeClasses[variant] },
                 createElement(motion.div, { whileTap: { scale: 0.98 }, onClick, className: 'group glass rounded-[2.5rem] overflow-hidden cursor-pointer w-full h-full relative' },
                     createElement('img', { src: coverSrc, className: 'w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110', loading: 'lazy' }),
                     createElement('div', { className: 'absolute inset-0 bg-gradient-to-t from-[rgba(var(--bg-rgb),0.95)] via-[rgba(var(--bg-rgb),0.1)] to-transparent' }),
                     createElement('div', { className: 'absolute top-4 left-4 flex gap-2' }, isHot && createElement('span', { className: 'badge' }, '🔥'), isFeatured && createElement('span', { className: 'badge' }, '⭐'), prioritizedGame.isLocal && createElement('span', { className: 'badge !bg-sky-500 !text-white' }, 'DEV')),
                     createElement('div', { className: 'absolute bottom-0 left-0 right-0 p-8' }, createElement('p', { className: `font-bold truncate text-white uppercase italic tracking-[0.1em] ${variant === 'hero' ? 'text-4xl' : 'text-[11px]'}` }, gameEntry.name))
+                )
+            );
+        };
+
+        const MinigameBackground = ({ children }) => {
+            return createElement('div', { className: 'absolute inset-0 overflow-hidden bg-[#050505] z-0' },
+                createElement('div', { className: 'absolute inset-0 z-[-2]' },
+                    createElement('video', { 
+                        src: 'https://files.catbox.moe/kgwbtv.mp4', autoPlay: true, loop: true, muted: true, playsInline: true,
+                        style: { width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.5) blur(2px)' }
+                    })
+                ),
+                createElement('div', { 
+                    className: 'absolute inset-0 z-[-1]', 
+                    style: { background: 'radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%)' } 
+                }),
+                children
+            );
+        };
+
+        const BubbleGame = () => {
+            const mousePos = useRef({ x: -100, y: -100 });
+            const [bubbles, setBubbles] = useState(() => Array.from({ length: 12 }, (_, i) => ({
+                id: i,
+                x: Math.random() * 100,
+                y: 110 + Math.random() * 100,
+                size: 15 + Math.random() * 25,
+                speed: 0.15 + Math.random() * 0.3,
+                drift: (Math.random() - 0.5) * 0.05,
+                vx: 0,
+                vy: 0,
+                popped: false,
+                startTime: Math.random() * 10 // Random offset
+            })));
+            const [popCount, setPopCount] = useState(0);
+
+            useEffect(() => {
+                let raf;
+                const update = () => {
+                    setBubbles(prev => prev.map(b => {
+                        if (b.popped) return b;
+                        let nx = b.x;
+                        let ny = b.y;
+                        let nvx = b.vx;
+                        let nvy = b.vy;
+                        const dx = b.x - mousePos.current.x;
+                        const dy = b.y - mousePos.current.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 15) { // Reduced detection range
+                            const force = (15 - dist) / 15;
+                            nvx += dx * force * 0.2; // Reduced push force (was 0.5)
+                            nvy += dy * force * 0.2;
+                        }
+                        nx += b.drift + nvx; ny -= b.speed - nvy;
+                        nvx *= 0.85; nvy *= 0.85; // Faster deceleration
+                        if (ny < -30) { ny = 120; nx = Math.random() * 100; }
+                        if (nx < -20) nx = 120; if (nx > 120) nx = -20;
+                        return { ...b, x: nx, y: ny, vx: nvx, vy: nvy };
+                    }));
+                    raf = requestAnimationFrame(update);
+                };
+                raf = requestAnimationFrame(update);
+                return () => cancelAnimationFrame(raf);
+            }, []);
+
+            const popBubble = (id) => {
+                setBubbles(prev => prev.map(b => b.id === id ? { ...b, popped: true } : b));
+                setPopCount(c => c + 1);
+                setTimeout(() => {
+                    setBubbles(prev => prev.map(b => b.id === id ? { ...b, popped: false, y: 120, x: Math.random() * 100 } : b));
+                }, 1000);
+            };
+
+            return createElement(MinigameBackground, null,
+                createElement('div', { 
+                    onMouseMove: (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        mousePos.current = { x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 };
+                    },
+                    className: 'absolute inset-0 z-0' 
+                },
+                    createElement('div', { className: 'absolute top-10 right-10 glass px-4 py-2 rounded-xl text-white font-black uppercase text-xs z-[220]' }, `Popped: ${popCount}`),
+                    bubbles.map(b => !b.popped && createElement(motion.div, {
+                        key: b.id,
+                        onClick: () => popBubble(b.id),
+                        whileHover: { scale: 1.1 },
+                        whileTap: { scale: 0.8 },
+                        style: { 
+                            position: 'absolute', left: `${b.x}%`, top: `${b.y}%`, width: `${b.size}vh`, height: `${b.size}vh`,
+                            borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.4)',
+                            boxShadow: '0 0 50px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,255,255,0.3)',
+                            transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: 10
+                        }
+                    }, 
+                        createElement('video', { 
+                            src: 'https://files.catbox.moe/kgwbtv.mp4', autoPlay: true, loop: true, muted: true, playsInline: true,
+                            onLoadedMetadata: (e) => { e.target.currentTime = b.startTime % e.target.duration; },
+                            className: 'w-full h-full object-cover scale-150 pointer-events-none'
+                        })
+                    ))
+                )
+            );
+        };
+
+        const DodgeHampter = () => {
+            const [playerX, setPlayerX] = useState(50);
+            const [obstacles, setObstacles] = useState([]);
+            const [score, setScore] = useState(0);
+            const [isGameOver, setIsGameOver] = useState(false);
+            const gameRef = useRef({ playerX: 50, score: 0 });
+
+            useEffect(() => {
+                if (isGameOver) return;
+                const i = setInterval(() => {
+                    setObstacles(prev => [
+                        ...prev.filter(o => o.y < 110),
+                        { id: Date.now() + Math.random(), x: Math.random() * 90 + 5, y: -10, speed: 0.8 + Math.random() * 1.5 }
+                    ]);
+                }, 800);
+                return () => clearInterval(i);
+            }, [isGameOver]);
+
+            useEffect(() => {
+                if (isGameOver) return;
+                let raf;
+                const update = () => {
+                    setObstacles(prev => {
+                        let hit = false;
+                        const next = prev.map(o => {
+                            const ny = o.y + o.speed;
+                            if (ny > 80 && ny < 95 && Math.abs(o.x - gameRef.current.playerX) < 12) {
+                                hit = true;
+                            }
+                            return { ...o, y: ny };
+                        });
+                        if (hit) { 
+                            setIsGameOver(true);
+                        }
+                        return next;
+                    });
+                    setScore(s => {
+                        const ns = s + 1;
+                        gameRef.current.score = ns;
+                        return ns;
+                    });
+                    raf = requestAnimationFrame(update);
+                };
+                raf = requestAnimationFrame(update);
+                return () => cancelAnimationFrame(raf);
+            }, [isGameOver]);
+
+            const restart = () => {
+                setObstacles([]);
+                setScore(0);
+                setIsGameOver(false);
+                gameRef.current.score = 0;
+            };
+
+            return createElement(MinigameBackground, null,
+                createElement('div', { 
+                    onMouseMove: (e) => {
+                        if (isGameOver) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const px = ((e.clientX - rect.left) / rect.width) * 100;
+                        setPlayerX(px);
+                        gameRef.current.playerX = px;
+                    },
+                    className: 'absolute inset-0 z-0 bg-transparent' 
+                },
+                    createElement('div', { className: 'absolute top-10 right-10 glass px-4 py-2 rounded-xl text-white font-black uppercase text-xs z-[220]' }, `Score: ${Math.floor(score/10)}`),
+                    obstacles.map(o => createElement('div', {
+                        key: o.id,
+                        style: { position: 'absolute', left: `${o.x}%`, top: `${o.y}%`, width: '10vw', height: '10vw', maxWidth: '60px', maxHeight: '60px' },
+                        className: 'bg-red-500 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.5)] border-4 border-white/20'
+                    })),
+                    !isGameOver && createElement('img', {
+                        src: 'https://files.catbox.moe/yk7qvj.png',
+                        style: { position: 'absolute', left: `${playerX}%`, top: '85%', width: '120px', transform: 'translateX(-50%)' },
+                        className: 'pointer-events-none drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]'
+                    }),
+                    isGameOver && createElement('div', { className: 'absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-[230]' },
+                        createElement('div', { className: 'text-center p-12 glass rounded-[3.5rem] border-2 border-white/20' },
+                            createElement('h3', { className: 'text-white text-5xl font-black italic uppercase tracking-widest mb-4' }, 'Game Over'),
+                            createElement('p', { className: 'text-white/60 font-bold uppercase tracking-[0.4em] text-xs mb-8' }, `Final Score: ${Math.floor(gameRef.current.score/10)}`),
+                            createElement('button', { onClick: restart, className: 'themed-btn px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform' }, 'Try Again')
+                        )
+                    )
+                )
+            );
+        };
+
+        const JumpHampter = () => {
+            const [obstacles, setObstacles] = useState([]);
+            const [jumpY, setJumpY] = useState(0);
+            const [isGameOver, setIsGameOver] = useState(false);
+            const [score, setScore] = useState(0);
+            const stateRef = useRef({ jumpY: 0, isJumping: false, velocity: 0, score: 0 });
+
+            useEffect(() => {
+                if (isGameOver) return;
+                const i = setInterval(() => {
+                    setObstacles(prev => [
+                        ...prev.filter(o => o.x > -20),
+                        { id: Date.now(), x: 110, size: 8 + Math.random() * 8, speed: 1.2 + Math.random() * 0.5 }
+                    ]);
+                }, 1200);
+                return () => clearInterval(i);
+            }, [isGameOver]);
+
+            useEffect(() => {
+                if (isGameOver) return;
+                let raf;
+                const update = () => {
+                    if (stateRef.current.isJumping) {
+                        stateRef.current.velocity -= 0.6;
+                        stateRef.current.jumpY += stateRef.current.velocity;
+                        if (stateRef.current.jumpY <= 0) {
+                            stateRef.current.jumpY = 0;
+                            stateRef.current.isJumping = false;
+                            stateRef.current.velocity = 0;
+                        }
+                        setJumpY(stateRef.current.jumpY);
+                    }
+
+                    setObstacles(prev => {
+                        let hit = false;
+                        const next = prev.map(o => {
+                            const nx = o.x - o.speed;
+                            const playerX = 20;
+                            const playerHeight = 120; // 120px height approx
+                            const obstacleYThreshold = 20; // roughly matches ground
+                            
+                            // Simple AABB
+                            if (Math.abs(nx - playerX) < 10 && stateRef.current.jumpY < 40) {
+                                hit = true;
+                            }
+                            return { ...o, x: nx };
+                        });
+                        if (hit) { setIsGameOver(true); }
+                        return next;
+                    });
+
+                    setScore(s => {
+                        const ns = s + 1;
+                        stateRef.current.score = ns;
+                        return ns;
+                    });
+                    raf = requestAnimationFrame(update);
+                };
+                raf = requestAnimationFrame(update);
+                return () => cancelAnimationFrame(raf);
+            }, [isGameOver]);
+
+            const jump = () => {
+                if (!stateRef.current.isJumping && !isGameOver) {
+                    stateRef.current.isJumping = true;
+                    stateRef.current.velocity = 12;
+                }
+            };
+
+            const restart = () => {
+                setObstacles([]);
+                setScore(0);
+                setIsGameOver(false);
+                setJumpY(0);
+                stateRef.current = { jumpY: 0, isJumping: false, velocity: 0, score: 0 };
+            };
+
+            return createElement(MinigameBackground, null,
+                createElement('div', { 
+                    onMouseDown: jump,
+                    className: 'absolute inset-0 z-0 bg-transparent cursor-pointer' 
+                },
+                    createElement('div', { className: 'absolute bottom-[20%] left-0 right-0 h-1 bg-white/20' }), // Ground line
+                    createElement('div', { className: 'absolute top-10 right-10 glass px-4 py-2 rounded-xl text-white font-black uppercase text-xs z-[220]' }, `Score: ${Math.floor(score/10)}`),
+                    
+                    obstacles.map(o => createElement('div', {
+                        key: o.id,
+                        style: { position: 'absolute', left: `${o.x}%`, bottom: '20%', width: `${o.size}vw`, height: `${o.size}vw`, maxWidth: '50px', maxHeight: '60px' },
+                        className: 'bg-emerald-500 rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.4)] border-2 border-white/10'
+                    })),
+
+                    createElement('img', {
+                        src: 'https://files.catbox.moe/yk7qvj.png',
+                        style: { position: 'absolute', left: '20%', bottom: `calc(20% + ${jumpY}px)`, width: '120px', transform: 'translateX(-50%)' },
+                        className: 'pointer-events-none drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]'
+                    }),
+
+                    isGameOver && createElement('div', { className: 'absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-[230]' },
+                        createElement('div', { className: 'text-center p-12 glass rounded-[3.5rem] border-2 border-white/20' },
+                            createElement('h3', { className: 'text-white text-5xl font-black italic uppercase tracking-widest mb-4' }, 'Game Over'),
+                            createElement('p', { className: 'text-white/60 font-bold uppercase tracking-[0.4em] text-xs mb-8' }, `Final Score: ${Math.floor(stateRef.current.score/10)}`),
+                            createElement('button', { onClick: (e) => { e.stopPropagation(); restart(); }, className: 'themed-btn px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform' }, 'Try Again')
+                        )
+                    )
+                )
+            );
+        };
+
+        const HampterClicker = () => {
+            const [clicks, setClicks] = useState(0);
+            const [particles, setParticles] = useState([]);
+            const [upgrades, setUpgrades] = useState({
+                hampterWheel: { count: 0, cost: 20, cps: 1, name: 'Hampter Wheel' },
+                extraSeeds: { count: 0, cost: 100, cps: 5, name: 'Extra Seeds' },
+                goldCage: { count: 0, cost: 500, cps: 25, name: 'Gold Cage' }
+            });
+
+            useEffect(() => {
+                const totalCPS = Object.values(upgrades).reduce((acc, u) => acc + (u.count * u.cps), 0);
+                if (totalCPS === 0) return;
+                const i = setInterval(() => {
+                    setClicks(c => c + totalCPS);
+                }, 1000);
+                return () => clearInterval(i);
+            }, [upgrades]);
+
+            const handleClick = (e) => {
+                setClicks(c => c + 1);
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const id = Date.now();
+                setParticles(prev => [...prev, { id, x, y }]);
+                setTimeout(() => setParticles(prev => prev.filter(p => p.id !== id)), 1000);
+            };
+
+            const buyUpgrade = (key) => {
+                const u = upgrades[key];
+                if (clicks >= u.cost) {
+                    setClicks(c => c - u.cost);
+                    setUpgrades(prev => ({
+                        ...prev,
+                        [key]: { ...u, count: u.count + 1, cost: Math.floor(u.cost * 1.5) }
+                    }));
+                }
+            };
+
+            const totalCPS = Object.values(upgrades).reduce((acc, u) => acc + (u.count * u.cps), 0);
+
+            return createElement(MinigameBackground, null,
+                createElement('div', { onClick: handleClick, className: 'absolute inset-0 z-0 flex items-center justify-center p-8 bg-transparent cursor-pointer' },
+                    createElement('div', { className: 'flex flex-col items-center gap-12' },
+                        createElement('div', { className: 'text-center space-y-2' },
+                            createElement('h3', { className: 'text-5xl font-black text-white italic uppercase tracking-widest drop-shadow-2xl' }, Math.floor(clicks)),
+                            createElement('p', { className: 'text-white/40 font-bold uppercase tracking-[0.4em] text-[10px]' }, `${totalCPS} clicks per/sec`)
+                        ),
+                        createElement(motion.img, {
+                            key: Math.floor(clicks),
+                            initial: { scale: 0.8 },
+                            animate: { scale: 1 },
+                            src: 'https://files.catbox.moe/yk7qvj.png',
+                            className: 'w-64 drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]'
+                        })
+                    ),
+                    
+                    createElement('div', { className: 'absolute bottom-10 left-10 p-8 glass rounded-[3rem] w-80 space-y-6' },
+                        createElement('h4', { className: 'text-[10px] font-black uppercase tracking-[0.4em] text-white/40' }, 'Upgrades'),
+                        createElement('div', { className: 'space-y-3' },
+                            Object.entries(upgrades).map(([key, u]) => createElement('button', {
+                                key,
+                                onClick: (e) => { e.stopPropagation(); buyUpgrade(key); },
+                                disabled: clicks < u.cost,
+                                className: `w-full p-4 rounded-2xl flex items-center justify-between transition-all border ${clicks >= u.cost ? 'bg-white/10 border-white/20 hover:bg-white/20 hover:scale-[1.02]' : 'bg-black/20 border-white/5 opacity-40 grayscale cursor-not-allowed'}`
+                            }, 
+                                createElement('div', { className: 'text-left' },
+                                    createElement('p', { className: 'text-[10px] font-black uppercase text-white' }, u.name),
+                                    createElement('p', { className: 'text-[8px] font-bold uppercase text-white/40' }, `${u.cps} CPS · Count: ${u.count}`)
+                                ),
+                                createElement('div', { className: 'themed-btn px-4 py-2 rounded-xl text-[9px] font-black font-mono' }, Math.floor(u.cost))
+                            ))
+                        )
+                    ),
+
+                    particles.map(p => createElement(motion.div, {
+                        key: p.id,
+                        initial: { opacity: 1, y: 0, scale: 1 },
+                        animate: { opacity: 0, y: -100, scale: 2 },
+                        style: { position: 'absolute', left: p.x, top: p.y },
+                        className: 'text-white font-black text-2xl pointer-events-none'
+                    }, '+1'))
+                )
+            );
+        };
+
+        const LoadingMinigames = ({ gameName, tip }) => {
+            const [activeGame, setActiveGame] = useState(0);
+            const games = [
+                { name: 'Bubble Pop', component: BubbleGame },
+                { name: 'Dodge Hampter', component: DodgeHampter },
+                { name: 'Jump Hampter', component: JumpHampter },
+                { name: 'Hampter Clicker', component: HampterClicker }
+            ];
+
+            return createElement('div', { className: 'absolute inset-0 z-[200] themed-overlay backdrop-blur-3xl flex flex-col items-center justify-center overflow-hidden' },
+                createElement(AnimatePresence, { mode: 'wait' },
+                    createElement(motion.div, {
+                        key: activeGame,
+                        initial: { opacity: 0, scale: 0.9 },
+                        animate: { opacity: 1, scale: 1 },
+                        exit: { opacity: 0, scale: 1.1 },
+                        className: 'absolute inset-0'
+                    }, createElement(games[activeGame].component))
+                ),
+                
+                createElement('div', { className: 'absolute top-1/2 left-8 z-[210] -translate-y-1/2' },
+                    createElement('button', { 
+                        onClick: () => setActiveGame(p => (p - 1 + games.length) % games.length),
+                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border-2 border-white/20 hover:scale-110 active:scale-90 shadow-2xl group'
+                    }, 
+                        createElement('svg', { className: 'w-8 h-8 text-white group-hover:themed-text-bright', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
+                            createElement('path', { d: 'M15 18l-6-6 6-6' })
+                        )
+                    )
+                ),
+                createElement('div', { className: 'absolute top-1/2 right-8 z-[210] -translate-y-1/2' },
+                    createElement('button', { 
+                        onClick: () => setActiveGame(p => (p + 1) % games.length),
+                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border-2 border-white/20 hover:scale-110 active:scale-90 shadow-2xl group'
+                    }, 
+                        createElement('svg', { className: 'w-8 h-8 text-white group-hover:themed-text-bright', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
+                            createElement('path', { d: 'M9 5l6 6-6 6' })
+                        )
+                    )
+                ),
+
+                createElement('div', { className: 'relative mt-auto text-center z-[210] pointer-events-none pb-12' },
+                    createElement('h2', { className: 'text-5xl font-black text-white uppercase italic tracking-[0.2em] mb-3 drop-shadow-2xl' }, 'Loading'),
+                    createElement('p', { className: 'text-white/60 font-bold uppercase tracking-[0.4em] text-xs mb-10' }, gameName),
+                    createElement('div', { className: 'max-w-md mx-auto mb-12 p-8 glass rounded-[2.5rem] border border-white/10 backdrop-blur-xl shadow-2xl relative group overflow-hidden' },
+                        createElement('div', { className: 'absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000' }),
+                        createElement('p', { className: 'themed-text-muted text-[11px] uppercase font-black tracking-[0.2em] leading-relaxed' }, tip)
+                    ),
+                    createElement('div', { className: 'flex items-center justify-center gap-4' },
+                        games.map((g, i) => createElement('div', { 
+                            key: i, 
+                            className: `h-1.5 rounded-full transition-all duration-500 ${activeGame === i ? 'bg-white w-12 shadow-[0_0_15px_rgba(255,255,255,0.8)]' : 'bg-white/10 w-4'}` 
+                        }))
+                    ),
+                    createElement('p', { className: 'text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mt-6' }, `Minigame: ${games[activeGame].name}`)
                 )
             );
         };
@@ -1601,6 +2050,12 @@
                     const resolveAndLoad = async () => {
                         if (!hasBeenResumed && isMinimized) return;
                         
+                        if (activeVersion.isSystem) {
+                            setPlayerUrl(activeVersion.url);
+                            setIsLoading(false);
+                            return;
+                        }
+
                         const cacheKey = activeVersion.url + (activeVersion.isZip ? '_zip' : '');
                         if (window._NEXUS_RESOLVE_CACHE.has(cacheKey)) {
                             const cached = window._NEXUS_RESOLVE_CACHE.get(cacheKey);
@@ -2142,32 +2597,21 @@
                         onClick: () => iframeRef.current?.focus()
                     },
                         createElement(AnimatePresence, null,
-                            isLoading && createElement(motion.div, {
-                                key: "loading-screen",
-                                initial: { opacity: 0 },
-                                animate: { opacity: 1 },
-                                exit: { opacity: 0 },
-                                className: 'absolute inset-0 z-[200] themed-overlay backdrop-blur-3xl flex flex-col items-center justify-center p-12 text-center'
-                            },
-                                createElement('div', { className: 'relative mb-12' },
-                                    createElement('div', { className: 'w-32 h-32 border-4 border-white/10 rounded-full' }),
-                                    createElement('div', { className: 'absolute inset-0 w-32 h-32 border-4 themed-border border-t-white rounded-full animate-spin' }),
-                                    createElement('div', { className: 'absolute inset-0 flex items-center justify-center' },
-                                        createElement('svg', { className: 'w-12 h-12 fill-white animate-pulse', viewBox: '0 0 24 24' },
-                                            createElement('path', { d: 'M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' })
-                                        )
-                                    )
-                                ),
-                                createElement('h2', { className: 'text-4xl font-black text-white uppercase italic tracking-[0.2em] mb-4' }, 'Loading'),
-                                createElement('p', { className: 'text-white/60 font-bold uppercase tracking-[0.4em] text-xs mb-12' }, gameEntry.name),
-                                createElement('div', { className: 'max-w-xs' },
-                                    createElement('p', { className: 'themed-text-muted text-[10px] uppercase font-bold tracking-widest leading-relaxed' }, loadingTip)
-                                )
-                            )
+                            isLoading && createElement(LoadingMinigames, { gameName: gameEntry.name, tip: loadingTip })
                         ),
-                        createElement('button', { ref: buttonRef, onPointerDown, onPointerMove, onPointerUp, style: { touchAction: 'none', userSelect: 'none' }, className: `absolute top-6 right-6 z-[130] w-16 h-16 flex items-center justify-center rounded-2xl bg-white/40 hover:bg-white/60 opacity-100 backdrop-blur-3xl border-2 border-white/50 cursor-grab active:cursor-grabbing shadow-[0_0_50px_rgba(0,0,0,1)] ${(isEmbedded && showTopBar) ? 'hidden' : ''}` }, createElement('svg', { className: 'w-8 h-8 fill-white pointer-events-none', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' }))),
+                        createElement('button', { ref: buttonRef, onPointerDown, onPointerMove, onPointerUp, style: { touchAction: 'none', userSelect: 'none' }, className: `absolute top-6 left-6 z-[130] w-16 h-16 flex items-center justify-center rounded-2xl bg-white/40 hover:bg-white/60 opacity-100 backdrop-blur-3xl border-2 border-white/50 cursor-grab active:cursor-grabbing shadow-[0_0_50px_rgba(0,0,0,1)] ${(isEmbedded && showTopBar) ? 'hidden' : ''}` }, createElement('svg', { className: 'w-8 h-8 fill-white pointer-events-none', viewBox: '0 0 24 24' }, createElement('path', { d: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' }))),
                         menuOpen && createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'absolute inset-0 z-[140] themed-overlay backdrop-blur-3xl flex items-center justify-center p-6' }, createElement(InteractiveTilt, { scale: 1.02, rotate: 4 }, createElement('div', { className: 'glass p-12 rounded-[3.5rem] w-full max-w-sm flex flex-col gap-8' }, createElement('div', { className: 'text-center' }, createElement('h3', { className: 'text-white font-black uppercase tracking-[0.4em] text-sm' }, 'Paused'), createElement('p', { className: 'themed-text-muted text-[9px] uppercase font-bold tracking-widest mt-2' }, 'Pause Menu')), createElement('div', { className: 'flex flex-col gap-3' }, createElement('button', { onClick: () => setMenuOpen(false), className: 'themed-btn py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Return to Game'), createElement('button', { onClick: handleRefresh, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Refresh Game'), !showTopBar && createElement('button', { onClick: handleExitFullscreen, className: 'themed-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest' }, 'Exit Fullscreen'), createElement('button', { onClick: isEmbedded ? onKill : onMinimize, className: 'bg-red-500/10 text-red-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20' }, isEmbedded ? 'Close Tab' : 'Go Bye Bye')), createElement('div', { className: 'h-px themed-border w-full' }), createElement('div', { className: 'grid grid-cols-2 gap-3' }, ['home', 'games', 'anime', 'manga', 'art', 'utilities'].map(tab => createElement('button', { key: tab, onClick: () => { onNavigate(tab); if (!isEmbedded) onMinimize(); }, className: 'py-3 rounded-xl themed-btn-secondary opacity-50 hover:opacity-100 text-[9px] font-black uppercase tracking-widest transition-all' }, tab)))))),
-                        (hasBeenResumed || !isMinimized) && playerUrl && createElement('iframe', { ref: iframeRef, src: playerUrl, className: `w-full h-full border-none`, allow: "fullscreen; autoplay; gamepad; microphone; camera; midi; encrypted-media", referrerPolicy: "no-referrer", tabIndex: "0" }),
+                        (hasBeenResumed || !isMinimized) && playerUrl && (
+                            activeVersion.isSystem ? 
+                            createElement('div', { className: 'w-full h-full bg-black relative' }, 
+                                playerUrl === 'bubble-pop' ? createElement(BubbleGame) : 
+                            playerUrl === 'dodge-hampter' ? createElement(DodgeHampter) : 
+                            playerUrl === 'jump-hampter' ? createElement(JumpHampter) :
+                            playerUrl === 'hampter-clicker' ? createElement(HampterClicker) :
+                            null
+                            ) :
+                            createElement('iframe', { ref: iframeRef, src: playerUrl, className: `w-full h-full border-none`, allow: "fullscreen; autoplay; gamepad; microphone; camera; midi; encrypted-media", referrerPolicy: "no-referrer", tabIndex: "0" })
+                        ),
                         showBeeSwarmPopup && createElement(motion.div, { 
                             initial: { opacity: 0 }, animate: { opacity: 1 },
                             className: 'absolute inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-center justify-center p-6'
@@ -2179,7 +2623,7 @@
                                     )
                                 ),
                                 createElement('h4', { className: 'text-white font-black uppercase tracking-widest text-sm' }, 'Important Note'),
-                                createElement('p', { className: 'text-white/70 text-xs leading-relaxed' }, 'Click open in new window so the game works'),
+                                createElement('p', { className: 'text-white/70 text-xs leading-relaxed' }, 'If you click open in new window, the game wont work.'),
                                 createElement('button', { 
                                     onClick: () => setShowBeeSwarmPopup(false),
                                     className: 'themed-btn py-3 rounded-xl text-[10px] font-black uppercase tracking-widest mt-2'
@@ -2581,7 +3025,13 @@
                         if (abminnRes.status === 'fulfilled') parse(abminnRes.value).forEach(n => add(n, { name: n, url: `${ABMINN_BASE}${n}/index.html`, cover: `${ABMINN_IMAGES}${n}.png` }, 'Abminn'));
                         if (zotronixRes.status === 'fulfilled') parse(zotronixRes.value).forEach(n => add(n, { name: n, url: `${ZOTRONIX_BASE}${n}/index.html`, cover: `${ZOTRONIX_IMAGES}${n}.png` }, 'Zotronix'));
                         
-                        const finalZones = Array.from(registry.values());
+                        const finalZones = [
+                            ...Array.from(registry.values()),
+                            { name: 'Bubble Pop', versions: { Nexus: { name: 'Bubble Pop', url: 'bubble-pop', isSystem: true } } },
+                            { name: 'Dodge Hampter', versions: { Nexus: { name: 'Dodge Hampter', url: 'dodge-hampter', isSystem: true } } },
+                            { name: 'Jump Hampter', versions: { Nexus: { name: 'Jump Hampter', url: 'jump-hampter', isSystem: true } } },
+                            { name: 'Hampter Clicker', versions: { Nexus: { name: 'Hampter Clicker', url: 'hampter-clicker', isSystem: true } } }
+                        ];
                         finalZones.forEach(z => {
                             if (z.name.toLowerCase().includes('five nights at last breath')) {
                                 Object.keys(z.versions).forEach(src => {
@@ -2594,7 +3044,13 @@
                         setZones(finalZones);
                     } catch (e) { 
                         fetch(ZONES_URL).then(r => r.json()).then(res => {
-                            const fallbackZones = res.map(g => ({ name: g.name, versions: { Nexus: g } }));
+                            const fallbackZones = [
+                                ...res.map(g => ({ name: g.name, versions: { Nexus: g } })),
+                                { name: 'Bubble Pop', versions: { Nexus: { name: 'Bubble Pop', url: 'bubble-pop', isSystem: true } } },
+                                { name: 'Dodge Hampter', versions: { Nexus: { name: 'Dodge Hampter', url: 'dodge-hampter', isSystem: true } } },
+                                { name: 'Jump Hampter', versions: { Nexus: { name: 'Jump Hampter', url: 'jump-hampter', isSystem: true } } },
+                                { name: 'Hampter Clicker', versions: { Nexus: { name: 'Hampter Clicker', url: 'hampter-clicker', isSystem: true } } }
+                            ];
                             fallbackZones.forEach(z => {
                                 if (z.name.toLowerCase().includes('five nights at last breath')) {
                                     if (z.versions.Nexus.url.includes('750.html')) {
@@ -2800,7 +3256,7 @@
                         })
                     })
                 ),
-                createElement('section', { id: 'section-games', className: `min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col ${currentStyle === 'google' && activeTab !== 'games' ? 'hidden' : ''}` },
+                createElement('section', { id: 'section-games', className: `min-h-screen max-w-[150rem] mx-auto w-full py-24 px-12 flex flex-col ${currentStyle === 'google' && activeTab !== 'games' ? 'hidden' : ''} ${(search || selectedFilters.length > 0) ? 'pb-[100vh]' : ''}` },
                     createElement(motion.div, { key: 'games', className: 'flex-1 flex flex-col', initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, transition: { duration: 0.7 } }, 
                         createElement('div', { className: 'relative mb-12' },
                             createElement('div', { className: 'flex items-center gap-4' },
