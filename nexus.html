@@ -1557,6 +1557,10 @@
 
         const GamePlayer = ({ window: win, onMinimize, onRestore, onKill, onNavigate, index, isEmbedded }) => {
             const { gameEntry, isMinimized } = win;
+            
+            // Initialize global resolve cache if it doesn't exist
+            if (!window._NEXUS_RESOLVE_CACHE) window._NEXUS_RESOLVE_CACHE = new Map();
+            
             const availableSources = Object.keys(gameEntry.versions);
             const [currentSource, setCurrentSource] = useState(() => {
                 if (gameEntry.name.toLowerCase().includes('geometry dash') && availableSources.includes('Nexus')) {
@@ -1596,6 +1600,15 @@
             useEffect(() => {
                     const resolveAndLoad = async () => {
                         if (!hasBeenResumed && isMinimized) return;
+                        
+                        const cacheKey = activeVersion.url + (activeVersion.isZip ? '_zip' : '');
+                        if (window._NEXUS_RESOLVE_CACHE.has(cacheKey)) {
+                            const cached = window._NEXUS_RESOLVE_CACHE.get(cacheKey);
+                            setPlayerUrl(cached.playerUrl);
+                            setIsLoading(false);
+                            return;
+                        }
+
                         setIsLoading(true);
                         let finalUrl = activeVersion.url;
                         
@@ -1618,14 +1631,20 @@
                         }
                         if (!activeVersion.isLocal && !activeVersion.isIDE && finalUrl.includes("{HTML_URL}")) finalUrl = finalUrl.replace("{HTML_URL}", HTML_BASE);
                         
+                        const fetchCache = new Map();
                         const tryFetch = async (url) => {
+                            if (fetchCache.has(url)) return fetchCache.get(url);
                             try {
                                 const res = await fetch(url);
                                 if (res.ok) {
                                     const text = await res.text();
-                                    if (text.toLowerCase().includes('<html') || text.toLowerCase().includes('<!doctype')) return text;
+                                    if (text.toLowerCase().includes('<html') || text.toLowerCase().includes('<!doctype')) {
+                                        fetchCache.set(url, text);
+                                        return text;
+                                    }
                                 }
                             } catch (e) {}
+                            fetchCache.set(url, null);
                             return null;
                         };
 
@@ -1634,7 +1653,7 @@
                             if (!ghMatch) return null;
                             let [_, user, repo, branch = 'main', basePath] = ghMatch;
                             
-                            const fetchWithTimeout = async (url, timeout = 3000) => {
+                            const fetchWithTimeout = async (url, timeout = 2000) => {
                                 const controller = new AbortController();
                                 const id = setTimeout(() => controller.abort(), timeout);
                                 try {
@@ -1643,11 +1662,10 @@
                                     return res;
                                 } catch (e) {
                                     clearTimeout(id);
-                                    throw e;
+                                    return { ok: false };
                                 }
                             };
 
-                            // Resolve 'latest' to the actual default branch for GitHub API calls
                             let effectiveBranch = branch;
                             if (branch === 'latest') {
                                 try {
@@ -1680,13 +1698,11 @@
                                     const folderCounts = {};
                                     indices.forEach(p => {
                                         const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
-                                        // Only count files in the EXACT same folder to avoid picking top-level shells
                                         folderCounts[p] = allFiles.filter(f => {
                                             const fFolder = f.includes('/') ? f.substring(0, f.lastIndexOf('/') + 1) : '';
                                             return fFolder === folder && f !== p;
                                         }).length;
                                     });
-                                    // Prefer the one with most files in its own directory
                                     bestPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
                                 } else if (filteredHtml.length > 0) {
                                     bestPath = filteredHtml.reduce((a, b) => a.split('/').length <= b.split('/').length ? a : b);
@@ -1706,38 +1722,36 @@
                             const res = await fetch(finalUrl);
                             html = await res.text();
                         } else {
-                            // Try deep search first for GitHub repos to find the real game
-                            const deeperUrl = await deepSearchGitHub(finalUrl);
-                            if (deeperUrl) {
-                                resolvedUrl = deeperUrl;
-                                html = await tryFetch(resolvedUrl);
-                            }
+                            // FAST PATH: Try direct URL first and common index paths in parallel
+                            const directPromise = tryFetch(finalUrl);
+                            
+                            const probePaths = async () => {
+                                if (finalUrl.split('?')[0].endsWith('.html')) return null;
+                                const base = finalUrl.endsWith('/') ? finalUrl : finalUrl + '/';
+                                const commonPaths = ['index.html', 'game/index.html', 'html/index.html', 'game.html'];
+                                const results = await Promise.all(commonPaths.map(async p => {
+                                    const content = await tryFetch(base + p);
+                                    return content ? { html: content, url: base + p } : null;
+                                }));
+                                return results.find(r => r !== null);
+                            };
 
-                            if (!html) {
-                                html = await tryFetch(finalUrl);
-                                if (!html && !finalUrl.split('?')[0].endsWith('.html')) {
-                                    const base = finalUrl.endsWith('/') ? finalUrl : finalUrl + '/';
-                                    const commonPaths = [
-                                        'index.html', 
-                                        'game/index.html', 
-                                        'html/index.html', 
-                                        'public/index.html', 
-                                        'dist/index.html',
-                                        'build/index.html',
-                                        'web/index.html',
-                                        'game.html'
-                                    ];
-                                    
-                                    // Parallel probing for common paths
-                                    const probeResults = await Promise.all(commonPaths.map(async (path) => {
-                                        const content = await tryFetch(base + path);
-                                        return content ? { html: content, url: base + path } : null;
-                                    }));
-                                    
-                                    const firstSuccess = probeResults.find(r => r !== null);
-                                    if (firstSuccess) {
-                                        html = firstSuccess.html;
-                                        resolvedUrl = firstSuccess.url;
+                            const deepSearchPromise = deepSearchGitHub(finalUrl);
+
+                            // Race direct fetch against probe (probes are faster if the original URL is just a folder)
+                            const fastResult = await directPromise;
+                            if (fastResult) {
+                                html = fastResult;
+                            } else {
+                                const probeResult = await probePaths();
+                                if (probeResult) {
+                                    html = probeResult.html;
+                                    resolvedUrl = probeResult.url;
+                                } else {
+                                    const deeperUrl = await deepSearchPromise;
+                                    if (deeperUrl) {
+                                        resolvedUrl = deeperUrl;
+                                        html = await tryFetch(resolvedUrl);
                                     }
                                 }
                             }
@@ -1756,7 +1770,6 @@
                             const zipIndexPath = activeVersion.indexPath || '';
                             const zipBaseDir = zipIndexPath.includes('/') ? zipIndexPath.substring(0, zipIndexPath.lastIndexOf('/') + 1) : '';
 
-                            // 1. ZIP Asset Resolution (Static Elements)
                             if (activeVersion.isZip) {
                                 const resolvePath = (relPath) => {
                                     if (!relPath || relPath.includes('://') || relPath.startsWith('data:') || relPath.startsWith('blob:')) return relPath;
@@ -1765,47 +1778,31 @@
                                         return zipFiles[absolutePath] || relPath;
                                     } catch(e) { return relPath; }
                                 };
-
-                                // Patch all elements with src/href/data
-                                const elements = doc.querySelectorAll('[src], [href], [data]');
-                                for (const el of elements) {
+                                doc.querySelectorAll('[src], [href], [data]').forEach(el => {
                                     const attr = el.hasAttribute('src') ? 'src' : (el.hasAttribute('href') ? 'href' : 'data');
                                     const val = el.getAttribute(attr);
                                     if (val) el.setAttribute(attr, resolvePath(val));
-                                }
-                                
-                                // Patch CSS in style tags
-                                const styles = doc.querySelectorAll('style');
-                                for (const style of styles) {
-                                    style.textContent = style.textContent.replace(/url\(['"]?([^'")]*)['"]?\)/g, (match, url) => {
-                                        return `url("${resolvePath(url)}")`;
-                                    });
-                                }
+                                });
+                                doc.querySelectorAll('style').forEach(style => {
+                                    style.textContent = style.textContent.replace(/url\(['"]?([^'")]*)['"]?\)/g, (match, url) => `url("${resolvePath(url)}")`);
+                                });
                             }
 
-                            // 2. External Script Patching (Interception)
                             const patchContent = (content) => {
-                                if (!content) return content;
+                                if (!content || content.length < 10) return content;
+                                // Combined regex for better performance
                                 return content
                                     .replace(/\b(window\.|top\.|parent\.|self\.)?location\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\b/g, 'window._nLoc.$2')
                                     .replace(/(?<![\w.])location\b(?!\s*:)/g, 'window._nLoc')
-                                    .replace(/\b(window\.)?(top|parent)\s*(!==|!=|===|==)\s*(window\.)?self\b/g, '(window.self$3window.self)')
-                                    .replace(/\b(window\.)?self\s*(!==|!=|===|==)\s*(window\.)?(top|parent)\b/g, '(window.self$2window.self)')
-                                    .replace(/\bdocument\.referrer\b/g, '""')
-                                    .replace(/\bdocument\.domain\b/g, '"itch.io"')
-                                    .replace(/\bdocument\.URL\b/g, '"https://itch.io/"')
-                                    .replace(/\bdocument\.baseURI\b/g, '"https://itch.io/"')
-                                    .replace(/\bwindow\.frameElement\b/g, 'null')
-                                    .replace(/\bwindow\.origin\b/g, '"https://itch.io"');
+                                    .replace(/\b(window\.)?(top|parent|self)\s*(!==|!=|===|==)\s*(window\.)?(top|parent|self)\b/g, '(window.self$3window.self)')
+                                    .replace(/\bdocument\.(referrer|domain|URL|baseURI)\b/g, (m, p) => p === 'referrer' ? '""' : (p === 'domain' ? '"itch.io"' : '"https://itch.io/"'))
+                                    .replace(/\bwindow\.(frameElement|origin)\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
                             };
 
-                            // Patch inline scripts
-                            const inlineScripts = doc.querySelectorAll('script:not([src])');
-                            for (const script of inlineScripts) {
+                            doc.querySelectorAll('script:not([src])').forEach(script => {
                                 script.textContent = patchContent(script.textContent);
-                            }
+                            });
 
-                            // Patch external scripts in parallel
                             const scripts = Array.from(doc.querySelectorAll('script[src]'));
                             await Promise.all(scripts.map(async (script) => {
                                 const src = script.getAttribute('src');
@@ -1816,7 +1813,7 @@
                                             const scriptUrl = src.startsWith('blob:') ? src : new URL(src, resolvedUrl).href;
                                             const scriptRes = await fetch(scriptUrl);
                                             if (scriptRes.ok) {
-                                                let scriptContent = await scriptRes.text();
+                                                const scriptContent = await scriptRes.text();
                                                 const scriptBlob = new Blob([patchContent(scriptContent)], { type: 'text/javascript' });
                                                 script.src = URL.createObjectURL(scriptBlob);
                                             }
@@ -2076,7 +2073,12 @@
                             if (html.includes("bubbls/youtube-playables")) html = html.replaceAll("bubbls/youtube-playables@main/ytgame.js", "Zotronix/Ignis-Games@main/Games/Crossy%20Road/ytgame.js");
                             if (html.includes("var config")) html = html.replaceAll("var config", "window.config");
                             const blob = new Blob([html], { type: "text/html" }); 
-                            setPlayerUrl(URL.createObjectURL(blob));
+                            const blobUrl = URL.createObjectURL(blob);
+                            
+                            // Store in session cache to make re-loading instant
+                            window._NEXUS_RESOLVE_CACHE.set(cacheKey, { playerUrl: blobUrl, resolvedUrl });
+                            
+                            setPlayerUrl(blobUrl);
                         } catch (e) { 
                             console.error('Nexus: Patching failed', e);
                             setPlayerUrl(resolvedUrl); 
