@@ -288,7 +288,7 @@
         .themed-text-bright { color: var(--text-bright) !important; }
         .themed-border { border-color: var(--glass-border) !important; }
 	</style>
-<link rel="stylesheet" href="/index.css">
+
 </head>
 
 <body>
@@ -1473,17 +1473,93 @@
             const cmInstance = useRef(null);
             const uploadRef = useRef(null);
             const [isModified, setIsModified] = useState(false);
+            const [zipData, setZipData] = useState(null);
 
-            const handleUpload = (e) => {
+            const handleUpload = async (e) => {
                 const file = e.target.files[0];
-                if (file && cmInstance.current) {
+                if (!file) return;
+
+                if (file.name.toLowerCase().endsWith('.zip')) {
+                    try {
+                        const zip = await JSZip.loadAsync(file);
+                        const files = {};
+                        let indexFile = null;
+                        const promises = [];
+                        
+                        zip.forEach((relativePath, zipEntry) => {
+                            if (!zipEntry.dir) {
+                                const isText = /\.(html|js|css|json|txt|md|svg)$/i.test(relativePath);
+                                if (isText) {
+                                    promises.push(
+                                        zipEntry.async('string').then(content => {
+                                            files[relativePath] = content;
+                                            if (relativePath.toLowerCase().endsWith('index.html')) {
+                                                if (!indexFile || relativePath.split('/').length < indexFile.split('/').length) {
+                                                    indexFile = relativePath;
+                                                }
+                                            }
+                                        })
+                                    );
+                                } else {
+                                    promises.push(
+                                        zipEntry.async('base64').then(base64 => {
+                                            const ext = relativePath.split('.').pop().toLowerCase();
+                                            const mime = {
+                                                'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                                                'gif': 'image/gif', 'webp': 'image/webp', 'mp3': 'audio/mpeg',
+                                                'wav': 'audio/wav', 'ogg': 'audio/ogg', 'mp4': 'video/mp4',
+                                                'wasm': 'application/wasm'
+                                            }[ext] || 'application/octet-stream';
+                                            files[relativePath] = `data:${mime};base64,${base64}`;
+                                        })
+                                    );
+                                }
+                            }
+                        });
+                        
+                        await Promise.all(promises);
+
+                        if (!indexFile) {
+                            indexFile = Object.keys(files).find(f => f.toLowerCase().endsWith('.html'));
+                        }
+
+                        if (indexFile && cmInstance.current) {
+                            cmInstance.current.setValue(files[indexFile]);
+                            setZipData({ 
+                                zipFiles: files, 
+                                indexPath: indexFile, 
+                                name: file.name.replace(/\.zip$/i, '') 
+                            });
+                            setIsModified(true);
+                        } else {
+                            alert("No HTML file found in ZIP.");
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("Failed to unzip file.");
+                    }
+                } else {
                     const reader = new FileReader();
                     reader.onload = (ev) => {
                         cmInstance.current.setValue(ev.target.result);
+                        setZipData(null);
                         setIsModified(true);
                     };
                     reader.readAsText(file);
                 }
+            };
+
+            const getOutput = (code) => {
+                if (zipData) {
+                    return {
+                        isZip: true,
+                        name: zipData.name,
+                        zipFiles: { ...zipData.zipFiles, [zipData.indexPath]: code },
+                        indexPath: zipData.indexPath,
+                        content: code
+                    };
+                }
+                return code;
             };
 
             useEffect(() => {
@@ -1524,10 +1600,10 @@
                         ),
                         createElement('div', { className: 'flex gap-4' },
                             createElement('button', { onClick: () => uploadRef.current.click(), className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Upload'),
-                            createElement('input', { type: 'file', ref: uploadRef, accept: '.html', className: 'hidden', onChange: handleUpload }),
+                            createElement('input', { type: 'file', ref: uploadRef, accept: '.html,.zip', className: 'hidden', onChange: handleUpload }),
                             createElement('button', { onClick: formatCode, className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Format'),
-                            createElement('button', { onClick: () => onDeploy(cmInstance.current.getValue()), className: 'themed-btn px-10 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform' }, 'Deploy'),
-                            createElement('button', { onClick: () => onSave(cmInstance.current.getValue()), className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Save'),
+                            createElement('button', { onClick: () => onDeploy(getOutput(cmInstance.current.getValue())), className: 'themed-btn px-10 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform' }, 'Deploy'),
+                            createElement('button', { onClick: () => onSave(getOutput(cmInstance.current.getValue())), className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Save'),
                             createElement('button', { onClick: downloadCode, className: 'themed-btn-secondary px-7 py-3 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-transform' }, 'Archive'),
                             createElement('button', { onClick: onClose, className: 'bg-red-500/10 text-red-500 px-7 py-3 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20' }, 'Kill Window')
                         )
@@ -3143,8 +3219,11 @@
                             Local: {
                                 name: lg.name,
                                 url: url,
-                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/freebuisness/assets@main/local_game_cover.png',
-                                isLocal: true
+                                cover: lg.cover || 'https://cdn.jsdelivr.net/gh/abminn/Nexus-Games/Images/square.png',
+                                isLocal: true,
+                                isZip: lg.isZip,
+                                zipFiles: lg.zipFiles || null,
+                                indexPath: lg.indexPath || null
                             }
                         }
                     });
@@ -3367,51 +3446,51 @@
                             createElement(InteractiveTilt, null, createElement('div', { onClick: () => fileRef.current?.click(), className: 'group utility-card glass rounded-[4rem] cursor-pointer' }, createElement('input', { type: 'file', ref: fileRef, accept: '.html,.zip', className: 'hidden', onChange: async e => {
                                 if (e.target.files[0]) {
                                     const file = e.target.files[0];
-                                    if (file.name.endsWith('.zip')) {
+                                    if (file.name.toLowerCase().endsWith('.zip')) {
                                         try {
                                             const zip = await JSZip.loadAsync(file);
                                             const files = {};
-                                            const fileEntries = Object.entries(zip.files).filter(([path, entry]) => !entry.dir);
-                                            
-                                            for (const [path, zipEntry] of fileEntries) {
-                                                const blob = await zipEntry.async('blob');
-                                                files[path] = URL.createObjectURL(blob);
-                                            }
-
-                                            const htmlFiles = Object.keys(files).filter(p => p.toLowerCase().endsWith('.html'));
-                                            const ignoreFolders = ['__macosx', 'node_modules', '.git', 'v8-compile-cache'];
-                                            const filteredHtml = htmlFiles.filter(p => !ignoreFolders.some(folder => p.toLowerCase().includes(folder)));
-
                                             let indexPath = '';
-                                            const indices = filteredHtml.filter(p => p.toLowerCase().endsWith('index.html'));
-                                            if (indices.length > 0) {
-                                                // Heuristic: pick the index.html in the folder with the most neighbor files
-                                                const folderCounts = {};
-                                                indices.forEach(p => {
-                                                    const folder = p.includes('/') ? p.substring(0, p.lastIndexOf('/') + 1) : '';
-                                                    // Only count files in the EXACT same folder to avoid picking top-level shells
-                                                    folderCounts[p] = Object.keys(files).filter(f => {
-                                                        const fFolder = f.includes('/') ? f.substring(0, f.lastIndexOf('/') + 1) : '';
-                                                        return fFolder === folder && f !== p;
-                                                    }).length;
-                                                });
-                                                // Prefer the one with most files in its own directory
-                                                indexPath = indices.reduce((a, b) => folderCounts[a] >= folderCounts[b] ? a : b);
-                                            } else if (filteredHtml.length > 0) {
-                                                // Pick shortest path .html
-                                                indexPath = filteredHtml.reduce((a, b) => a.split('/').length <= b.split('/').length ? a : b);
+                                            const promises = [];
+
+                                            zip.forEach((relativePath, zipEntry) => {
+                                                if (!zipEntry.dir) {
+                                                    const isText = /\.(html|js|css|json|txt|md|svg)$/i.test(relativePath);
+                                                    if (isText) {
+                                                        promises.push(zipEntry.async('string').then(content => {
+                                                            files[relativePath] = content;
+                                                            if (relativePath.toLowerCase().endsWith('index.html')) {
+                                                                if (!indexPath || relativePath.split('/').length < indexPath.split('/').length) {
+                                                                    indexPath = relativePath;
+                                                                }
+                                                            }
+                                                        }));
+                                                    } else {
+                                                        promises.push(zipEntry.async('base64').then(base64 => {
+                                                            const ext = relativePath.split('.').pop().toLowerCase();
+                                                            const mime = { 'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'webp': 'image/webp', 'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'ogg': 'audio/ogg', 'mp4': 'video/mp4', 'wasm': 'application/wasm' }[ext] || 'application/octet-stream';
+                                                            files[relativePath] = `data:${mime};base64,${base64}`;
+                                                        }));
+                                                    }
+                                                }
+                                            });
+                                            
+                                            await Promise.all(promises);
+
+                                            if (!indexPath) {
+                                                indexPath = Object.keys(files).find(f => f.toLowerCase().endsWith('.html'));
                                             }
                                             
                                             if (indexPath) {
                                                 setSaveModalData({ 
                                                     content: files[indexPath], 
-                                                    name: file.name.replace('.zip', ''), 
+                                                    name: file.name.replace(/\.zip$/i, ''), 
                                                     isZip: true, 
                                                     zipFiles: files, 
                                                     indexPath: indexPath 
                                                 });
                                             } else {
-                                                alert('No index.html or .html file found in ZIP. Please ensure your game has an entry point.');
+                                                alert('No index.html or .html file found in ZIP.');
                                             }
                                         } catch (err) {
                                             console.error('ZIP Load Error:', err);
@@ -3427,7 +3506,19 @@
                             localCreations.tools.map(tool => createElement(InteractiveTilt, { key: tool.id }, createElement('div', { 
                                 onClick: () => {
                                     const blob = new Blob([tool.content], { type: 'text/html' });
-                                    addWindow({ name: tool.name, versions: { Local: { name: tool.name, url: URL.createObjectURL(blob), isLocal: true } } });
+                                    addWindow({ 
+                                        name: tool.name, 
+                                        versions: { 
+                                            Local: { 
+                                                name: tool.name, 
+                                                url: URL.createObjectURL(blob), 
+                                                isLocal: true,
+                                                isZip: tool.isZip,
+                                                zipFiles: tool.zipFiles,
+                                                indexPath: tool.indexPath
+                                            } 
+                                        } 
+                                    });
                                 },
                                 className: 'group utility-card glass rounded-[4rem] cursor-pointer relative' 
                             }, 
@@ -3495,18 +3586,28 @@
                     ),
                 showIDE && createElement(IDE, { 
                     onClose: () => setShowIDE(false), 
-                    onDeploy: code => addWindow({ name: 'Development Window', versions: { IDE: { name: 'Development Window', url: URL.createObjectURL(new Blob([code], { type: "text/html" })), isIDE: true } } }),
-                    onSave: code => setSaveModalData(code)
+                    onDeploy: data => {
+                        const isZip = typeof data === 'object' && data.isZip;
+                        const code = isZip ? data.content : data;
+                        const name = isZip ? data.name : 'Development Window';
+                        const version = { 
+                            name, 
+                            url: URL.createObjectURL(new Blob([code], { type: "text/html" })), 
+                            isIDE: true,
+                            isZip: isZip,
+                            zipFiles: isZip ? data.zipFiles : null,
+                            indexPath: isZip ? data.indexPath : null
+                        };
+                        addWindow({ name, versions: { IDE: version } });
+                    },
+                    onSave: data => setSaveModalData(data)
                 }),
                 saveModalData && createElement(SaveModal, {
                     content: saveModalData,
                     onClose: () => setSaveModalData(null),
                     onRun: (data) => {
-                        let url = data.content;
-                        if (!data.isZip) {
-                            const blob = new Blob([data.content], { type: 'text/html' });
-                            url = URL.createObjectURL(blob);
-                        }
+                        const blob = new Blob([data.content], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
                         addWindow({ 
                             name: data.name, 
                             versions: { 
@@ -3524,12 +3625,7 @@
                     },
                     onSave: (data) => {
                         const id = Date.now();
-                        let url = data.content;
-                        if (!data.isZip) {
-                            const blob = new Blob([data.content], { type: 'text/html' });
-                            url = URL.createObjectURL(blob);
-                        }
-                        const finalData = { ...data, name: data.name || 'Unnamed Project', id, content: url };
+                        const finalData = { ...data, name: data.name || 'Unnamed Project', id };
                         
                         if (data.type === 'game') {
                             setLocalCreations(prev => ({ ...prev, games: [...prev.games, finalData] }));
