@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Advanced File Loader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0a0a0c;
+            --accent-color: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            padding: 3rem;
+            border-radius: 2.5rem;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .nexus-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            width: 100%;
+            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .nexus-input::file-selector-button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass">
+        <h1 class="text-4xl font-black italic uppercase tracking-tighter mb-2">Nexus Loader</h1>
+        <p class="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">HTML & ZIP Portal</p>
+        
+        <div id="container">
+            <input type="file" id="fileInput" accept=".html,.zip" class="nexus-input">
+            
+            <button id="launchBtn" onclick="launch();" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-sm tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Launch Application
+            </button>
+            
+            <div id="message" class="mt-6 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                Ready for Input
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let finalContent = '';
+
+        document.getElementById("fileInput").addEventListener("change", async function(event) {
+            const file = event.target.files[0];
+            const message = document.getElementById("message");
+            if (!file) return;
+
+            message.textContent = "Processing...";
+            message.style.color = "rgba(255,255,255,0.3)";
+
+            if (file.name.endsWith('.zip')) {
+                try {
+                    const zip = new JSZip();
+                    const zipContent = await zip.loadAsync(file);
+                    
+                    const htmlFile = zipContent.file("index.html") || Object.values(zipContent.files).find(f => f.name.endsWith(".html"));
+
+                    if (!htmlFile) {
+                        message.textContent = "No HTML found in ZIP.";
+                        message.style.color = "#f87171";
+                        return;
+                    }
+
+                    let htmlText = await htmlFile.async("string");
+                    const assetMap = {};
+                    
+                    for (const [path, zipEntry] of Object.entries(zipContent.files)) {
+                        if (!zipEntry.dir) {
+                            const blob = await zipEntry.async("blob");
+                            assetMap[path] = URL.createObjectURL(blob);
+                        }
+                    }
+
+                    for (const [path, blobUrl] of Object.entries(assetMap)) {
+                        const safePath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const regex = new RegExp(`(src|href)=["'](./)?${safePath}["']`, 'g');
+                        htmlText = htmlText.replace(regex, `$1="${blobUrl}"`);
+                    }
+
+                    finalContent = htmlText;
+                    message.textContent = "ZIP Package Ready: " + htmlFile.name;
+                    message.style.color = "#4ade80";
+                } catch (err) {
+                    message.textContent = "Error reading ZIP.";
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    finalContent = e.target.result;
+                    message.textContent = "HTML Source Ready.";
+                    message.style.color = "#4ade80";
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function launch() {
+            if (!finalContent) {
+                document.getElementById("message").textContent = "Select a file first.";
+                return;
+            }
+
+            const win = window.open('about:blank', '_blank');
+            if (!win) {
+                alert("Popup blocked! Please allow popups.");
+                return;
+            }
+
+            // The Anti-Refresh Script
+            const guardScript = `
+                <script>
+                    window.onbeforeunload = function() {
+                        return "Are you sure you want to leave? Any unsaved progress will be lost.";
+                    };
+                <\/script>
+            `;
+
+            win.document.open();
+            // Inject the guard script before the main content
+            win.document.write(guardScript + finalContent);
+            win.document.close();
+            
+            win.document.body.style.margin = "0";
+            win.document.body.style.backgroundColor = "#000";
+        }
+    </script>
+</body>
+</html>
