@@ -2086,8 +2086,14 @@
             );
         };
 
-        const patchNexusContent = (content) => {
+        const patchNexusContent = (content, injectBypass = null) => {
             if (!content || typeof content !== 'string' || content.length < 10) return content;
+            if (injectBypass && content.includes('<html') && !content.includes('_nexus_bypass')) {
+                const parts = content.split('<head>');
+                if (parts.length > 1) {
+                    content = parts[0] + '<head><script id="_nexus_bypass">' + injectBypass.replace(/<\/script>/gi, '<\\/script>') + '<\/script>' + parts[1];
+                }
+            }
             return content
                 .replace(/\b(window\.|top\.|parent\.|self\.)?location\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\b/g, 'window._nLoc.$2')
                 .replace(/\b(window\.|top\.|parent\.|self\.)location\b/g, 'window._nLoc')
@@ -2096,74 +2102,394 @@
         };
 
         const processNexusHtml = async (html, data = {}) => {
-            const { isZip, zipFiles = {}, resolvedUrl = '' } = data;
+            const { isZip, zipFiles = {}, resolvedUrl = '', isBundling = false } = data;
             const zipIndexPath = data.zipIndexPath || data.indexPath || '';
-            const parser = new DOMParser(); 
-            let doc = parser.parseFromString(html, "text/html");
             const zipBaseDir = zipIndexPath.includes('/') ? zipIndexPath.substring(0, zipIndexPath.lastIndexOf('/') + 1) : '';
 
-            if (isZip) {
-                const blobMap = new Map();
-                const resolvePath = (relPath) => {
-                    if (!relPath || relPath.includes('://') || relPath.startsWith('data:') || relPath.startsWith('blob:')) return relPath;
+            // Using Base64 to safely inject data into the script template
+            const nexusDataB64 = btoa(unescape(encodeURIComponent(JSON.stringify({ 
+                zipFiles: data.zipFiles || {}, 
+                zipIndexPath: zipIndexPath, 
+                zipBaseDir: zipBaseDir,
+                resolvedUrl: resolvedUrl || ''
+            }))));
+
+            const bypassScriptSource = `(function() {
+                const nexusData = JSON.parse(decodeURIComponent(escape(atob("${nexusDataB64}"))));
+                const { zipFiles, zipBaseDir } = nexusData;
+                
+                const originalLocation = window._nLoc || window.location;
+                const originalBase = (location.protocol === 'file:' ? '' : (location.origin === 'null' ? '' : location.origin)) + location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+                
+                const patchContent = (content) => {
+                    if (!content || typeof content !== 'string' || content.length < 10) return content;
+                    // Inject bypass if it's an HTML file and not already injected
+                    if (content.includes('<html') && !content.includes('_nexus_bypass')) {
+                        const bypass = document.getElementById('_nexus_bypass');
+                        if (bypass) {
+                            const parts = content.split('<head>');
+                            if (parts.length > 1) {
+                                content = parts[0] + '<head><script id="_nexus_bypass">' + bypass.textContent.replace(/<\/script>/gi, '<\\\\/script>') + '<\\\\/script>' + parts[1];
+                            }
+                        }
+                    }
+                    return content
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, 'window._nLoc.$2')
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)location\\b/g, 'window._nLoc')
+                        .replace(/\\bdocument\\.(referrer|domain|URL|baseURI)\\b/g, (m, p) => p === 'referrer' ? '""' : (p === 'domain' ? '"itch.io"' : '"https://itch.io/"'))
+                        .replace(/\\bwindow\\.(frameElement|origin)\\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
+                };
+
+                const locProxy = new Proxy(originalLocation, {
+                    get: (target, prop) => {
+                        if (prop === 'hostname' || prop === 'host') return 'itch.io';
+                        if (prop === 'origin') return 'https://itch.io';
+                        if (prop === 'href') return 'https://itch.io/';
+                        if (prop === 'protocol') return 'https:';
+                        if (prop === 'port') return '';
+                        if (prop === 'pathname') return '/';
+                        if (prop === 'ancestorOrigins') return {
+                            length: 1, item: () => 'https://itch.io', contains: (o) => o.includes('itch.io'), 0: 'https://itch.io'
+                        };
+                        if (prop === Symbol.toPrimitive || prop === 'toString') return () => 'https://itch.io/';
+                        let val = target[prop];
+                        if (typeof val === 'function') return val.bind(target);
+                        return val;
+                    },
+                    set: (target, prop, val) => {
+                        if (prop === 'href' && val.includes('itch.io')) return true;
+                        try { target[prop] = val; } catch (e) {}
+                        return true;
+                    }
+                });
+
+                Object.defineProperty(window, '_nLoc', {
+                    get: () => locProxy,
+                    set: (v) => { try { window.location.href = v; } catch(e) {} },
+                    configurable: true
+                });
+
+                // Memory-based storage for file:// environments to prevent security errors
+                if (location.protocol === 'file:') {
+                    const storage = {};
+                    const storageProxy = {
+                        getItem: (k) => storage[k] || null,
+                        setItem: (k, v) => { storage[k] = String(v); },
+                        removeItem: (k) => { delete storage[k]; },
+                        clear: () => { for (let k in storage) delete storage[k]; },
+                        length: 0,
+                        key: (i) => Object.keys(storage)[i] || null
+                    };
+                    Object.defineProperty(storageProxy, 'length', { get: () => Object.keys(storage).length });
                     try {
+                        Object.defineProperty(window, 'localStorage', { get: () => storageProxy, configurable: true });
+                        Object.defineProperty(window, 'sessionStorage', { get: () => storageProxy, configurable: true });
+                    } catch (e) {}
+                    
+                    let memoryCookie = "";
+                    Object.defineProperty(document, 'cookie', {
+                        get: () => memoryCookie,
+                        set: (v) => { memoryCookie = v; },
+                        configurable: true
+                    });
+                }
+
+                const blobCache = new Map();
+                const resolveZipPath = (url) => {
+                    if (!zipFiles || Object.keys(zipFiles).length === 0) return null;
+                    try {
+                        let path = typeof url === 'string' ? url : (url instanceof URL ? url.href : (url && url.url));
+                        if (!path) return null;
+                        
+                        if (zipFiles[path]) return zipFiles[path];
+                        
+                        if (path.startsWith('https://itch.io/')) path = path.replace('https://itch.io/', '');
+                        else if (originalBase && path.startsWith(originalBase)) path = path.replace(originalBase, '');
+                        else if (path.startsWith('blob:') || path.startsWith('data:')) return null;
+                        
+                        if (!path || path === '/' || path === '.') path = nexusData.zipIndexPath;
+                        if (zipFiles[path]) return zipFiles[path];
+
+                        const absolutePath = new URL(path, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
+                        if (zipFiles[absolutePath]) {
+                            const content = zipFiles[absolutePath];
+                            if (blobCache.has(absolutePath)) return blobCache.get(absolutePath);
+                            
+                            if (typeof content === 'string' && !content.startsWith('data:')) {
+                                if (absolutePath.endsWith('.js') || absolutePath.endsWith('.html')) {
+                                    const patched = patchContent(content);
+                                    const ext = absolutePath.split('.').pop().toLowerCase();
+                                    const mime = { 'js': 'text/javascript', 'css': 'text/css', 'html': 'text/html', 'svg': 'image/svg+xml', 'json': 'application/json' }[ext] || 'text/plain';
+                                    const blob = new Blob([patched], { type: mime });
+                                    const bUrl = URL.createObjectURL(blob);
+                                    blobCache.set(absolutePath, bUrl);
+                                    return bUrl;
+                                }
+                            }
+                            return content;
+                        }
+                        
+                        const searchPath = path.startsWith('/') ? path.substring(1) : path;
+                        const match = Object.keys(zipFiles).find(k => k.endsWith(searchPath));
+                        if (match) return zipFiles[match];
+
+                        return null;
+                    } catch (e) { return null; }
+                };
+
+                const originalFetch = window.fetch;
+                window.fetch = function(input, init) {
+                    let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input && input.url));
+                    const zipUrl = resolveZipPath(url);
+                    if (zipUrl) return originalFetch(zipUrl, init);
+                    if (typeof input === 'string' && input.startsWith('https://itch.io/') && originalBase) {
+                        return originalFetch(input.replace('https://itch.io/', originalBase), init);
+                    }
+                    return originalFetch(input, init);
+                };
+
+                const originalXHROpen = window.XMLHttpRequest.prototype.open;
+                window.XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                    const zipUrl = resolveZipPath(url);
+                    if (zipUrl) url = zipUrl;
+                    else if (typeof url === 'string' && url.startsWith('https://itch.io/') && originalBase) {
+                        url = url.replace('https://itch.io/', originalBase);
+                    }
+                    return originalXHROpen.call(this, method, url, ...args);
+                };
+
+                const origCreateElement = document.createElement;
+                document.createElement = function(tag) {
+                    const el = origCreateElement.apply(this, arguments);
+                    if (tag.toLowerCase() === 'script') {
+                        const originalSetAttribute = el.setAttribute;
+                        el.setAttribute = function(name, value) {
+                            if (name.toLowerCase() === 'src' && value) {
+                                const zipUrl = resolveZipPath(value);
+                                if (zipUrl) {
+                                    originalSetAttribute.call(el, 'src', zipUrl);
+                                    return;
+                                }
+                                if (!value.startsWith('blob:') && !value.includes('google')) {
+                                    try {
+                                        const base = nexusData.resolvedUrl || (originalBase && !originalBase.startsWith('blob:null') ? originalBase : null) || location.href;
+                                        const absoluteUrl = new URL(value, base).href;
+                                        fetch(absoluteUrl).then(res => {
+                                            if (!res.ok || !res.headers.get('content-type')?.includes('javascript')) throw new Error('Not JS');
+                                            return res.text();
+                                        }).then(content => {
+                                            const patched = patchContent(content);
+                                            const blob = new Blob([patched], { type: 'text/javascript' });
+                                            originalSetAttribute.call(el, 'src', URL.createObjectURL(blob));
+                                        }).catch(() => originalSetAttribute.call(el, 'src', value));
+                                        return;
+                                    } catch (e) {
+                                        originalSetAttribute.call(el, 'src', value);
+                                        return;
+                                    }
+                                }
+                            }
+                            return originalSetAttribute.apply(this, arguments);
+                        };
+                        Object.defineProperty(el, 'src', {
+                            set: function(url) { el.setAttribute('src', url); },
+                            get: function() { return el.getAttribute('src'); }
+                        });
+                    } else if (tag.toLowerCase() === 'iframe') {
+                        const originalSetAttribute = el.setAttribute;
+                        el.setAttribute = function(name, value) {
+                            if (name.toLowerCase() === 'src' && value) {
+                                const zipUrl = resolveZipPath(value);
+                                if (zipUrl) {
+                                    originalSetAttribute.call(el, 'src', zipUrl);
+                                    return;
+                                }
+                                if (value.startsWith('https://itch.io/')) {
+                                    originalSetAttribute.call(el, 'src', value.replace('https://itch.io/', originalBase));
+                                    return;
+                                }
+                            }
+                            return originalSetAttribute.apply(this, arguments);
+                        };
+                        Object.defineProperty(el, 'src', {
+                            set: function(url) { el.setAttribute('src', url); },
+                            get: function() { return el.getAttribute('src'); }
+                        });
+                    }
+                    return el;
+                };
+
+                try {
+                    const originalTop = window.top;
+                    const originalParent = window.parent;
+                    Object.defineProperty(window, 'top', { get: () => { try { if (originalTop.location.href) return originalTop; } catch(e) {} return window; }, configurable: true });
+                    Object.defineProperty(window, 'parent', { get: () => { try { if (originalParent.location.href) return originalParent; } catch(e) {} return window; }, configurable: true });
+                } catch (e) {}
+
+                try {
+                    Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
+                    Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
+                    Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
+                    Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
+                    Object.defineProperty(document, 'location', { get: () => window._nLoc, set: (v) => { window.location.href = v; }, configurable: true });
+                } catch (e) {}
+
+                try {
+                    Object.defineProperty(window, 'origin', { get: () => 'https://itch.io', configurable: true });
+                    Object.defineProperty(window, 'frameElement', { get: () => null, configurable: true });
+                } catch (e) {}
+
+                try {
+                    const proto = Location.prototype;
+                    const origAssign = proto.assign;
+                    const origReplace = proto.replace;
+                    proto.assign = function(url) { if (url.includes('itch.io')) return; return origAssign.apply(this, arguments); };
+                    proto.replace = function(url) { if (url.includes('itch.io')) return; return origReplace.apply(this, arguments); };
+                } catch (e) {}
+            })();`;
+
+            const parser = new DOMParser(); 
+            let doc = parser.parseFromString(html, "text/html");
+
+            const bundledAssets = {};
+            const resolvePath = async (relPath, currentBase) => {
+                if (!relPath || relPath.startsWith('data:') || relPath.startsWith('blob:')) return relPath;
+                if (relPath.includes('google') || relPath.includes('analytics') || relPath.includes('doubleclick')) return relPath;
+                
+                try {
+                    const base = currentBase || (isZip ? ('https://itch.io/' + zipBaseDir) : (resolvedUrl || location.href));
+                    const absoluteUrl = new URL(relPath, base).href;
+                    
+                    if (isZip) {
                         const absolutePath = new URL(relPath, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
                         let content = zipFiles[absolutePath];
                         if (content) {
-                            if (content.startsWith('data:')) return content;
-                            if (blobMap.has(absolutePath)) return blobMap.get(absolutePath);
+                            if (content.startsWith('data:')) {
+                                if (isBundling) bundledAssets[relPath] = content;
+                                return content;
+                            }
+                            if (!isBundling && blobMap.has(absolutePath)) return blobMap.get(absolutePath);
                             
                             const ext = absolutePath.split('.').pop().toLowerCase();
-                            if (ext === 'js' || ext === 'html') {
-                                content = patchNexusContent(content);
+                            if (ext === 'js' || ext === 'html' || ext === 'css') {
+                                content = patchNexusContent(content, bypassScriptSource);
+                                if (ext === 'css') {
+                                    const matches = Array.from(content.matchAll(/url\(['"]?([^'")]*)['"]?\)/g));
+                                    for (const match of matches) {
+                                        const r = await resolvePath(match[1]);
+                                        content = content.replace(match[0], `url("${r}")`);
+                                    }
+                                }
                             }
-                            const mime = { 'js': 'text/javascript', 'css': 'text/css', 'html': 'text/html', 'svg': 'image/svg+xml', 'json': 'application/json' }[ext] || 'text/plain';
-                            const blob = new Blob([content], { type: mime });
-                            const bUrl = URL.createObjectURL(blob);
-                            blobMap.set(absolutePath, bUrl);
-                            return bUrl;
-                        }
-                        return relPath;
-                    } catch(e) { return relPath; }
-                };
-                doc.querySelectorAll('[src], [href], [data]').forEach(el => {
-                    const attr = el.hasAttribute('src') ? 'src' : (el.hasAttribute('href') ? 'href' : 'data');
-                    const val = el.getAttribute(attr);
-                    if (val) el.setAttribute(attr, resolvePath(val));
-                });
-                doc.querySelectorAll('style').forEach(style => {
-                    style.textContent = style.textContent.replace(/url\(['"]?([^'")]*)['"]?\)/g, (match, url) => `url("${resolvePath(url)}")`);
-                });
-            }
+                            const mime = { 'js': 'text/javascript', 'css': 'text/css', 'html': 'text/html', 'svg': 'image/svg+xml', 'json': 'application/json', 'wasm': 'application/wasm' }[ext] || 'text/plain';
+                            
+                            let dataUrl;
+                            if (content.includes(';base64,')) {
+                                dataUrl = content;
+                            } else {
+                                dataUrl = `data:${mime};base64,${btoa(unescape(encodeURIComponent(content)))}`;
+                            }
 
+                            if (isBundling) bundledAssets[relPath] = dataUrl;
+                            
+                            if (isBundling) return dataUrl;
+                            else {
+                                const blob = new Blob([content], { type: mime });
+                                const bUrl = URL.createObjectURL(blob);
+                                blobMap.set(absolutePath, bUrl);
+                                return bUrl;
+                            }
+                        }
+                    } else if (isBundling) {
+                        if (bundledAssets[absoluteUrl]) return bundledAssets[absoluteUrl];
+                        const res = await fetch(absoluteUrl);
+                        if (res.ok) {
+                            const ext = absoluteUrl.split('?')[0].split('.').pop().toLowerCase();
+                            let result;
+                            if (ext === 'css') {
+                                let css = await res.text();
+                                const matches = Array.from(css.matchAll(/url\(['"]?([^'")]*)['"]?\)/g));
+                                for (const match of matches) {
+                                    const r = await resolvePath(match[1], absoluteUrl.substring(0, absoluteUrl.lastIndexOf('/') + 1));
+                                    css = css.replace(match[0], `url("${r}")`);
+                                }
+                                result = `data:text/css;base64,${btoa(unescape(encodeURIComponent(css)))}`;
+                            } else {
+                                const blob = await res.blob();
+                                result = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result);
+                                    reader.readAsDataURL(blob);
+                                });
+                            }
+                            bundledAssets[relPath] = result;
+                            bundledAssets[absoluteUrl] = result;
+                            return result;
+                        }
+                    }
+                    return relPath;
+                } catch(e) { return relPath; }
+            };
+
+            const elements = Array.from(doc.querySelectorAll('[src], [href], [data]'));
+            await Promise.all(elements.map(async (el) => {
+                const attr = el.hasAttribute('src') ? 'src' : (el.hasAttribute('href') ? 'href' : 'data');
+                const val = el.getAttribute(attr);
+                if (val && !val.startsWith('data:') && !val.startsWith('blob:')) {
+                    const resolved = await resolvePath(val);
+                    el.setAttribute(attr, resolved);
+                }
+            }));
+
+            const existingStyles = Array.from(doc.querySelectorAll('style'));
+            await Promise.all(existingStyles.map(async (style) => {
+                const matches = Array.from(style.textContent.matchAll(/url\(['"]?([^'")]*)['"]?\)/g));
+                for (const match of matches) {
+                    const url = match[1];
+                    const resolved = await resolvePath(url);
+                    style.textContent = style.textContent.replace(match[0], `url("${resolved}")`);
+                }
+            }));
+            
             doc.querySelectorAll('script:not([src])').forEach(script => {
-                script.textContent = patchNexusContent(script.textContent).replace(/<\/script>/gi, '<\\/script>');
+                script.textContent = patchNexusContent(script.textContent, bypassScriptSource).replace(/<\/script>/gi, '<\\/script>');
             });
 
             const scripts = Array.from(doc.querySelectorAll('script[src]'));
             await Promise.all(scripts.map(async (script) => {
                 const src = script.getAttribute('src');
-                if (src && !src.startsWith('data:') && !src.startsWith('blob:') && !src.includes('google') && !src.includes('analytics')) {
+                if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
                     const isItch = src.includes('itch.io') || !src.includes('://') || src.startsWith('blob:');
-                    if (isItch) {
+                    if (isItch || isBundling) {
                         try {
-                            const scriptUrl = src.startsWith('blob:') ? src : new URL(src, resolvedUrl || location.href).href;
-                            const scriptRes = await fetch(scriptUrl);
-                            if (scriptRes.ok) {
-                                const scriptContent = await scriptRes.text();
-                                const patched = patchNexusContent(scriptContent);
-                                try {
-                                    const base64 = btoa(unescape(encodeURIComponent(patched)));
-                                    script.src = 'data:text/javascript;base64,' + base64;
-                                } catch (e) {
-                                    script.removeAttribute('src');
-                                    script.textContent = patched.replace(/<\/script>/gi, '<\\/script>');
+                            const resolved = await resolvePath(src);
+                            if (resolved.startsWith('data:')) {
+                                script.src = resolved;
+                            } else {
+                                const scriptUrl = src.startsWith('blob:') ? src : new URL(src, resolvedUrl || location.href).href;
+                                const scriptRes = await fetch(scriptUrl);
+                                if (scriptRes.ok) {
+                                    const scriptContent = await scriptRes.text();
+                                    const patched = patchNexusContent(scriptContent, bypassScriptSource);
+                                    try {
+                                        const base64 = btoa(unescape(encodeURIComponent(patched)));
+                                        script.src = 'data:text/javascript;base64,' + base64;
+                                        if (isBundling) bundledAssets[src] = script.src;
+                                    } catch (e) {
+                                        script.removeAttribute('src');
+                                        script.textContent = patched.replace(/<\/script>/gi, '<\\/script>');
+                                    }
                                 }
                             }
                         } catch (e) {}
                     }
                 }
             }));
+
+            if (isBundling) {
+                // If we're bundling, we merge the collected assets into zipFiles for the standalone launcher
+                data.zipFiles = { ...(data.zipFiles || {}), ...bundledAssets };
+            }
 
             if (data.name?.toLowerCase().includes('five nights at last breath')) {
                 const baseUrl = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/last-breath-epstein/";
@@ -2232,204 +2558,19 @@
                 doc.head.appendChild(unityFixScript);
             }
 
-            const bypassScriptSource = `(function() {
-                const searchData = () => {
-                   try {
-                       return ${JSON.stringify({ 
-                           zipFiles: data.zipFiles || {}, 
-                           zipIndexPath: data.zipIndexPath || data.indexPath || '', 
-                           zipBaseDir: (data.zipIndexPath || data.indexPath || '').includes('/') ? (data.zipIndexPath || data.indexPath || '').substring(0, (data.zipIndexPath || data.indexPath || '').lastIndexOf('/') + 1) : '',
-                           resolvedUrl: resolvedUrl || ''
-                       })};
-                   } catch(e) { return null; }
-                };
-
-                const nexusData = searchData() || { zipFiles: {}, zipIndexPath: '', zipBaseDir: '', resolvedUrl: '' };
-                const { zipFiles, zipBaseDir } = nexusData;
-                
-                const originalLocation = window.location;
-                const originalBase = originalLocation.origin === 'null' ? '' : originalLocation.origin + originalLocation.pathname.substring(0, originalLocation.pathname.lastIndexOf('/') + 1);
-                
-                const patchContent = (content) => {
-                    if (!content || typeof content !== 'string' || content.length < 10) return content;
-                    return content
-                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, 'window._nLoc.$2')
-                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)location\\b/g, 'window._nLoc')
-                        .replace(/\\bdocument\\.(referrer|domain|URL|baseURI)\\b/g, (m, p) => p === 'referrer' ? '""' : (p === 'domain' ? '"itch.io"' : '"https://itch.io/"'))
-                        .replace(/\\bwindow\\.(frameElement|origin)\\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
-                };
-
-                const locProxy = new Proxy(originalLocation, {
-                    get: (target, prop) => {
-                        if (prop === 'hostname' || prop === 'host') return 'itch.io';
-                        if (prop === 'origin') return 'https://itch.io';
-                        if (prop === 'href') return 'https://itch.io/';
-                        if (prop === 'protocol') return 'https:';
-                        if (prop === 'port') return '';
-                        if (prop === 'pathname') return '/';
-                        if (prop === 'ancestorOrigins') return {
-                            length: 1, item: () => 'https://itch.io', contains: (o) => o.includes('itch.io'), 0: 'https://itch.io'
-                        };
-                        if (prop === Symbol.toPrimitive || prop === 'toString') return () => 'https://itch.io/';
-                        let val = target[prop];
-                        if (typeof val === 'function') return val.bind(target);
-                        return val;
-                    },
-                    set: (target, prop, val) => {
-                        if (prop === 'href' && val.includes('itch.io')) return true;
-                        try { target[prop] = val; } catch (e) {}
-                        return true;
-                    }
-                });
-
-                Object.defineProperty(window, '_nLoc', {
-                    get: () => locProxy,
-                    set: (v) => { try { window.location.href = v; } catch(e) {} },
-                    configurable: true
-                });
-
-                const blobCache = new Map();
-                const resolveZipPath = (url) => {
-                    if (!zipFiles || Object.keys(zipFiles).length === 0) return null;
-                    try {
-                        let path = url;
-                        if (typeof url !== 'string') return null;
-                        if (url.startsWith('https://itch.io/')) path = url.replace('https://itch.io/', '');
-                        else if (originalBase && url.startsWith(originalBase)) path = url.replace(originalBase, '');
-                        else if (url.startsWith('blob:') || url.startsWith('data:')) return null;
-                        
-                        const absolutePath = new URL(path, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
-                        let content = zipFiles[absolutePath];
-                        if (content === undefined) return null;
-
-                        if (blobCache.has(absolutePath)) return blobCache.get(absolutePath);
-
-                        if (typeof content === 'string' && !content.startsWith('data:')) {
-                            if (absolutePath.endsWith('.js') || absolutePath.endsWith('.html')) {
-                                content = patchContent(content);
-                            }
-                            const ext = absolutePath.split('.').pop().toLowerCase();
-                            const mime = { 'js': 'text/javascript', 'css': 'text/css', 'html': 'text/html', 'svg': 'image/svg+xml', 'json': 'application/json' }[ext] || 'text/plain';
-                            const blob = new Blob([content], { type: mime });
-                            const bUrl = URL.createObjectURL(blob);
-                            blobCache.set(absolutePath, bUrl);
-                            return bUrl;
-                        }
-                        return content;
-                    } catch (e) { return null; }
-                };
-
-                const originalFetch = window.fetch;
-                window.fetch = function(input, init) {
-                    let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input && input.url));
-                    const zipUrl = resolveZipPath(url);
-                    if (zipUrl) return originalFetch(zipUrl, init);
-                    if (typeof input === 'string' && input.startsWith('https://itch.io/') && originalBase) {
-                        return originalFetch(input.replace('https://itch.io/', originalBase), init);
-                    }
-                    return originalFetch(input, init);
-                };
-
-                const originalXHROpen = window.XMLHttpRequest.prototype.open;
-                window.XMLHttpRequest.prototype.open = function(method, url, ...args) {
-                    const zipUrl = resolveZipPath(url);
-                    if (zipUrl) url = zipUrl;
-                    else if (typeof url === 'string' && url.startsWith('https://itch.io/') && originalBase) {
-                        url = url.replace('https://itch.io/', originalBase);
-                    }
-                    return originalXHROpen.call(this, method, url, ...args);
-                };
-
-                const origCreateElement = document.createElement;
-                document.createElement = function(tag) {
-                    const el = origCreateElement.apply(this, arguments);
-                    if (tag.toLowerCase() === 'script') {
-                        const originalSetAttribute = el.setAttribute;
-                        el.setAttribute = function(name, value) {
-                            if (name.toLowerCase() === 'src' && value) {
-                                const zipUrl = resolveZipPath(value);
-                                if (zipUrl) {
-                                    originalSetAttribute.call(el, 'src', zipUrl);
-                                    return;
-                                }
-                                if (!value.startsWith('blob:') && !value.includes('google')) {
-                                    try {
-                                        const base = nexusData.resolvedUrl || (originalBase && !originalBase.startsWith('blob:null') ? originalBase : null) || location.href;
-                                        const absoluteUrl = new URL(value, base).href;
-                                        fetch(absoluteUrl).then(res => {
-                                            if (!res.ok || !res.headers.get('content-type')?.includes('javascript')) throw new Error('Not JS');
-                                            return res.text();
-                                        }).then(content => {
-                                            const patched = patchContent(content);
-                                            const blob = new Blob([patched], { type: 'text/javascript' });
-                                            originalSetAttribute.call(el, 'src', URL.createObjectURL(blob));
-                                        }).catch(() => originalSetAttribute.call(el, 'src', value));
-                                        return;
-                                    } catch (e) {
-                                        originalSetAttribute.call(el, 'src', value);
-                                        return;
-                                    }
-                                }
-                            }
-                            return originalSetAttribute.apply(this, arguments);
-                        };
-                        Object.defineProperty(el, 'src', {
-                            set: function(url) { el.setAttribute('src', url); },
-                            get: function() { return el.getAttribute('src'); }
-                        });
-                    } else if (tag.toLowerCase() === 'iframe') {
-                        const originalSetAttribute = el.setAttribute;
-                        el.setAttribute = function(name, value) {
-                            if (name.toLowerCase() === 'src' && value && value.startsWith('https://itch.io/')) {
-                                value = value.replace('https://itch.io/', originalBase);
-                            }
-                            return originalSetAttribute.apply(this, arguments);
-                        };
-                    }
-                    return el;
-                };
-
-                try {
-                    const originalTop = window.top;
-                    const originalParent = window.parent;
-                    Object.defineProperty(window, 'top', { get: () => { try { if (originalTop.location.href) return originalTop; } catch(e) {} return window; }, configurable: true });
-                    Object.defineProperty(window, 'parent', { get: () => { try { if (originalParent.location.href) return originalParent; } catch(e) {} return window; }, configurable: true });
-                } catch (e) {}
-
-                try {
-                    Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
-                    Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
-                    Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
-                    Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
-                    Object.defineProperty(document, 'location', { get: () => window._nLoc, set: (v) => { window.location.href = v; }, configurable: true });
-                } catch (e) {}
-
-                try {
-                    Object.defineProperty(window, 'origin', { get: () => 'https://itch.io', configurable: true });
-                    Object.defineProperty(window, 'frameElement', { get: () => null, configurable: true });
-                } catch (e) {}
-
-                try {
-                    const proto = Location.prototype;
-                    const origAssign = proto.assign;
-                    const origReplace = proto.replace;
-                    proto.assign = function(url) { if (url.includes('itch.io')) return; return origAssign.apply(this, arguments); };
-                    proto.replace = function(url) { if (url.includes('itch.io')) return; return origReplace.apply(this, arguments); };
-                } catch (e) {}
-            })();`;
             const bypassScript = doc.createElement('script');
             bypassScript.id = '_nexus_bypass';
             bypassScript.textContent = bypassScriptSource.replace(/<\/script>/gi, '<\\/script>');
             doc.head.insertBefore(bypassScript, doc.head.firstChild);
 
-            const styles = doc.createElement('style');
-            styles.textContent = `
+            const nexusGlobalStyles = doc.createElement('style');
+            nexusGlobalStyles.textContent = `
                 html { background: #000; }
                 body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
                 #unity-container, #unity-canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block !important; }
                 .nexus-fullscreen-canvas { width: 100% !important; height: 100% !important; margin: 0 !important; display: block !important; position: fixed !important; top: 0; left: 0; z-index: 1; }
             `;
-            doc.head.appendChild(styles);
+            doc.head.appendChild(nexusGlobalStyles);
 
             const audioScript = doc.createElement('script');
             audioScript.textContent = `
@@ -2742,7 +2883,41 @@
             const handleFullscreen = () => { setShowTopBar(false); };
             const handleExitFullscreen = () => { setShowTopBar(true); setMenuOpen(false); };
             const handleRefresh = () => { setRefreshKey(prev => prev + 1); setMenuOpen(false); };
-            const handleDownload = async () => { try { const res = await fetch(playerUrl); const html = await res.text(); const blob = new Blob([html], { type: "text/html" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${gameEntry.name.replace(/\s+/g, '_')}_Nexus.html`; a.click(); URL.revokeObjectURL(url); } catch (e) { alert("Download failed"); } };
+            const handleDownload = async () => { 
+                try { 
+                    let html;
+                    if (activeVersion.isZip) {
+                        html = activeVersion.zipFiles[activeVersion.zipIndexPath || activeVersion.indexPath];
+                    } else {
+                        const res = await fetch(activeVersion.url);
+                        html = await res.text();
+                    }
+                    
+                    if (!html) throw new Error("No HTML content found");
+                    
+                    const cacheKey = activeVersion.url + (activeVersion.isZip ? '_zip' : '');
+                    const cachedData = window._NEXUS_RESOLVE_CACHE.get(cacheKey);
+                    
+                    // Bundle everything for standalone download
+                    const bundledHtml = await processNexusHtml(html, {
+                        ...activeVersion,
+                        name: gameEntry.name,
+                        resolvedUrl: cachedData?.resolvedUrl || activeVersion.url,
+                        isBundling: true
+                    });
+                    
+                    const blob = new Blob([bundledHtml], { type: "text/html" }); 
+                    const url = URL.createObjectURL(blob); 
+                    const a = document.createElement('a'); 
+                    a.href = url; 
+                    a.download = `${gameEntry.name.replace(/\s+/g, '_')}_Nexus.html`; 
+                    a.click(); 
+                    URL.revokeObjectURL(url); 
+                } catch (e) { 
+                    console.error('Download error:', e);
+                    alert("Download failed: " + e.message); 
+                } 
+            };
 
             return createElement(Fragment, null,
                 createElement(motion.div, { 
