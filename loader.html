@@ -78,14 +78,20 @@
 
         .title {
             font-size: 5rem;
-            font-weight: 800;
+            font-weight: 900;
             letter-spacing: -0.05em;
             color: var(--text-bright);
             line-height: 0.85;
             margin-bottom: 0.5rem;
             font-style: italic;
-            text-transform: uppercase;
+            text-transform: lowercase;
             filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));
+            animation: wobble 2s infinite ease-in-out;
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: rotate(-1deg); }
+            50% { transform: rotate(1deg); }
         }
 
         .subtitle {
@@ -93,7 +99,7 @@
             font-weight: 700;
             letter-spacing: 0.5em;
             color: var(--text-color);
-            text-transform: uppercase;
+            text-transform: lowercase;
             margin-bottom: 3.5rem;
         }
 
@@ -108,6 +114,32 @@
             background: rgba(255,255,255, 0.02);
             margin-bottom: 1.5rem;
         }
+
+        /* The Mouth Teeth */
+        .drop-zone::before, .drop-zone::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: var(--glass-border);
+            z-index: 2;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone::before {
+            top: 0;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 95% 40%, 90% 100%, 85% 40%, 80% 100%, 75% 40%, 70% 100%, 65% 40%, 60% 100%, 55% 40%, 50% 100%, 45% 40%, 40% 100%, 35% 40%, 30% 100%, 25% 40%, 20% 100%, 15% 40%, 10% 100%, 5% 40%, 0% 100%);
+        }
+
+        .drop-zone::after {
+            bottom: 0;
+            clip-path: polygon(0% 100%, 100% 100%, 100% 0%, 95% 60%, 90% 0%, 85% 60%, 80% 0%, 75% 60%, 70% 0%, 65% 60%, 60% 0%, 55% 60%, 50% 0%, 45% 60%, 40% 0%, 35% 60%, 30% 0%, 25% 60%, 20% 0%, 15% 60%, 10% 0%, 5% 60%, 0% 0%);
+        }
+
+        .drop-zone:hover::before { transform: translateY(-5px); background: #fff; }
+        .drop-zone:hover::after { transform: translateY(5px); background: #fff; }
 
         .drop-zone:hover {
             border-color: rgba(var(--accent-rgb), 0.3);
@@ -126,6 +158,7 @@
             inset: 0;
             opacity: 0;
             cursor: pointer;
+            z-index: 5;
         }
 
         .btn {
@@ -134,7 +167,7 @@
             font-weight: 900;
             padding: 1.5rem 2.5rem;
             border-radius: 1.8rem;
-            text-transform: uppercase;
+            text-transform: lowercase;
             letter-spacing: 0.25em;
             font-size: 0.85rem;
             width: 100%;
@@ -183,7 +216,7 @@
         .loading-title {
             font-size: 6rem;
             font-weight: 900;
-            text-transform: uppercase;
+            text-transform: lowercase;
             font-style: italic;
             letter-spacing: 0.1em;
             color: #fff;
@@ -204,7 +237,7 @@
         .tip-text {
             font-size: 0.75rem;
             font-weight: 700;
-            text-transform: uppercase;
+            text-transform: lowercase;
             letter-spacing: 0.2em;
             color: rgba(255,255,255,0.4);
             line-height: 1.8;
@@ -235,7 +268,7 @@
         .status-text {
             font-size: 0.7rem;
             font-weight: 800;
-            text-transform: uppercase;
+            text-transform: lowercase;
             letter-spacing: 0.4em;
             color: rgba(255,255,255,0.2);
             margin-top: 2rem;
@@ -250,19 +283,19 @@
 
     <!-- Main Entry UI -->
     <div class="glass" id="mainContainer">
-        <h1 class="title">Nexus</h1>
-        <p class="subtitle">loader</p>
+        <h1 class="title">nxus</h1>
+        <p class="subtitle">loader thing</p>
 
         <div class="drop-zone" id="dropZone">
             <input type="file" id="fileInput" class="file-input" accept=".html,.zip">
             <div id="dropText">
-                <p class="text-white font-black italic tracking-tighter text-3xl mb-3">.    .</p>
-                <p class="text-[11px] font-black opacity-30 uppercase tracking-[0.5em]">O</p>
+                <p class="text-white font-black italic tracking-tighter text-3xl mb-3">feed me the zip</p>
+                <p class="text-[11px] font-black opacity-30 uppercase tracking-[0.5em]">dont mess it up or i'll cry</p>
             </div>
         </div>
 
-        <button id="launchBtn" class="btn" disabled>OPEN DA PROJECT</button>
-        <p class="status-text" id="status">idling ig...</p>
+        <button id="launchBtn" class="btn" disabled>do the thing</button>
+        <p class="status-text" id="status">golfish schmoldfish</p>
     </div>
 
     <!-- One-to-One Loading Screen -->
@@ -272,7 +305,7 @@
             <div class="blob" style="background: rgba(255,255,255,0.01)"></div>
         </div>
 
-        <h2 class="loading-title">LOADING PIXELS</h2>
+        <h2 class="loading-title">loading pixels</h2>
         
         <div class="tip-box">
             <p id="tipText" class="tip-text">image if we were all autistic goldfish.</p>
@@ -296,16 +329,24 @@
         const tipText = document.getElementById('tipText');
 
         const LOADING_TIPS = [
+            "staring at the wall until the bar moves",
+            "i forgot what we were doing. hope it was important.",
+            "doing complex math (1 + 1 = 3)",
+            "buffering my last two brain cells",
+            "cleaning the pixels with a dirty rag",
+            "the goldfish is driving the bus now",
+            "mom said it's my turn to use the bypass",
+            "is it loading or am i just lagging in real life?",
+            "brain empty. just static and microwave noises.",
+            "loading stuff so u can fail math class",
+            "i think i accidentally ate a script tag",
+            "don't look at me i'm shy",
+            "procrastinating on the actual loading part",
+            "imagining a world where 1+1 = fish",
             "image if we were all autistic goldfish.",
             "doing the loading thingies i think",
             "the voices are getting louder.",
-            "my goldfish died today.",
-            "whoopsies i accidentally deleted the database (jk).",
-            "loading pixels because go-guardian said no.",
-            "theres a fucking fullscreen button please use it.",
-            "nexus is the gateway. you are the traveler.",
-            "why are you still reading these tips?",
-            "i forgot what i was supposed to load."
+            "whoopsies i accidentally deleted the database (jk)."
         ];
 
         let activeProject = null;
@@ -325,8 +366,7 @@
                 const patchContent = (content, type) => {
                     if (!content || typeof content !== 'string' || content.length < 10) return content;
                     
-                    // Specific Eaglecraft patch: don't touch code that looks like EAGL chunks
-                    if (content.includes('EAGL')) return content;
+                    if (content.includes('EAGL')) return content; // Don't mess with Eagler binary blobs
 
                     if (type === 'html' && content.includes('<html') && !content.includes('_nexus_bypass')) {
                         const bypass = document.getElementById('_nexus_bypass');
@@ -339,12 +379,10 @@
                         }
                     }
 
-                    // Only patch if it's likely source code, not huge data blobs
-                    if (content.length > 1000000) return content;
+                    if (content.length > 5000000) return content; // Safety for huge files
 
                     return content
                         .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, (m, p, s) => {
-                            // Don't patch if it's part of a string or property that shouldn't be
                             return 'window._nLoc.' + s;
                         })
                         .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location(?![a-zA-Z0-9_$])(?!\\s*[:=])/g, 'window._nLoc')
@@ -373,6 +411,8 @@
                 });
 
                 Object.defineProperty(window, '_nLoc', { get: () => locProxy, configurable: true });
+                // Attempt to overwrite window.location if the browser allows (usually it doesn't, hence the proxy)
+                try { Object.defineProperty(window, 'location', { get: () => locProxy, configurable: true }); } catch(e) {}
 
                 const blobCache = new Map();
                 const resolveZipPath = (url) => {
@@ -469,7 +509,7 @@
 
         const handleFile = async (file) => {
             if (!file) return;
-            status.textContent = 'Processing Files...';
+            status.textContent = 'poking it with a stick...';
             launchBtn.disabled = true;
 
             const mimeMap = {
@@ -517,7 +557,7 @@
                     const content = await file.text();
                     activeProject = { type: 'html', content, name: file.name };
                 }
-                status.textContent = `Project Ready: ${file.name}`;
+                status.textContent = `i think i did it. maybe. (${file.name})`;
                 launchBtn.disabled = false;
             } catch (err) {
                 status.textContent = `Error: ${err.message}`;
@@ -545,9 +585,9 @@
                     doLaunch();
                 }
                 progressFill.style.width = `${progress}%`;
-                if (progress < 40) loadingStatus.textContent = 'Isolating Workspace...';
-                else if (progress < 80) loadingStatus.textContent = 'Injecting Bypass Engines...';
-                else loadingStatus.textContent = 'Handoff Ready.';
+                if (progress < 40) loadingStatus.textContent = 'asking the files nicely to open...';
+                else if (progress < 80) loadingStatus.textContent = 'poking it with a stick...';
+                else loadingStatus.textContent = 'i think i did it. maybe.';
             }, 150);
         });
 
