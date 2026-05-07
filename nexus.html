@@ -98,7 +98,6 @@
 			position: fixed; top: 0; left: 0; width: 8px; height: 8px;
 			background: var(--accent-color); border-radius: 50%;
 			pointer-events: none; z-index: 9999; mix-blend-difference;
-            transition: opacity 0.2s ease;
 		}
 		
         /* Normal cursor on interactive elements */
@@ -1517,7 +1516,7 @@
             );
         };
 
-        const CustomCursor = ({ isAnyGameOpen }) => {
+        const CustomCursor = () => {
             const cursorX = useMotionValue(-100);
             const cursorY = useMotionValue(-100);
             const springConfig = { stiffness: 800, damping: 50 };
@@ -1526,6 +1525,7 @@
 
             const [isVisible, setIsVisible] = useState(false);
             const [isPointer, setIsPointer] = useState(false);
+            const [isOverIframe, setIsOverIframe] = useState(false);
 
             useEffect(() => {
                 const moveCursor = (e) => {
@@ -1533,13 +1533,20 @@
                     cursorY.set(e.clientY);
                     
                     const target = e.target;
-                    const isClickable = target.closest('a, button, [role="button"], input, select, textarea, .cursor-pointer');
-                    setIsPointer(!!isClickable);
+                    const isClickable = !!(target && target.closest && target.closest('a, button, [role="button"], input, select, textarea, .cursor-pointer'));
+                    const isIframe = !!(target && (target.tagName === 'IFRAME' || (target.closest && target.closest('iframe'))));
+                    
+                    setIsPointer(isClickable);
+                    setIsOverIframe(isIframe);
                     setIsVisible(true);
                 };
                 
-                const handleMouseLeave = () => setIsVisible(false);
-                const handleMouseEnter = () => setIsVisible(true);
+                const handleMouseLeave = () => {
+                    setIsVisible(false);
+                };
+                const handleMouseEnter = () => {
+                    setIsVisible(true);
+                };
 
                 window.addEventListener('mousemove', moveCursor, { passive: true });
                 window.addEventListener('mouseleave', handleMouseLeave);
@@ -1552,12 +1559,12 @@
                 };
             }, []);
 
-            // Hide custom cursor if a game is open or if we are hovering a clickable element
-            const shouldHide = isPointer || isAnyGameOpen || !isVisible;
+            // Hide custom cursor if hovering clickable element, if inside an iframe, or if mouse left the window
+            const shouldHide = isPointer || isOverIframe || !isVisible;
 
             return createElement(motion.div, {
                 className: 'cursor-dot',
-                initial: { opacity: 0 },
+                initial: { opacity: 0, scale: 0 },
                 animate: { 
                     opacity: shouldHide ? 0 : 1,
                     scale: shouldHide ? 0 : 1
@@ -3950,7 +3957,7 @@
             );
 
             return createElement('div', { className: 'min-h-screen flex flex-col' },
-                createElement(CustomCursor, { isAnyGameOpen: activeWindows.length > 0 }),
+                createElement(CustomCursor),
                 createElement(AnimatePresence, null,
                     isInitialLoading && createElement(motion.div, {
                         key: "initial-loader",
