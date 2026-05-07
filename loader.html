@@ -3,173 +3,593 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Advanced File Loader</title>
+    <title>Nexus Loader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/freebuisness/freebuisness.github.io@latest/favicon.png">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-        
+
         :root {
             --bg-color: #0a0a0c;
+            --bg-rgb: 10, 10, 12;
             --accent-color: #ffffff;
-            --glass-bg: rgba(255, 255, 255, 0.03);
+            --accent-rgb: 255, 255, 255;
+            --text-color: rgba(255, 255, 255, 0.5);
+            --text-bright: #ffffff;
             --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.03);
         }
 
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: var(--bg-color);
-            color: white;
+            color: var(--text-color);
+            margin: 0;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            margin: 0;
+        }
+
+        .living-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; background: transparent;
             overflow: hidden;
+        }
+
+        .blob {
+            position: absolute; width: 70vmax; height: 70vmax;
+            background: rgba(var(--accent-rgb), 0.04); filter: blur(120px);
+            border-radius: 50%; animation: blobFloat 50s infinite alternate ease-in-out;
+            pointer-events: none; transition: background 1s ease;
+        }
+
+        .blob:nth-child(2) {
+            width: 90vmax; height: 90vmax;
+            background: rgba(var(--accent-rgb), 0.03);
+            animation-duration: 70s; animation-delay: -20s;
+        }
+
+        @keyframes blobFloat {
+            0% { transform: translate(-25%, -25%) rotate(0deg) scale(1); }
+            33% { transform: translate(35%, 15%) rotate(120deg) scale(1.1); }
+            66% { transform: translate(-15%, 45%) rotate(240deg) scale(0.9); }
+            100% { transform: translate(15%, -15%) rotate(360deg) scale(1); }
         }
 
         .glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(40px);
+            backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
             border: 1px solid var(--glass-border);
-            padding: 3rem;
-            border-radius: 2.5rem;
+            border-radius: 3.5rem;
+            padding: 3.5rem;
+            width: 100%;
+            max-width: 550px;
             text-align: center;
-            width: 90%;
-            max-width: 450px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+            transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+            z-index: 10;
         }
 
-        .nexus-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 1rem;
-            border-radius: 1rem;
-            width: 100%;
+        .title {
+            font-size: 5rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            color: var(--text-bright);
+            line-height: 0.85;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+            text-transform: uppercase;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));
+        }
+
+        .subtitle {
             font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5em;
+            color: var(--text-color);
+            text-transform: uppercase;
+            margin-bottom: 3.5rem;
+        }
+
+        .drop-zone {
+            border: 1px solid var(--glass-border);
+            border-radius: 2.5rem;
+            padding: 5rem 2rem;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255, 0.02);
             margin-bottom: 1.5rem;
         }
 
-        .nexus-input::file-selector-button {
-            background: white;
-            color: black;
+        .drop-zone:hover {
+            border-color: rgba(var(--accent-rgb), 0.3);
+            background: rgba(var(--accent-rgb), 0.05);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.dragging {
+            border-color: var(--accent-color);
+            background: rgba(var(--accent-rgb), 0.1);
+            transform: scale(1.05);
+        }
+
+        .file-input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            font-weight: 900;
+            padding: 1.5rem 2.5rem;
+            border-radius: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            font-size: 0.85rem;
+            width: 100%;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-5px);
+            filter: brightness(0.9);
+            box-shadow: 0 20px 40px rgba(255,255,255, 0.15);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+
+        .btn:disabled {
+            opacity: 0.05;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading UI Overlay */
+        #loadingScreen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        #loadingScreen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-title {
+            font-size: 6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-style: italic;
+            letter-spacing: 0.1em;
+            color: #fff;
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        .tip-box {
+            max-width: 450px;
+            padding: 2.5rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 2.5rem;
+            text-align: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .tip-text {
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.8;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin: 3rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #fff;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+
+        .status-text {
             font-size: 0.7rem;
-            margin-right: 1rem;
-            cursor: pointer;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4em;
+            color: rgba(255,255,255,0.2);
+            margin-top: 2rem;
         }
     </style>
 </head>
 <body>
+    <div class="living-bg">
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
 
-    <div class="glass">
-        <h1 class="text-4xl font-black italic uppercase tracking-tighter mb-2">Nexus Loader</h1>
-        <p class="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">HTML & ZIP Portal</p>
-        
-        <div id="container">
-            <input type="file" id="fileInput" accept=".html,.zip" class="nexus-input">
-            
-            <button id="launchBtn" onclick="launch();" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-sm tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all">
-                Launch Application
-            </button>
-            
-            <div id="message" class="mt-6 text-[10px] font-bold uppercase tracking-widest text-white/30">
-                Ready for Input
+    <!-- Main Entry UI -->
+    <div class="glass" id="mainContainer">
+        <h1 class="title">Nexus</h1>
+        <p class="subtitle">loader</p>
+
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" class="file-input" accept=".html,.zip">
+            <div id="dropText">
+                <p class="text-white font-black italic tracking-tighter text-3xl mb-3">.    .</p>
+                <p class="text-[11px] font-black opacity-30 uppercase tracking-[0.5em]">O</p>
             </div>
         </div>
+
+        <button id="launchBtn" class="btn" disabled>OPEN DA PROJECT</button>
+        <p class="status-text" id="status">idling ig...</p>
+    </div>
+
+    <!-- One-to-One Loading Screen -->
+    <div id="loadingScreen">
+        <div class="living-bg">
+            <div class="blob" style="background: rgba(255,255,255,0.02)"></div>
+            <div class="blob" style="background: rgba(255,255,255,0.01)"></div>
+        </div>
+
+        <h2 class="loading-title">LOADING PIXELS</h2>
+        
+        <div class="tip-box">
+            <p id="tipText" class="tip-text">image if we were all autistic goldfish.</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <p class="status-text" id="loadingStatus">doing the loading thingies i think...</p>
     </div>
 
     <script>
-        let finalContent = '';
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const launchBtn = document.getElementById('launchBtn');
+        const status = document.getElementById('status');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const progressFill = document.getElementById('progressFill');
+        const loadingStatus = document.getElementById('loadingStatus');
+        const tipText = document.getElementById('tipText');
 
-        document.getElementById("fileInput").addEventListener("change", async function(event) {
-            const file = event.target.files[0];
-            const message = document.getElementById("message");
-            if (!file) return;
+        const LOADING_TIPS = [
+            "image if we were all autistic goldfish.",
+            "doing the loading thingies i think",
+            "the voices are getting louder.",
+            "my goldfish died today.",
+            "whoopsies i accidentally deleted the database (jk).",
+            "loading pixels because go-guardian said no.",
+            "theres a fucking fullscreen button please use it.",
+            "nexus is the gateway. you are the traveler.",
+            "why are you still reading these tips?",
+            "i forgot what i was supposed to load."
+        ];
 
-            message.textContent = "Processing...";
-            message.style.color = "rgba(255,255,255,0.3)";
+        let activeProject = null;
 
-            if (file.name.endsWith('.zip')) {
-                try {
-                    const zip = new JSZip();
-                    const zipContent = await zip.loadAsync(file);
+        const setTip = () => {
+            tipText.textContent = LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)];
+        };
+
+        const getBypassScript = (data) => {
+            const nexusDataB64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+            return `(function() {
+                const nexusData = JSON.parse(decodeURIComponent(escape(atob("${nexusDataB64}"))));
+                const { zipFiles, zipBaseDir } = nexusData;
+                
+                const originalBase = (location.protocol === 'file:' ? '' : (location.origin === 'null' ? '' : location.origin)) + location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+                
+                const patchContent = (content, type) => {
+                    if (!content || typeof content !== 'string' || content.length < 10) return content;
                     
-                    const htmlFile = zipContent.file("index.html") || Object.values(zipContent.files).find(f => f.name.endsWith(".html"));
+                    // Specific Eaglecraft patch: don't touch code that looks like EAGL chunks
+                    if (content.includes('EAGL')) return content;
 
-                    if (!htmlFile) {
-                        message.textContent = "No HTML found in ZIP.";
-                        message.style.color = "#f87171";
-                        return;
-                    }
-
-                    let htmlText = await htmlFile.async("string");
-                    const assetMap = {};
-                    
-                    for (const [path, zipEntry] of Object.entries(zipContent.files)) {
-                        if (!zipEntry.dir) {
-                            const blob = await zipEntry.async("blob");
-                            assetMap[path] = URL.createObjectURL(blob);
+                    if (type === 'html' && content.includes('<html') && !content.includes('_nexus_bypass')) {
+                        const bypass = document.getElementById('_nexus_bypass');
+                        if (bypass) {
+                            const bScript = bypass.textContent.replace(/<\\/script>/gi, '<\\\\/script>');
+                            const headSplit = content.split('<head>');
+                            if (headSplit.length > 1) {
+                                content = headSplit[0] + '<head><script id="_nexus_bypass">' + bScript + '<\\/script>' + headSplit[1];
+                            }
                         }
                     }
 
-                    for (const [path, blobUrl] of Object.entries(assetMap)) {
-                        const safePath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const regex = new RegExp(`(src|href)=["'](./)?${safePath}["']`, 'g');
-                        htmlText = htmlText.replace(regex, `$1="${blobUrl}"`);
-                    }
+                    // Only patch if it's likely source code, not huge data blobs
+                    if (content.length > 1000000) return content;
 
-                    finalContent = htmlText;
-                    message.textContent = "ZIP Package Ready: " + htmlFile.name;
-                    message.style.color = "#4ade80";
-                } catch (err) {
-                    message.textContent = "Error reading ZIP.";
-                }
-            } else {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    finalContent = e.target.result;
-                    message.textContent = "HTML Source Ready.";
-                    message.style.color = "#4ade80";
+                    return content
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, (m, p, s) => {
+                            // Don't patch if it's part of a string or property that shouldn't be
+                            return 'window._nLoc.' + s;
+                        })
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location(?![a-zA-Z0-9_$])(?!\\s*[:=])/g, 'window._nLoc')
+                        .replace(/\\bdocument\\.(referrer|domain|URL|baseURI)\\b/g, (m, p) => {
+                            if (p === 'referrer') return '""';
+                            if (p === 'domain') return '"itch.io"';
+                            return '"https://itch.io/"';
+                        })
+                        .replace(/\\bwindow\\.(frameElement|origin)\\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
                 };
-                reader.readAsText(file);
+
+                const locProxy = new Proxy(window.location, {
+                    get: (target, prop) => {
+                        if (prop === 'hostname' || prop === 'host') return 'itch.io';
+                        if (prop === 'origin') return 'https://itch.io';
+                        if (prop === 'href') return 'https://itch.io/';
+                        if (prop === 'protocol') return 'https:';
+                        if (prop === 'port') return '';
+                        if (prop === 'pathname') return '/';
+                        if (prop === 'assign' || prop === 'replace' || prop === 'reload') return (...args) => console.log('Nexus blocked nav:', prop, args);
+                        if (prop === Symbol.toPrimitive || prop === 'toString') return () => 'https://itch.io/';
+                        let val = target[prop];
+                        if (typeof val === 'function') return val.bind(target);
+                        return val;
+                    }
+                });
+
+                Object.defineProperty(window, '_nLoc', { get: () => locProxy, configurable: true });
+
+                const blobCache = new Map();
+                const resolveZipPath = (url) => {
+                    if (!zipFiles) return null;
+                    try {
+                        let path = typeof url === 'string' ? url : (url && url.href);
+                        if (!path) return null;
+                        
+                        if (path.startsWith('https://itch.io/')) {
+                            path = path.replace('https://itch.io/', '');
+                        } else if (path.startsWith(window.location.origin)) {
+                            path = path.substring(window.location.origin.length);
+                            if (path.startsWith('/')) path = path.substring(1);
+                        }
+                        
+                        const decodedPath = decodeURIComponent(path);
+                        const normalizedWithBase = new URL(path, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
+                        const decodedNormalized = decodeURIComponent(normalizedWithBase);
+
+                        const targetPath = zipFiles[decodedPath] ? decodedPath : 
+                                         (zipFiles[decodedNormalized] ? decodedNormalized : 
+                                         (zipFiles[normalizedWithBase] ? normalizedWithBase : 
+                                         (zipFiles[path] ? path : null)));
+
+                        if (targetPath) {
+                            const content = zipFiles[targetPath];
+                            const ext = targetPath.split('.').pop().toLowerCase();
+                            const isPatcherTarget = ['js', 'html', 'css'].includes(ext);
+                            
+                            if (isPatcherTarget && typeof content === 'string' && !content.startsWith('blob:') && !content.startsWith('data:')) {
+                                if (blobCache.has(targetPath)) return blobCache.get(targetPath);
+                                const patched = patchContent(content, ext);
+                                const mime = { 'js': 'text/javascript', 'html': 'text/html', 'css': 'text/css' }[ext] || 'text/plain';
+                                const blob = new Blob([patched], { type: mime });
+                                const bUrl = URL.createObjectURL(blob);
+                                blobCache.set(targetPath, bUrl);
+                                return bUrl;
+                            }
+                            return content;
+                        }
+                        return null;
+                    } catch (e) { return null; }
+                };
+
+                const originalFetch = window.fetch;
+                window.fetch = function(input, init) {
+                    let url = typeof input === 'string' ? input : (input && input.url);
+                    const zipUrl = resolveZipPath(url);
+                    if (zipUrl) return originalFetch(zipUrl, init);
+                    return originalFetch(input, init);
+                };
+
+                const originalXHROpen = window.XMLHttpRequest.prototype.open;
+                window.XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                    const zipUrl = resolveZipPath(url);
+                    if (zipUrl) url = zipUrl;
+                    return originalXHROpen.call(this, method, url, ...args);
+                };
+
+                const OriginalWorker = window.Worker;
+                window.Worker = function(scriptURL, options) {
+                    const zipUrl = resolveZipPath(scriptURL);
+                    return new OriginalWorker(zipUrl || scriptURL, options);
+                };
+
+                const origCreateElement = document.createElement;
+                document.createElement = function(tag) {
+                    const el = origCreateElement.apply(this, arguments);
+                    const tagL = tag.toLowerCase();
+                    if (tagL === 'script' || tagL === 'iframe' || tagL === 'embed' || tagL === 'object' || tagL === 'link') {
+                        const originalSetAttribute = el.setAttribute;
+                        el.setAttribute = function(name, value) {
+                            const nameL = name.toLowerCase();
+                            if ((nameL === 'src' || nameL === 'data' || nameL === 'href') && value) {
+                                const zipUrl = resolveZipPath(value);
+                                if (zipUrl) { originalSetAttribute.call(el, name, zipUrl); return; }
+                            }
+                            return originalSetAttribute.apply(this, arguments);
+                        };
+                        if (tagL === 'script' || tagL === 'iframe') {
+                            Object.defineProperty(el, 'src', {
+                                set: (val) => {
+                                    const zipUrl = resolveZipPath(val);
+                                    el.setAttribute('src', zipUrl || val);
+                                },
+                                get: () => el.getAttribute('src')
+                            });
+                        }
+                    }
+                    return el;
+                };
+            })();`;
+        };
+
+        const handleFile = async (file) => {
+            if (!file) return;
+            status.textContent = 'Processing Files...';
+            launchBtn.disabled = true;
+
+            const mimeMap = {
+                'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                'gif': 'image/gif', 'webp': 'image/webp', 'mp3': 'audio/mpeg',
+                'wav': 'audio/wav', 'ogg': 'audio/ogg', 'mp4': 'video/mp4', 
+                'wasm': 'application/wasm', 'bin': 'application/octet-stream',
+                'epk': 'application/octet-stream', 'json': 'application/json'
+            };
+
+            try {
+                if (file.name.toLowerCase().endsWith('.zip')) {
+                    const zip = await JSZip.loadAsync(file);
+                    const files = {};
+                    let indexFile = null;
+                    const promises = [];
+
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (!zipEntry.dir) {
+                            const isText = /\.(html|js|css|json|txt|md|svg)$/i.test(relativePath);
+                            if (isText) {
+                                promises.push(zipEntry.async('string').then(content => {
+                                    files[relativePath] = content;
+                                    if (relativePath.toLowerCase().endsWith('index.html')) {
+                                        if (!indexFile || relativePath.split('/').length < indexFile.split('/').length) indexFile = relativePath;
+                                    }
+                                }));
+                            } else {
+                                promises.push(zipEntry.async('uint8array').then(data => {
+                                    const ext = relativePath.split('.').pop().toLowerCase();
+                                    const mime = mimeMap[ext] || 'application/octet-stream';
+                                    const blob = new Blob([data], { type: mime });
+                                    files[relativePath] = URL.createObjectURL(blob);
+                                }));
+                            }
+                        }
+                    });
+
+                    await Promise.all(promises);
+                    if (!indexFile) indexFile = Object.keys(files).find(f => f.toLowerCase().endsWith('.html'));
+                    if (!indexFile) throw new Error('No index.html found in ZIP.');
+
+                    activeProject = { type: 'zip', files, indexPath: indexFile, name: file.name };
+                } else {
+                    const content = await file.text();
+                    activeProject = { type: 'html', content, name: file.name };
+                }
+                status.textContent = `Project Ready: ${file.name}`;
+                launchBtn.disabled = false;
+            } catch (err) {
+                status.textContent = `Error: ${err.message}`;
             }
+        };
+
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+        
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragging'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragging'); handleFile(e.dataTransfer.files[0]); });
+
+        launchBtn.addEventListener('click', async () => {
+            if (!activeProject) return;
+
+            setTip();
+            loadingScreen.classList.add('active');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    doLaunch();
+                }
+                progressFill.style.width = `${progress}%`;
+                if (progress < 40) loadingStatus.textContent = 'Isolating Workspace...';
+                else if (progress < 80) loadingStatus.textContent = 'Injecting Bypass Engines...';
+                else loadingStatus.textContent = 'Handoff Ready.';
+            }, 150);
         });
 
-        function launch() {
-            if (!finalContent) {
-                document.getElementById("message").textContent = "Select a file first.";
-                return;
-            }
-
+        const doLaunch = () => {
             const win = window.open('about:blank', '_blank');
             if (!win) {
-                alert("Popup blocked! Please allow popups.");
+                loadingScreen.classList.remove('active');
+                alert('Popup blocked! Please allow popups to launch Nexus sessions.');
                 return;
             }
 
-            // The Anti-Refresh Script
-            const guardScript = `
-                <script>
-                    window.onbeforeunload = function() {
-                        return "Are you sure you want to leave? Any unsaved progress will be lost.";
-                    };
-                <\/script>
-            `;
+            let htmlContent = '';
+            if (activeProject.type === 'zip') {
+                const zipBaseDir = activeProject.indexPath.includes('/') ? activeProject.indexPath.substring(0, activeProject.indexPath.lastIndexOf('/') + 1) : '';
+                const bypassScript = getBypassScript({
+                    zipFiles: activeProject.files,
+                    zipIndexPath: activeProject.indexPath,
+                    zipBaseDir: zipBaseDir
+                });
 
-            win.document.open();
-            // Inject the guard script before the main content
-            win.document.write(guardScript + finalContent);
+                let mainHtml = activeProject.files[activeProject.indexPath];
+                if (mainHtml.includes('<head>')) {
+                    mainHtml = mainHtml.replace('<head>', `<head><base href="https://itch.io/${zipBaseDir}"><script id="_nexus_bypass">${bypassScript}<\/script>`);
+                } else {
+                    mainHtml = `<head><base href="https://itch.io/${zipBaseDir}"><script id="_nexus_bypass">${bypassScript}<\/script></head>` + mainHtml;
+                }
+                htmlContent = mainHtml;
+            } else {
+                htmlContent = activeProject.content;
+            }
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+
+            win.document.write(`<!DOCTYPE html><html><head><title>${activeProject.name}</title><style>body,html{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;}iframe{border:none;width:100%;height:100%;}</style></head><body><iframe src="${url}"></iframe></body></html>`);
             win.document.close();
-            
-            win.document.body.style.margin = "0";
-            win.document.body.style.backgroundColor = "#000";
-        }
+
+            setTimeout(() => {
+                loadingScreen.classList.remove('active');
+                progressFill.style.width = '0%';
+            }, 1000);
+        };
     </script>
 </body>
 </html>
