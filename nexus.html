@@ -2168,69 +2168,94 @@
                 { name: 'Hampter Clicker', component: HampterClicker }
             ];
 
-            return createElement('div', { className: 'absolute inset-0 z-[200] themed-overlay backdrop-blur-3xl flex flex-col items-center justify-center overflow-hidden' },
+            return createElement('div', { className: 'absolute inset-0 z-[200] bg-[#0a0a0c] flex flex-col items-center justify-center overflow-hidden' },
+                // Background Blobs from loader
+                createElement('div', { className: 'absolute inset-0 overflow-hidden pointer-events-none opacity-40' },
+                    createElement('div', { className: 'absolute top-[-10%] left-[-10%] w-[70vmax] h-[70vmax] bg-white/[0.04] blur-[120px] rounded-full animate-pulse' }),
+                    createElement('div', { className: 'absolute bottom-[-10%] right-[-10%] w-[90vmax] h-[90vmax] bg-white/[0.03] blur-[120px] rounded-full animate-pulse delay-700' })
+                ),
+
                 createElement(AnimatePresence, { mode: 'wait' },
                     createElement(motion.div, {
                         key: activeGame,
                         initial: { opacity: 0, scale: 0.9 },
                         animate: { opacity: 1, scale: 1 },
                         exit: { opacity: 0, scale: 1.1 },
-                        className: 'absolute inset-0'
+                        className: 'absolute inset-0 z-10'
                     }, createElement(games[activeGame].component))
                 ),
                 
-                createElement('div', { className: 'absolute top-1/2 left-8 z-[210] -translate-y-1/2' },
+                createElement('div', { className: 'absolute top-1/2 left-8 z-[220] -translate-y-1/2' },
                     createElement('button', { 
                         onClick: () => setActiveGame(p => (p - 1 + games.length) % games.length),
-                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border-2 border-white/20 hover:scale-110 active:scale-90 shadow-2xl group'
+                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border border-white/10'
                     }, 
-                        createElement('svg', { className: 'w-8 h-8 text-white group-hover:themed-text-bright', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
+                        createElement('svg', { className: 'w-6 h-6 text-white', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
                             createElement('path', { d: 'M15 18l-6-6 6-6' })
                         )
                     )
                 ),
-                createElement('div', { className: 'absolute top-1/2 right-8 z-[210] -translate-y-1/2' },
+                createElement('div', { className: 'absolute top-1/2 right-8 z-[220] -translate-y-1/2' },
                     createElement('button', { 
                         onClick: () => setActiveGame(p => (p + 1) % games.length),
-                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border-2 border-white/20 hover:scale-110 active:scale-90 shadow-2xl group'
+                        className: 'glass w-14 h-14 rounded-full flex items-center justify-center hover:bg-white/10 transition-all border border-white/10'
                     }, 
-                        createElement('svg', { className: 'w-8 h-8 text-white group-hover:themed-text-bright', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
+                        createElement('svg', { className: 'w-6 h-6 text-white', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3 },
                             createElement('path', { d: 'M9 5l6 6-6 6' })
                         )
                     )
                 ),
 
-                createElement('div', { className: 'relative mt-auto text-center z-[210] pointer-events-none pb-12' },
-                    createElement('h2', { className: 'text-5xl font-black text-white uppercase italic tracking-[0.2em] mb-3 drop-shadow-2xl' }, 'Loading'),
-                    createElement('p', { className: 'text-white/60 font-bold uppercase tracking-[0.4em] text-xs mb-10' }, gameName),
-                    createElement('div', { className: 'max-w-md mx-auto mb-12 p-8 glass rounded-[2.5rem] border border-white/10 backdrop-blur-xl shadow-2xl relative group overflow-hidden' },
-                        createElement('div', { className: 'absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000' }),
-                        createElement('p', { className: 'themed-text-muted text-[11px] uppercase font-black tracking-[0.2em] leading-relaxed' }, tip)
+                createElement('div', { className: 'relative mt-auto text-center z-[220] pointer-events-none pb-16 w-full max-w-xl' },
+                    createElement('h1', { className: 'text-[6rem] font-black italic text-white lowercase tracking-tighter leading-[0.8] mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]' }, 'nxus'),
+                    createElement('p', { className: 'text-[10px] font-bold text-white/50 uppercase tracking-[0.6em] mb-12' }, 'loader thing'),
+                    
+                    createElement('div', { className: 'px-8 mb-12' },
+                        createElement('div', { className: 'glass p-8 rounded-[3rem] border border-white/10 relative overflow-hidden' },
+                            createElement('p', { className: 'text-[11px] font-bold text-white/40 uppercase tracking-[0.25em] leading-relaxed italic' }, tip)
+                        )
                     ),
-                    createElement('div', { className: 'flex items-center justify-center gap-4' },
-                        games.map((g, i) => createElement('div', { 
-                            key: i, 
-                            className: `h-1.5 rounded-full transition-all duration-500 ${activeGame === i ? 'bg-white w-12 shadow-[0_0_15px_rgba(255,255,255,0.8)]' : 'bg-white/10 w-4'}` 
-                        }))
-                    ),
-                    createElement('p', { className: 'text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mt-6' }, `Minigame: ${games[activeGame].name}`)
+
+                    createElement('div', { className: 'flex flex-col items-center gap-6' },
+                        createElement('div', { className: 'w-64 h-1 bg-white/5 rounded-full overflow-hidden' },
+                            createElement(motion.div, { 
+                                initial: { width: 0 }, animate: { width: '100%' }, transition: { duration: 5, ease: "linear" },
+                                className: 'h-full bg-white shadow-[0_0_15px_#fff]' 
+                            })
+                        ),
+                        createElement('div', { className: 'flex items-center gap-2' },
+                            games.map((g, i) => createElement('div', { 
+                                key: i, 
+                                className: `h-1 rounded-full transition-all duration-500 ${activeGame === i ? 'bg-white w-8 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'bg-white/10 w-2'}` 
+                            }))
+                        ),
+                        createElement('p', { className: 'text-[8px] font-black uppercase tracking-[0.5em] text-white/20' }, `Playing: ${games[activeGame].name}`)
+                    )
                 )
             );
         };
 
-        const patchNexusContent = (content, injectBypass = null) => {
+        const patchNexusContent = (content, type = 'html', injectBypass = null) => {
             if (!content || typeof content !== 'string' || content.length < 10) return content;
-            if (injectBypass && content.includes('<html') && !content.includes('_nexus_bypass')) {
+            
+            // Skip binary-heavy content like Eaglercraft blobs
+            if (content.includes('EAGL')) return content;
+
+            if (injectBypass && type === 'html' && content.includes('<html') && !content.includes('_nexus_bypass')) {
                 const parts = content.split('<head>');
+                const escapedBypass = injectBypass.replace(/<\/script>/gi, '<\\/script>');
                 if (parts.length > 1) {
-                    content = parts[0] + '<head><script id="_nexus_bypass">' + injectBypass.replace(/<\/script>/gi, '<\\/script>') + '<\/script>' + parts[1];
+                    content = parts[0] + '<head><script id="_nexus_bypass">' + escapedBypass + '<\/script>' + parts[1];
+                } else {
+                     content = '<head><script id="_nexus_bypass">' + escapedBypass + '<\/script></head>' + content;
                 }
             }
+
+            if (content.length > 5000000) return content;
+
             return content
                 .replace(/\b(window\.|top\.|parent\.|self\.)?location\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\b/g, 'window._nLoc.$2')
-                .replace(/\b(window\.|top\.|parent\.|self\.)location\b/g, 'window._nLoc')
-                .replace(/\bdocument\.(referrer|domain|URL|baseURI)\b/g, (m, p) => p === 'referrer' ? '""' : (p === 'domain' ? '"itch.io"' : '"https://itch.io/"'))
-                .replace(/\bwindow\.(frameElement|origin)\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
+                .replace(/\b(window\.|top\.|parent\.|self\.)?location(?![a-zA-Z0-9_$])(?!\s*[:=])/g, 'window._nLoc');
         };
 
         const processNexusHtml = async (html, data = {}) => {
@@ -2238,7 +2263,7 @@
             const zipIndexPath = data.zipIndexPath || data.indexPath || '';
             const zipBaseDir = zipIndexPath.includes('/') ? zipIndexPath.substring(0, zipIndexPath.lastIndexOf('/') + 1) : '';
 
-            // Using Base64 to safely inject data into the script template
+            // Using Safe Base64 to inject data (matches loader.html)
             const nexusDataB64 = btoa(unescape(encodeURIComponent(JSON.stringify({ 
                 zipFiles: data.zipFiles || {}, 
                 zipIndexPath: zipIndexPath, 
@@ -2246,33 +2271,40 @@
                 resolvedUrl: resolvedUrl || ''
             }))));
 
+            const isModernMinecraft = data.name === "Minecraft Modern Client";
             const bypassScriptSource = `(function() {
+                const isModernMinecraft = ${isModernMinecraft};
                 const nexusData = JSON.parse(decodeURIComponent(escape(atob("${nexusDataB64}"))));
-                const { zipFiles, zipBaseDir } = nexusData;
+                const { zipFiles, zipBaseDir, resolvedUrl } = nexusData;
+                const nexusSelf = (typeof window !== 'undefined' ? window : self);
                 
-                const originalLocation = window._nLoc || window.location;
                 const originalBase = (location.protocol === 'file:' ? '' : (location.origin === 'null' ? '' : location.origin)) + location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
                 
-                const patchContent = (content) => {
+                nexusSelf.patchContent = (content, type) => {
+                    if (!isModernMinecraft) return content;
                     if (!content || typeof content !== 'string' || content.length < 10) return content;
-                    // Inject bypass if it's an HTML file and not already injected
-                    if (content.includes('<html') && !content.includes('_nexus_bypass')) {
-                        const bypass = document.getElementById('_nexus_bypass');
+                    if (content.includes('EAGL')) return content; 
+
+                    if (type === 'html' && content.includes('<html') && !content.includes('_nexus_bypass')) {
+                        const bypass = nexusSelf.document && nexusSelf.document.getElementById('_nexus_bypass');
                         if (bypass) {
-                            const parts = content.split('<head>');
-                            if (parts.length > 1) {
-                                content = parts[0] + '<head><script id="_nexus_bypass">' + bypass.textContent.replace(/<\/script>/gi, '<\\\\/script>') + '<\\\\/script>' + parts[1];
+                            const headSplit = content.split('<head>');
+                            if (headSplit.length > 1) {
+                                content = headSplit[0] + '<head><script id="_nexus_bypass">' + bypass.textContent + '<\/script>' + headSplit[1];
                             }
                         }
                     }
+
+                    if (content.length > 5000000) return content;
+
                     return content
-                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, 'window._nLoc.$2')
-                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.)location\\b/g, 'window._nLoc')
-                        .replace(/\\bdocument\\.(referrer|domain|URL|baseURI)\\b/g, (m, p) => p === 'referrer' ? '""' : (p === 'domain' ? '"itch.io"' : '"https://itch.io/"'))
-                        .replace(/\\bwindow\\.(frameElement|origin)\\b/g, (m, p) => p === 'frameElement' ? 'null' : '"https://itch.io"');
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.|document\\.)?location\\.(hostname|host|origin|href|protocol|pathname|port|search|hash)\\b/g, (m, p, s) => {
+                            return 'window._nLoc.' + s;
+                        })
+                        .replace(/\\b(window\\.|top\\.|parent\\.|self\\.|document\\.)?location(?![a-zA-Z0-9_$])(?!\\s*[:=])/g, 'window._nLoc');
                 };
 
-                const locProxy = new Proxy(originalLocation, {
+                const locProxy = new Proxy(location, {
                     get: (target, prop) => {
                         if (prop === 'hostname' || prop === 'host') return 'itch.io';
                         if (prop === 'origin') return 'https://itch.io';
@@ -2280,13 +2312,13 @@
                         if (prop === 'protocol') return 'https:';
                         if (prop === 'port') return '';
                         if (prop === 'pathname') return '/';
-                        if (prop === 'ancestorOrigins') return {
-                            length: 1, item: () => 'https://itch.io', contains: (o) => o.includes('itch.io'), 0: 'https://itch.io'
-                        };
+                        if (prop === 'assign' || prop === 'replace' || prop === 'reload') return (...args) => console.log('Nexus blocked nav:', prop, args);
                         if (prop === Symbol.toPrimitive || prop === 'toString') return () => 'https://itch.io/';
-                        let val = target[prop];
-                        if (typeof val === 'function') return val.bind(target);
-                        return val;
+                        try {
+                            const val = target[prop];
+                            if (typeof val === 'function') return val.bind(target);
+                            return val;
+                        } catch(e) { return undefined; }
                     },
                     set: (target, prop, val) => {
                         if (prop === 'href' && val.includes('itch.io')) return true;
@@ -2295,13 +2327,17 @@
                     }
                 });
 
-                Object.defineProperty(window, '_nLoc', {
-                    get: () => locProxy,
-                    set: (v) => { try { window.location.href = v; } catch(e) {} },
-                    configurable: true
-                });
+                window._nLoc = locProxy;
+                if (isModernMinecraft) {
+                    try { Object.defineProperty(window, 'location', { get: () => locProxy, configurable: true }); } catch(e) {}
+                    try {
+                        Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
+                        Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
+                        Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
+                        Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
+                    } catch(e) {}
+                }
 
-                // Memory-based storage for file:// environments to prevent security errors
                 if (location.protocol === 'file:') {
                     const storage = {};
                     const storageProxy = {
@@ -2317,171 +2353,187 @@
                         Object.defineProperty(window, 'localStorage', { get: () => storageProxy, configurable: true });
                         Object.defineProperty(window, 'sessionStorage', { get: () => storageProxy, configurable: true });
                     } catch (e) {}
-                    
-                    let memoryCookie = "";
-                    Object.defineProperty(document, 'cookie', {
-                        get: () => memoryCookie,
-                        set: (v) => { memoryCookie = v; },
-                        configurable: true
-                    });
                 }
 
                 const blobCache = new Map();
-                const resolveZipPath = (url) => {
+                nexusSelf.resolveZipPath = (url) => {
                     if (!zipFiles || Object.keys(zipFiles).length === 0) return null;
                     try {
-                        let path = typeof url === 'string' ? url : (url instanceof URL ? url.href : (url && url.url));
-                        if (!path) return null;
+                        let path = '';
+                        try {
+                            if (typeof url === 'string') path = url;
+                            else if (url && typeof url === 'object') {
+                                path = url.href || url.url || (url.toString ? url.toString() : '');
+                            }
+                        } catch (e) { return null; }
                         
-                        if (zipFiles[path]) return zipFiles[path];
+                        if (!path || path === '[object Request]' || path === '[object Object]') return null;
                         
-                        if (path.startsWith('https://itch.io/')) path = path.replace('https://itch.io/', '');
-                        else if (originalBase && path.startsWith(originalBase)) path = path.replace(originalBase, '');
-                        else if (path.startsWith('blob:') || path.startsWith('data:')) return null;
+                        if (path.startsWith('https://itch.io/')) {
+                            path = path.replace('https://itch.io/', '');
+                        } else if (path.startsWith(window.location.origin)) {
+                            path = path.substring(window.location.origin.length);
+                            if (path.startsWith('/')) path = path.substring(1);
+                        } else if (resolvedUrl && path.startsWith(resolvedUrl.substring(0, resolvedUrl.lastIndexOf('/') + 1))) {
+                            path = path.replace(resolvedUrl.substring(0, resolvedUrl.lastIndexOf('/') + 1), '');
+                        }
                         
-                        if (!path || path === '/' || path === '.') path = nexusData.zipIndexPath;
-                        if (zipFiles[path]) return zipFiles[path];
+                        const decodedPath = decodeURIComponent(path);
+                        const pathNoQuery = decodedPath.split('?')[0].split('#')[0];
+                        const normalizedWithBase = new URL(pathNoQuery || '.', 'https://itch.io/' + zipBaseDir).pathname.substring(1);
+                        const decodedNormalized = decodeURIComponent(normalizedWithBase);
 
-                        const absolutePath = new URL(path, 'https://itch.io/' + zipBaseDir).pathname.substring(1);
-                        if (zipFiles[absolutePath]) {
-                            const content = zipFiles[absolutePath];
-                            if (blobCache.has(absolutePath)) return blobCache.get(absolutePath);
+                        const targetPath = zipFiles[decodedPath] ? decodedPath : 
+                                         (zipFiles[pathNoQuery] ? pathNoQuery :
+                                         (zipFiles[decodedNormalized] ? decodedNormalized : 
+                                         (zipFiles[normalizedWithBase] ? normalizedWithBase : 
+                                         (zipFiles[path] ? path : null))));
+
+                        if (targetPath) {
+                            const content = zipFiles[targetPath];
+                            const ext = targetPath.split('.').pop().toLowerCase();
+                            const isPatcherTarget = ['js', 'html', 'css'].includes(ext);
                             
-                            if (typeof content === 'string' && !content.startsWith('data:')) {
-                                if (absolutePath.endsWith('.js') || absolutePath.endsWith('.html')) {
-                                    const patched = patchContent(content);
-                                    const ext = absolutePath.split('.').pop().toLowerCase();
-                                    const mime = { 'js': 'text/javascript', 'css': 'text/css', 'html': 'text/html', 'svg': 'image/svg+xml', 'json': 'application/json' }[ext] || 'text/plain';
-                                    const blob = new Blob([patched], { type: mime });
-                                    const bUrl = URL.createObjectURL(blob);
-                                    blobCache.set(absolutePath, bUrl);
-                                    return bUrl;
-                                }
+                            if (isPatcherTarget && typeof content === 'string' && !content.startsWith('blob:') && !content.startsWith('data:')) {
+                                if (blobCache.has(targetPath)) return blobCache.get(targetPath);
+                                const patched = nexusSelf.patchContent(content, ext);
+                                const mime = { 'js': 'text/javascript', 'html': 'text/html', 'css': 'text/css' }[ext] || 'text/plain';
+                                const blob = new Blob([patched], { type: mime });
+                                const bUrl = URL.createObjectURL(blob);
+                                blobCache.set(targetPath, bUrl);
+                                return bUrl;
                             }
                             return content;
                         }
-                        
-                        const searchPath = path.startsWith('/') ? path.substring(1) : path;
-                        const match = Object.keys(zipFiles).find(k => k.endsWith(searchPath));
-                        if (match) return zipFiles[match];
-
                         return null;
                     } catch (e) { return null; }
                 };
 
-                const originalFetch = window.fetch;
-                window.fetch = function(input, init) {
-                    let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input && input.url));
-                    const zipUrl = resolveZipPath(url);
+                const originalFetch = nexusSelf.fetch;
+                nexusSelf.fetch = function(input, init) {
+                    let url = typeof input === 'string' ? input : (input && (input.url || input.href));
+                    const zipUrl = nexusSelf.resolveZipPath(url);
                     if (zipUrl) return originalFetch(zipUrl, init);
-                    if (typeof input === 'string' && input.startsWith('https://itch.io/') && originalBase) {
-                        return originalFetch(input.replace('https://itch.io/', originalBase), init);
-                    }
                     return originalFetch(input, init);
                 };
 
-                const originalXHROpen = window.XMLHttpRequest.prototype.open;
-                window.XMLHttpRequest.prototype.open = function(method, url, ...args) {
-                    const zipUrl = resolveZipPath(url);
-                    if (zipUrl) url = zipUrl;
-                    else if (typeof url === 'string' && url.startsWith('https://itch.io/') && originalBase) {
-                        url = url.replace('https://itch.io/', originalBase);
-                    }
-                    return originalXHROpen.call(this, method, url, ...args);
-                };
+                const originalXHROpen = nexusSelf.XMLHttpRequest && nexusSelf.XMLHttpRequest.prototype.open;
+                if (originalXHROpen) {
+                    nexusSelf.XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                        const zipUrl = nexusSelf.resolveZipPath(url);
+                        if (zipUrl) url = zipUrl;
+                        return originalXHROpen.call(this, method, url, ...args);
+                    };
+                }
 
-                const origCreateElement = document.createElement;
-                document.createElement = function(tag) {
-                    const el = origCreateElement.apply(this, arguments);
-                    if (tag.toLowerCase() === 'script') {
-                        const originalSetAttribute = el.setAttribute;
-                        el.setAttribute = function(name, value) {
-                            if (name.toLowerCase() === 'src' && value) {
-                                const zipUrl = resolveZipPath(value);
-                                if (zipUrl) {
-                                    originalSetAttribute.call(el, 'src', zipUrl);
-                                    return;
-                                }
-                                if (!value.startsWith('blob:') && !value.includes('google')) {
-                                    try {
-                                        const base = nexusData.resolvedUrl || (originalBase && !originalBase.startsWith('blob:null') ? originalBase : null) || location.href;
-                                        const absoluteUrl = new URL(value, base).href;
-                                        fetch(absoluteUrl).then(res => {
-                                            if (!res.ok || !res.headers.get('content-type')?.includes('javascript')) throw new Error('Not JS');
-                                            return res.text();
-                                        }).then(content => {
-                                            const patched = patchContent(content);
-                                            const blob = new Blob([patched], { type: 'text/javascript' });
-                                            originalSetAttribute.call(el, 'src', URL.createObjectURL(blob));
-                                        }).catch(() => originalSetAttribute.call(el, 'src', value));
-                                        return;
-                                    } catch (e) {
-                                        originalSetAttribute.call(el, 'src', value);
-                                        return;
+                if (isModernMinecraft) {
+                    const OriginalWorker = nexusSelf.Worker;
+                    const wrapWorker = (Original, scriptURL, options) => {
+                        const zipUrl = nexusSelf.resolveZipPath(scriptURL);
+                        let finalUrl = zipUrl || scriptURL;
+                        const bypass = nexusSelf.document && nexusSelf.document.getElementById('_nexus_bypass');
+                        if (bypass && typeof finalUrl === 'string') {
+                            const wrapperCode = '(function() { ' +
+                                'const source = ' + JSON.stringify(bypass.textContent) + '; ' +
+                                'eval(source); ' +
+                                'const fUrl = ' + JSON.stringify(finalUrl) + '; ' +
+                                'if (fUrl.startsWith("blob:")) { ' +
+                                    'fetch(fUrl).then(r => r.text()).then(t => { if (typeof patchContent !== "undefined") eval(patchContent(t, "js")); else eval(t); }); ' +
+                                '} else { ' +
+                                    'try { importScripts(fUrl); } catch(e) { } ' +
+                                '} ' +
+                            '})();';
+                            const blob = new Blob([wrapperCode], { type: 'text/javascript' });
+                            return new Original(URL.createObjectURL(blob), options);
+                        }
+                        return new Original(finalUrl || scriptURL, options);
+                    };
+                    if (OriginalWorker) {
+                        nexusSelf.Worker = function(s, o) { return wrapWorker(OriginalWorker, s, o); };
+                    }
+
+                    const OriginalBlob = nexusSelf.Blob;
+                    if (OriginalBlob) {
+                        nexusSelf.Blob = function(parts, options) {
+                            if (options && options.type && options.type.includes('javascript')) {
+                                try {
+                                    let content = '';
+                                    let allString = true;
+                                    for (const part of parts) {
+                                        if (typeof part === 'string') content += part;
+                                        else { allString = false; break; }
                                     }
-                                }
+                                    if (allString && content && nexusSelf.patchContent) {
+                                        return new OriginalBlob([nexusSelf.patchContent(content, 'js')], options);
+                                    }
+                                } catch(e) {}
                             }
-                            return originalSetAttribute.apply(this, arguments);
+                            return new OriginalBlob(parts, options);
                         };
-                        Object.defineProperty(el, 'src', {
-                            set: function(url) { el.setAttribute('src', url); },
-                            get: function() { return el.getAttribute('src'); }
-                        });
-                    } else if (tag.toLowerCase() === 'iframe') {
-                        const originalSetAttribute = el.setAttribute;
-                        el.setAttribute = function(name, value) {
-                            if (name.toLowerCase() === 'src' && value) {
-                                const zipUrl = resolveZipPath(value);
-                                if (zipUrl) {
-                                    originalSetAttribute.call(el, 'src', zipUrl);
-                                    return;
-                                }
-                                if (value.startsWith('https://itch.io/')) {
-                                    originalSetAttribute.call(el, 'src', value.replace('https://itch.io/', originalBase));
-                                    return;
-                                }
-                            }
-                            return originalSetAttribute.apply(this, arguments);
-                        };
-                        Object.defineProperty(el, 'src', {
-                            set: function(url) { el.setAttribute('src', url); },
-                            get: function() { return el.getAttribute('src'); }
-                        });
+                        nexusSelf.Blob.prototype = OriginalBlob.prototype;
                     }
-                    return el;
-                };
+                }
+
+                if (nexusSelf.document) {
+                    const origCreateElement = document.createElement;
+                    document.createElement = function(tag) {
+                        const el = origCreateElement.apply(this, arguments);
+                        const tagL = tag.toLowerCase();
+                        if (tagL === 'script' || tagL === 'iframe' || tagL === 'embed' || tagL === 'object' || tagL === 'link') {
+                            const originalSetAttribute = el.setAttribute;
+                            el.setAttribute = function(name, value) {
+                                const nameL = name.toLowerCase();
+                                if ((nameL === 'src' || nameL === 'data' || nameL === 'href') && value) {
+                                    const zipUrl = nexusSelf.resolveZipPath(value);
+                                    if (zipUrl) { originalSetAttribute.call(el, name, zipUrl); return; }
+                                }
+                                return originalSetAttribute.apply(this, arguments);
+                            };
+                            if (tagL === 'script' || tagL === 'iframe') {
+                                Object.defineProperty(el, 'src', {
+                                    set: (val) => {
+                                        const zipUrl = nexusSelf.resolveZipPath(val);
+                                        el.setAttribute('src', zipUrl || val);
+                                    },
+                                    get: () => el.getAttribute('src')
+                                });
+                            }
+                        }
+                        return el;
+                    };
+                }
 
                 try {
-                    const originalTop = window.top;
-                    const originalParent = window.parent;
-                    Object.defineProperty(window, 'top', { get: () => { try { if (originalTop.location.href) return originalTop; } catch(e) {} return window; }, configurable: true });
-                    Object.defineProperty(window, 'parent', { get: () => { try { if (originalParent.location.href) return originalParent; } catch(e) {} return window; }, configurable: true });
+                    const originalTop = nexusSelf.top;
+                    const originalParent = nexusSelf.parent;
+                    Object.defineProperty(nexusSelf, 'top', { get: () => { try { if (originalTop && originalTop.location && originalTop.location.href) return originalTop; } catch(e) {} return nexusSelf; }, configurable: true });
+                    Object.defineProperty(nexusSelf, 'parent', { get: () => { try { if (originalParent && originalParent.location && originalParent.location.href) return originalParent; } catch(e) {} return nexusSelf; }, configurable: true });
                 } catch (e) {}
 
-                try {
-                    Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
-                    Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
-                    Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
-                    Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
-                    Object.defineProperty(document, 'location', { get: () => window._nLoc, set: (v) => { window.location.href = v; }, configurable: true });
-                } catch (e) {}
-
-                try {
-                    Object.defineProperty(window, 'origin', { get: () => 'https://itch.io', configurable: true });
-                    Object.defineProperty(window, 'frameElement', { get: () => null, configurable: true });
-                } catch (e) {}
-
-                try {
-                    const proto = Location.prototype;
-                    const origAssign = proto.assign;
-                    const origReplace = proto.replace;
-                    proto.assign = function(url) { if (url.includes('itch.io')) return; return origAssign.apply(this, arguments); };
-                    proto.replace = function(url) { if (url.includes('itch.io')) return; return origReplace.apply(this, arguments); };
-                } catch (e) {}
+                if (isModernMinecraft && nexusSelf.document) {
+                    try {
+                        Object.defineProperty(document, 'referrer', { get: () => '', configurable: true });
+                        Object.defineProperty(document, 'domain', { get: () => 'itch.io', configurable: true });
+                        Object.defineProperty(document, 'URL', { get: () => 'https://itch.io/', configurable: true });
+                        Object.defineProperty(document, 'baseURI', { get: () => 'https://itch.io/', configurable: true });
+                        Object.defineProperty(document, 'location', { get: () => nexusSelf._nLoc, set: (v) => { nexusSelf.location.href = v; }, configurable: true });
+                    } catch (e) {}
+                }
             })();`;
 
             const parser = new DOMParser(); 
             let doc = parser.parseFromString(html, "text/html");
+
+            // Inject Nexus Bypass as the very first script
+            const bScript = doc.createElement('script');
+            bScript.id = '_nexus_bypass';
+            bScript.textContent = bypassScriptSource;
+            if (doc.head) doc.head.insertBefore(bScript, doc.head.firstChild);
+            else {
+                const head = doc.createElement('head');
+                head.appendChild(bScript);
+                doc.documentElement.insertBefore(head, doc.documentElement.firstChild);
+            }
 
             const bundledAssets = {};
             const resolvePath = async (relPath, currentBase) => {
@@ -2504,7 +2556,7 @@
                             
                             const ext = absolutePath.split('.').pop().toLowerCase();
                             if (ext === 'js' || ext === 'html' || ext === 'css') {
-                                content = patchNexusContent(content, bypassScriptSource);
+                                content = patchNexusContent(content, ext);
                                 if (ext === 'css') {
                                     const matches = Array.from(content.matchAll(/url\(['"]?([^'")]*)['"]?\)/g));
                                     for (const match of matches) {
@@ -2584,7 +2636,7 @@
             }));
             
             doc.querySelectorAll('script:not([src])').forEach(script => {
-                script.textContent = patchNexusContent(script.textContent, bypassScriptSource).replace(/<\/script>/gi, '<\\/script>');
+                script.textContent = patchNexusContent(script.textContent, 'js').replace(/<\/script>/gi, '<\\/script>');
             });
 
             const scripts = Array.from(doc.querySelectorAll('script[src]'));
@@ -2602,7 +2654,7 @@
                                 const scriptRes = await fetch(scriptUrl);
                                 if (scriptRes.ok) {
                                     const scriptContent = await scriptRes.text();
-                                    const patched = patchNexusContent(scriptContent, bypassScriptSource);
+                                    const patched = patchNexusContent(scriptContent, 'js');
                                     try {
                                         const base64 = btoa(unescape(encodeURIComponent(patched)));
                                         script.src = 'data:text/javascript;base64,' + base64;
@@ -2689,11 +2741,6 @@
                 `;
                 doc.head.appendChild(unityFixScript);
             }
-
-            const bypassScript = doc.createElement('script');
-            bypassScript.id = '_nexus_bypass';
-            bypassScript.textContent = bypassScriptSource.replace(/<\/script>/gi, '<\\/script>');
-            doc.head.insertBefore(bypassScript, doc.head.firstChild);
 
             const nexusGlobalStyles = doc.createElement('style');
             nexusGlobalStyles.textContent = `
@@ -3493,8 +3540,17 @@
                 setActiveWindows(prev => prev.filter(n => n.id !== id));
             };
 
-            const launchLocalProject = (content, data = {}) => {
-                const blob = new Blob([content], { type: 'text/html' });
+            const launchLocalProject = async (content, data = {}) => {
+                let html = content;
+                if (data.isZip) {
+                    html = await processNexusHtml(content, { 
+                        isZip: true, 
+                        zipFiles: data.zipFiles, 
+                        indexPath: data.indexPath,
+                        name: data.name
+                    });
+                }
+                const blob = new Blob([html], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
                 addWindow({
                     name: data.name || 'Local Project',
@@ -3906,7 +3962,18 @@
                                                     }
                                                 });
                                                 await Promise.all(promises);
+                                                
+                                                indexPath = '';
+                                                Object.keys(files).forEach(f => {
+                                                    if (f.toLowerCase().endsWith('index.html')) {
+                                                        if (!indexPath || f.split('/').length < indexPath.split('/').length) {
+                                                            indexPath = f;
+                                                        }
+                                                    }
+                                                });
+                                                
                                                 if (!indexPath) indexPath = Object.keys(files).find(f => f.toLowerCase().endsWith('.html'));
+                                                
                                                 if (indexPath) {
                                                     launchLocalProject(files[indexPath], { 
                                                         name: file.name.replace(/\.zip$/i, ''), 
